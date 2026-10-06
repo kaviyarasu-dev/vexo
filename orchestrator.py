@@ -96,6 +96,13 @@ async def main():
             print(f"[DRY-RUN] Would have executed this prompt:\n{prompt[:200]}...\n")
             print(f"Finished {matching_key}. Moving to next phase...")
             continue
+            
+        # Pre-flight check for Stage 4 Hard Gate
+        if "Phase 10" in phase_name:
+            passed, err_msg = check_phase09_gate()
+            if not passed:
+                sys.exit(f"CRITICAL ERROR: Phase 09 HARD GATE must pass before starting Stage 4 (Phase 10)! {err_msg}. Halting.")
+            print("SUCCESS: Phase 09 Hard Gate verified before starting Phase 10!")
 
         old_handoff = get_handoff_content()
             
@@ -108,40 +115,38 @@ async def main():
             print(f"Agent Output for {matching_key} (Turn 1):")
             print(output_text)
             
-            # The /goal loop: Force the agent to continue until it explicitly marks the goal as complete
+            # The autonomous self-healing loop
             turn = 2
-            while "<!-- GOAL_COMPLETE -->" not in output_text:
-                print(f"[{matching_key}] Goal not complete yet. Forcing agent to continue (Turn {turn})...")
-                continuation_prompt = "You did not include <!-- GOAL_COMPLETE --> in your response. Please continue executing until the goal is met, or state why you are permanently blocked."
-                
-                output_text = await chat_with_retry(agent, continuation_prompt)
-                
-                print(f"Agent Output for {matching_key} (Turn {turn}):")
-                print(output_text)
-                
-                # Check for a critical failure/blocked state
+            while True:
+                # 1. Check for failure
                 if "<!-- GOAL_FAILED -->" in output_text or "permanently blocked" in output_text.lower():
                     sys.exit(f"CRITICAL ERROR: {matching_key} reported it is blocked. Halting execution to prevent cascading failures.")
                     
                 if turn > 20:
-                    sys.exit(f"CRITICAL ERROR: {matching_key} exceeded maximum allowed turns (20). Agent might be stuck in an infinite loop. Halting execution.")
+                    sys.exit(f"CRITICAL ERROR: {matching_key} exceeded maximum allowed turns (20). Agent might be stuck. Halting.")
                     
-                turn += 1
-
-        # Validation 1: Check Handoff
-        new_handoff = get_handoff_content()
-        old_count = old_handoff.upper().count("STATUS: DONE")
-        new_count = new_handoff.upper().count("STATUS: DONE")
-        
-        if new_count <= old_count:
-            sys.exit(f"CRITICAL ERROR: {matching_key} did not add a new 'STATUS: DONE' entry to plan/HANDOFF.md as required by global rules. Halting.")
-
-        # Validation 2: Phase 09 Hard Gate
-        if "Phase 09" in phase_name:
-            passed, err_msg = check_phase09_gate()
-            if not passed:
-                sys.exit(f"CRITICAL ERROR: Phase 09 HARD GATE failed! {err_msg}. Halting to prevent broken state moving to Stage 4.")
-            print("SUCCESS: Phase 09 Hard Gate passed successfully!")
+                # 2. Check for GOAL_COMPLETE
+                if "<!-- GOAL_COMPLETE -->" not in output_text:
+                    print(f"[{matching_key}] Goal not complete yet. Forcing agent to continue (Turn {turn})...")
+                    continuation_prompt = "You did not include <!-- GOAL_COMPLETE --> in your response. Please continue executing until the goal is met, or state why you are permanently blocked."
+                    output_text = await chat_with_retry(agent, continuation_prompt)
+                    turn += 1
+                    continue
+                
+                # 3. GOAL_COMPLETE is present! Validate Handoff
+                new_handoff = get_handoff_content()
+                old_count = old_handoff.upper().count("STATUS: DONE")
+                new_count = new_handoff.upper().count("STATUS: DONE")
+                
+                if new_count <= old_count:
+                    print(f"[{matching_key}] Agent forgot to update HANDOFF.md. Reminding agent (Turn {turn})...")
+                    handoff_prompt = "You output <!-- GOAL_COMPLETE -->, but you forgot to append a new 'STATUS: DONE' entry for this phase in `plan/HANDOFF.md` as required. Please append it now and reply with <!-- GOAL_COMPLETE --> again."
+                    output_text = await chat_with_retry(agent, handoff_prompt)
+                    turn += 1
+                    continue
+                
+                # If we reach here, GOAL_COMPLETE is present AND Handoff is successfully updated!
+                break
 
         print(f"Finished {matching_key} successfully. Moving to next phase...")
         
