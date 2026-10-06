@@ -1,6 +1,11 @@
 import asyncio
 import re
+import os
+from dotenv import load_dotenv
 from google.antigravity import Agent, LocalAgentConfig
+
+# Load environment variables from .env file (including GEMINI_API_KEY)
+load_dotenv()
 
 async def extract_prompts_from_runbook(filepath: str) -> dict:
     """Reads AGENT_RUNBOOK.md and extracts prompts block by block."""
