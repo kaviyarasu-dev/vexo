@@ -77,12 +77,29 @@ async def main():
             response = await agent.chat(full_prompt)
             output_text = await response.text()
             
-            print(f"Agent Output for {matching_key}:")
+            print(f"Agent Output for {matching_key} (Turn 1):")
             print(output_text)
             
-            # 3. STRICT HALT: Check if the phase actually succeeded
-            if "<!-- GOAL_COMPLETE -->" not in output_text:
-                sys.exit(f"CRITICAL ERROR: {matching_key} did not complete successfully (Missing GOAL_COMPLETE). Halting execution to prevent cascading failures.")
+            # The /goal loop: Force the agent to continue until it explicitly marks the goal as complete
+            turn = 2
+            while "<!-- GOAL_COMPLETE -->" not in output_text:
+                print(f"[{matching_key}] Goal not complete yet. Forcing agent to continue (Turn {turn})...")
+                continuation_prompt = "You did not include <!-- GOAL_COMPLETE --> in your response. Please continue executing until the goal is met, or state why you are permanently blocked."
+                
+                response = await agent.chat(continuation_prompt)
+                output_text = await response.text()
+                
+                print(f"Agent Output for {matching_key} (Turn {turn}):")
+                print(output_text)
+                
+                # Check for a critical failure/blocked state
+                if "<!-- GOAL_FAILED -->" in output_text or "permanently blocked" in output_text.lower():
+                    sys.exit(f"CRITICAL ERROR: {matching_key} reported it is blocked. Halting execution to prevent cascading failures.")
+                    
+                if turn > 20:
+                    sys.exit(f"CRITICAL ERROR: {matching_key} exceeded maximum allowed turns (20). Agent might be stuck in an infinite loop. Halting execution.")
+                    
+                turn += 1
             
         print(f"Finished {matching_key} successfully. Moving to next phase...")
         
