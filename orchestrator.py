@@ -130,8 +130,8 @@ async def main():
 
         # Validation 1: Check Handoff
         new_handoff = get_handoff_content()
-        old_count = old_handoff.count("STATUS: DONE")
-        new_count = new_handoff.count("STATUS: DONE")
+        old_count = old_handoff.upper().count("STATUS: DONE")
+        new_count = new_handoff.upper().count("STATUS: DONE")
         
         if new_count <= old_count:
             sys.exit(f"CRITICAL ERROR: {matching_key} did not add a new 'STATUS: DONE' entry to plan/HANDOFF.md as required by global rules. Halting.")
