@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reliance 5M Chart</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- TradingView Lightweight Charts -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <!-- Papa Parse for fast CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <span class="ticker">RELIANCE</span>
+                <span class="timeframe">5M</span>
+            </div>
+            <div class="status" id="status">Loading data...</div>
+        </header>
+        
+        <div class="chart-container" id="chart">
+            <div id="tooltip" class="tooltip"></div>
+            <!-- Loading Spinner -->
+            <div id="loader" class="loader">
+                <div class="spinner"></div>
+                <p id="loader-text">Fetching data (6.7MB)...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

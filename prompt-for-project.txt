@@ -1,0 +1,70 @@
+ROLE: Senior full-stack engineer and quant data engineer.
+
+GOAL: Build, in this empty folder, a web app that (1) downloads historical
+OHLCV data for all NSE equity stocks (~2,000+; no indices, no F&O) from the
+Fyers API v3, (2) stores it, (3) keeps it updated daily, (4) exports Excel
+on demand, (5) shows it as TradingView-style interactive charts.
+
+STEP 0 - DO THIS BEFORE PLANNING:
+1. Read research.txt. Treat it as UNVERIFIED notes. Known errors: Dhan Data
+   API is paid, Angel One caps 500 candles/request. Ignore Dhan, Angel One
+   and Zerodha; Fyers is the only broker in scope.
+2. Verify against Fyers official docs (myapi.fyers.in/docs) and the
+   fyers-apiv3 SDK, then list every discrepancy with research.txt:
+   - is the API and history data free for my account
+   - max calendar days per request per resolution (my notes: 100 days
+     intraday, 366 days daily; unverified)
+   - how many years of 1m history exist
+   - daily request cap (my notes: 10,000/day) and per-second/minute limits
+   - access-token and refresh-token validity, and the safest daily re-auth
+   - whether history is adjusted for splits/bonuses (cont_flag behaviour)
+   - how to get the full NSE equity symbol list (Fyers symbol master CSV)
+3. Ask me every remaining doubt. Do not assume. Take your time.
+
+DECISIONS ALREADY MADE:
+- Timeframes: download ONLY 1m and 1D from Fyers. Derive 3m/5m/10m/15m/30m/
+  1h/etc. by resampling 1m (IST market hours 09:15-15:30, bars aligned to
+  09:15). Explain any case where resampling differs from broker candles.
+- History depth: the maximum Fyers provides, per stock.
+- Storage: DuckDB ONLY (single file). Tables: symbols, download_checkpoints,
+  job_logs, candles_1d, candles_1m. No MySQL, no Parquet. Candle tables
+  sorted/partitioned for per-symbol time-range reads. Resample 1m to higher
+  timeframes with SQL at query time (cache hot results if needed).
+- Concurrency: DuckDB allows one writer process. FastAPI and the downloader
+  must run in the SAME Python process (downloader as a background thread/
+  worker), sharing one connection or connection pool. The plan must explain
+  how writes are batched so chart reads are never blocked for long.
+- Stack: Python (ingestion, pandas, duckdb) + FastAPI backend + React +
+  Lightweight Charts frontend. API keys and tokens in .env only. Never
+  commit secrets.
+- Updates: daily auto-update job after market close, incremental only.
+- Excel: export button per (stock, timeframe, date range), hard cap at
+  1,048,576 rows per sheet, warn the user above that.
+
+THE PLAN MUST COVER (NO CODE until I approve):
+a. Architecture, folder structure, and reason for each tech choice.
+b. Request math: exact requests per stock and in total for the initial
+   download, the days it takes under the verified caps, and the daily
+   update cost. Use CALENDAR days for chunking, not trading days.
+c. Downloader: calendar-day chunking, rate limiting, retry/backoff on
+   429, resume from checkpoint (survive crash/restart), token expiry
+   handling, priority order (liquid stocks first).
+d. Storage: DuckDB schema, row-count and disk-size estimate, and the
+   write-batching design for the single-writer limit.
+e. Data quality: dedupe, missing candles, holidays, IST timezone, splits/
+   bonuses, delisted stocks (survivorship bias: state the limitation),
+   validation checks after each download.
+f. Backend API: endpoints for symbol search, candles by timeframe and
+   range (server-side resample and downsample for large ranges), export.
+g. Chart UI: candlestick + volume, timeframe switcher, symbol search,
+   zoom/pan with lazy loading of older candles, dark theme.
+h. Download-progress dashboard: per-stock status, failures, ETA.
+i. Milestones, each with a testable result. M1 = ONE stock (RELIANCE),
+   1m + 1D, download -> store -> chart -> Excel export, end to end.
+   In M1, measure the real DuckDB disk size and query latency for
+   1 stock (1m, max history) before scaling. Scale to all stocks only
+   after M1 passes.
+j. Risks, failure points, and a fallback for each.
+
+OUTPUT: Plan only, as a table + short sections. End by asking me to
+approve before writing any code.

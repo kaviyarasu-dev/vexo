@@ -1,0 +1,385 @@
+trading ku nse and other data purchase pandradhuku yenga poi pananu? and adhoda cost yena? yvlo yr ku data kedaiku?
+
+Retail traders usually direct-ah NSE (NSE Data & Analytics) kitta irundhu data purchase panna maatanga, yenna adhoda cost romba adhigam (institutions-kaga design pannadhu). Neenga algo trading illa backtesting panna plan pandringa na, Broker APIs alladhu Authorized Data Vendors moolama purchase pandradhu dhaan best and cost-effective.
+
+Options, cost, and data availability details:
+
+1. Broker APIs (Best for Algo Trading & Custom Codes)
+Neenga Python, Node.js, illa custom software use pandringa na, brokers-oda API use pannikalam.
+
+Providers: Zerodha Kite Connect, Upstox API, Fyers, AliceBlue.
+
+Cost:   
+Support Zerodha
+
+Zerodha Kite Connect: Historical candle data and real-time WebSocket data-oda serthu ₹500 / month aagum.   
+Support Zerodha
++ 1
+
+Fyers / Upstox: Sila brokers API access-a free-a offer pandranga, but rate limits irukkum.
+
+How many years?: Daily candle data (EOD) 10+ years kedaikkum. Intraday (1 min / 5 min) data 5 to 7 years varaikum historical kedaikkum. Aana pure historical tick-by-tick data kedaikadhu.   
+NSE
+
+2. Authorized Data Vendors (Best for Amibroker, NinjaTrader, MT4)
+Neenga readymade charting softwares (Amibroker, NinjaTrader) use pandringa na, NSE-oda authorized vendors kitta subscribe pannalam.
+
+Providers: TrueData, Global Datafeeds (GFDL).
+
+Cost: Segment-a poruthu (Equity, F&O, MCX) basic plans ₹699 / month la irundhu start aagi, premium live tick data-ku ₹2,000 to ₹3,000 / month (Appx. ₹25,000 - ₹35,000 per year) varai aagum.
+
+How many years?:
+
+Tick data: 2015 / 2018-la irundhu (approx 6 to 10 years) kedaikkum.
+
+Intraday & Daily data: 10 to 15+ years kedaikkum.
+
+3. Direct NSE Data & Analytics (For Institutions)
+Institutions and big prop-desks direct-ah NSE kitta leased lines moolama data vanguvanga.
+
+Cost: Real-time tick data and historical dumps-ku segment-a poruthu ₹1.5 Lakh to ₹3+ Lakhs per year aagum.
+
+How many years?: Inception-la irundhu full raw market data kedaikkum.
+
+Free Alternative: Neenga just End of Day (EOD) Bhavcopy and historical closing prices vechu backtest panna poringa na, NSE Official Website-la daily and monthly reports-a free-ave download pannikalam.
+
+simple ah solu
+
+Simple-ah sollanum na, direct-ah NSE kitta data vangaadhinga (adhoda rate latcha kanakkula aagum).
+
+Unga thevaikku idhu dhaan 3 simple vazhi:
+
+Unga Broker API (Zerodha, Upstox, etc.)
+
+Yarukku: Neenga code (Python/Node.js) ezhudhi algo panna poringa na.
+
+Cost: Sila brokers free, Zerodha-la maasam ₹500.
+
+Data: 5 lerundhu 10 varusha data kedaikkum. (Idhudhaan cheap & best).
+
+Data Vendors (TrueData, Global Datafeeds)
+
+Yarukku: Neenga Amibroker madhiri readymade software use panringa na.
+
+Cost: Maasam ₹700 lerundhu ₹3,000 varai aagum.
+
+Data: 10 lerundhu 15 varusha data kedaikkum.
+
+Free Option
+
+Yarukku: Summa daily market mudinja udane closing price vechu backtest pandravangalukku.
+
+Cost: Free.
+
+Data: NSE website-laye daily reports-a download pannikalam.
+
+point 1 la broker api la free nu sonila yendha broker la free ypdi download pandradhunu sollu
+
+India-la mainly 3 brokers API and historical data-va completely free-ah tharanga:
+
+Fyers (Fyers API) - Developers-ku romba user-friendly.   
+FYERS - Support Portal
+
+Dhan (DhanHQ)   
+Chittorgarh
++ 1
+
+Angel One (SmartAPI)   
+Smart API - Angel One
++ 1
+
+(Zerodha Kite Connect API-ku maasam ₹2000 and historical data-ku extra ₹500 charge pandranga).
+
+Data Epdi Download Pandradhu? (4 Simple Steps)
+API moolama data vanga neenga basic-ah code (Python, Node.js) ezhudhi dhaan download panna mudiyum. Idhukaana steps idhudhaan:
+
+Step 1: Demat Account
+Mudhal-la ungalukku indha broker-la (example: Fyers or Dhan) Trading account irukkanum.   
+Angel One
+
+Step 2: API Portal Login
+Broker-oda developer website-ku ponga. (Fyers na myapi.fyers.in, Angel One na smartapi.angelone.in). Unga trading account ID and password vechu login pannunga.
+
+Step 3: Create App & Keys
+Dashboard-la "Create App" nu oru option irukkum. Adha click panni unga application peru kudutha, ungalukku API Key (App ID) and Secret Key kedaikkum. Idhu dhaan unga code-a broker kooda connect panna thevaipadanum.
+
+Step 4: Code vazhiya Download pandradhu
+Avanga official library (SDK) install panni neenga data pull pannikalam. Python use panni SBI share-oda daily data edukka oru chinna example:
+
+Python
+from fyers_apiv3 import fyersModel
+
+# Step 3-la generate aana keys-a inga podaanum
+client_id = "UNGA_API_KEY-100"
+access_token = "UNGA_ACCESS_TOKEN"
+
+fyers = fyersModel.FyersModel(client_id=client_id, is_async=False, token=access_token, log_path="")
+
+# Data request pandradhukana details
+data = {
+    "symbol":"NSE:SBIN-EQ",
+    "resolution":"D", # 'D' na Daily candles, '1' na 1 min candle
+    "date_format":"1",
+    "range_from":"2020-01-01",
+    "range_to":"2023-12-31",
+    "cont_flag":"1"
+}
+
+# API call
+response = fyers.history(data=data)
+
+# Result print aagum
+print(response['candles']) 
+Indha code run aana udane, ungalukku [Timestamp, Open, High, Low, Close, Volume] format-la list kedaikkum. Adha neenga JSON alladhu Excel/CSV file-ah save panni unga backtesting-ku use pannikalam. Neenga Node.js/PHP use pandringa na, direct-ah avanga API endpoint-ku HTTP POST/GET request anuppiyum data vangalma.
+
+Fyers (Fyers API) - Developers-ku romba user-friendly.
+
+
+
+idhuku ypdi code la coneect pani download pandradhu document link kudu. ne kudutha 3 api ku price pay pana thevai ilaya?
+
+Aama bro, 100% Free dhaan! Neenga indha 3 brokers-oda (Fyers, Dhan, Angel One) API-ku maasam oru rubaa kooda pay panna thevai illa.
+
+Zerodha and Upstox API-ku kaasu vangumbodhu, ivanga yen free-ah tharanga na, Algo Traders-a attract pandradhukkaga idha oru marketing strategy-ah use pandranga. Idhula irukka orey oru condition: Neenga avanga kitta oru Trading/Demat account vechirukkanum (account opening mostly free dhaan).
+
+Fyers API Document Links:
+Fyers ippo API V3 use pandranga. Adhoda official links inga irukku:
+
+Official API Dashboard & Documentation:
+👉 https://myapi.fyers.in/docs/
+(Indha link-la poyi left side menu-la "Data API" -> "Historical Data" click panni pathinga na, parameters pathina full details irukkum).
+
+Fyers Python SDK (GitHub):
+👉 https://github.com/FyersDev/fyers-api-v3
+(Neenga Python use pandringa na, indha package-a direct-ah pip install fyers-apiv3 nu pottu install pannikalam).
+
+Code Moolama Download Panna Next Steps:
+First myapi.fyers.in website-la login panni, Create App kuduthu client_id and secret_key vanguvinga.
+
+App create pannum bodhu "Redirect URL" nu onnu kekkum, adhula [https://127.0.0.1](https://127.0.0.1) nu summavaachu pottu vaiyunga (local system-la test panna idhu dhaan correct).
+
+Documentation-la irukka "Authentication" steps-a follow panni Access Token generate pannuvinga.
+
+Andha token kedaicha udane, mela naan kudutha Python code-a run panni varusha kanakula data-va free-ah download pannikalam.
+
+fyers la Iruka api use pani na yendha stock oda complete data um extract panika mudiyuma?
+
+Aama, extract pannalam. NSE and BSE-la actively trade aagura almost ella stocks, indices (Nifty, BankNifty), and commodities-kum data kedaikkum.
+
+Aana "complete data" nu varumbodhu sila practical limitations and rules irukku:
+
+1. Enna Data Kedaikkum? (Available Data)
+Instruments: NSE Equity (ella shares), Indices, and Continuous Futures.
+
+Data Format: OHLCV (Open, High, Low, Close, Volume) candle data mattum dhaan kedaikkum.
+
+Daily Candles (EOD): Oru stock stock exchange-la list aana date-la irundhu 15 to 20+ years data kedaikkum.
+
+Intraday Candles (1 min, 5 min, etc.): Past 3 to 5 years intraday candle history kedaikkum.
+
+2. Sila Mukkiyamaana Limitations (Gavanikka Vendiyavai)
+Orey Request-la Ellam Varaadhu (Pagination/Chunking):
+Oru single API call-la ungalal 5 varusha 1-minute data-va orey adiya edukka mudiyaadhu.
+
+1-minute candle-ku oru call-ku max 100 days dhaan limit.
+
+Adhanaala neenga code-la while loop pottu, 100-100 days-ah date range maathi maathi chunk panni dhaan full history-a download panna mudiyum.
+
+Rate Limits:
+API-la second-ku 5 to 10 requests dhaan anuppa mudiyum. Neenga loop-a romba speed-a run panna 429 Too Many Requests error varum. So, unga code-la chinna delay (e.g., time.sleep(0.5)) vekkanum.
+
+Tick-by-Tick Data Kedaikkadhu:
+Idhula candle data (OHLC) mattum dhaan kedaikkum. Past tick-by-tick order book data (Level 2 / Level 3 buyer-seller bids) historical API-la kedaikkadhu.
+
+Expired Options Data Limited:
+Equity stocks-ku complete data kedaichidum. Aana expired Options contracts (strike prices) oda pazhaya data eduppadhu romba limited.
+
+Neenga stocks-oda Daily data (10+ years) alladhu 1-minute intraday data (past 2-3 years) edukka ninaikireenga na, Fyers API-la loop ezhudhi neat-ah full data-vaiyum CSV/Database-la save pannikkalam.
+
+intraday ku past 5years days tha kedaikuma? adhuku mela kedaikadha?
+
+Aama bro, Free APIs (Fyers, Dhan, Angel One) ellathulayum intraday data (1-min, 5-min) maximum past 5 varushathukku dhaan kedaikkum. Adhukku mela free-ah kedaikadhu.
+
+Idhukku mukkiyamaana kaaranam Data Size & Cost.
+Oru naalukku oru stock-la 375 one-minute candles uruvaagum. 5 varushathukku oru stock-ku latcha kanakkana data points irukkum. Namma Indian share market-la irukka aayirakkanakkana stocks-oda intraday data-va 5+ years-ku store panni free-ah kudutha avanga server cost thaangadhu.
+
+Daily (EOD) candles 15-20 varushathukku chinna size dhaan, adhanaala adha free-ah tharanga.
+
+5 Varushathukku melana Intraday Data venum na enna pandradhu?
+Neenga 2015 lerundhu (almost 9-10 years) intraday backtest pannanum na, ungalukku 2 paid vazhigal dhaan irukku:
+
+1. Zerodha Kite Connect API (Paid)
+Zerodha-la 2015 lerundhu active stocks-oda 1-minute historical intraday data kedaikkum. Aana idhu free illa.
+
+API charge: ₹2000 / month
+
+Historical Data add-on: ₹500 / month
+
+Total aagi maasam ₹2500 aagum.
+
+2. Authorized Data Vendors (TrueData, Global Datafeeds)
+Neenga API coding pannama direct-ah Amibroker, Python illa Excel-la data vanguradhukku indha vendors kitta varusha kanakku plan podaalam. Ivanga kitta 2010 lerundhu kooda intraday data irukkum. Aana cost maasam ₹1,500 lerundhu start aagum.
+
+Oru chinna tip: Neenga Options (Nifty, BankNifty) backtest panna poreenga na, API moolama expired contracts-oda pazhaya 1-min data edukkadhu romba kashtam (broker APIs-la mostly tharamatanga). Adhukku neenga AlgoTest alladhu StockMock madhiri platforms use pannalam. Avangaley past 7+ years options data-va avanga server-la vechirukkanga, neenga website-laye unga strategy-a backtest pannikalam.
+
+Fyers, Dhan, Angel One
+
+
+
+indha 3 oda,
+
+
+
+1. yena yena data kedaikum
+
+2. ovoru data um maximum yvlo year ku kedaikum
+
+3. doc link
+
+4. download pandradhuku instructions
+
+
+
+indha detail yela short ah simple ah sollu 
+
+1. Fyers (Fyers API v3)
+Enna Data Kedaikkum: NSE & BSE Equity, Indices (Nifty/BankNifty), F&O, Currency, and Commodities. Data format: OHLCV (Open, High, Low, Close, Volume) candle data.
+
+Maximum Evlo Year:
+
+Daily (EOD): 15+ years (Listing aana naalil irundhu).
+
+Intraday (1-min): Past 3 to 5 years (Oru call-ku max 100 days chunk limit).
+
+Doc Link: Fyers API Documentation | Python SDK GitHub
+
+Download Instructions:
+
+myapi.fyers.in la login panni Create App click pannunga. App ID and Secret Key generate aagum.
+
+OAuth flow moolama daily Access Token generate pannunga.
+
+Python-la fyers-apiv3 install panni, fyers.history() function call panni data-va CSV/JSON-ah save pannunga.
+
+2. Dhan (DhanHQ API)
+Enna Data Kedaikkum: NSE, BSE, MCX (Cash, F&O, Currency). Historical OHLCV candle data and real-time tick/quotes.
+
+Maximum Evlo Year:
+
+Daily (EOD): Up to 8 to 10 years.
+
+Intraday (1-min): Past 1 to 2 years (Indices-ku sila neram 3+ years kedaikkum).
+
+Doc Link: DhanHQ API Documentation | DhanHQ Python SDK
+
+Download Instructions:
+
+Dhan web platform (web.dhan.co) login panni Profile -> DhanHQ Trading APIs ponga.
+
+Angaye direct-ah Access Token (IP based or 30-day token) generate pannikalam (OAuth loop thevai illa).
+
+Python-la dhanhq library install panni, dhan.historical_daily_data() alladhu dhan.intraday_minute_data() call panni data edunga.
+
+3. Angel One (SmartAPI)
+Enna Data Kedaikkum: NSE, BSE, MCX, NCDEX (Equity, F&O, Currency, Commodity). OHLCV candles and live feeds.
+
+Maximum Evlo Year:
+
+Daily (EOD): 10 to 15 years.
+
+Intraday (1-min): Past 1 to 3 years (Oru request-ku max 30 to 60 days limit).
+
+Doc Link: Angel One SmartAPI Documentation | SmartAPI Python SDK
+
+Download Instructions:
+
+smartapi.angelone.in la sign up panni Create App kuduthu API Key vanguvinga.
+
+SmartAPI-la login panna unga Client Code, Password, and TOTP (Google Authenticator) use panni session generate panna vendiyirukkum.
+
+smartapi-python SDK-la getCandleData() method call panni start date, end date kuduthu data-va pull pannunga.
+
+Fyers, Dhan, Angel One
+
+
+
+indha 3 oda,
+
+
+
+1. yena yena data kedaikum.
+
+2. ovoru data um maximum yvlo year ku kedaikum. yena yena varient (candle. ex; 1m, 3m, 5m, etc...) la kedaikum. ovoru varient ku maximum yvlo year ku kedaikum
+
+3. doc link
+
+4. download pandradhuku instructions
+
+
+
+indha detail yela short ah simple ah sollu 
+
+Kandipa bro, romba simple and short-ah 3 APIs-kum detail tharan:
+
+1. Fyers API (Free)   
+FYERS
+1. Enna Data Kedaikkum?
+NSE, BSE, MCX (Equity shares, F&O Futures/Options, Currency, Indices, Commodities).
+
+2. Candle Variants & Max Years:
+
+Intraday (1m, 2m, 3m, 5m, 10m, 15m, 30m, 45m, 60m, 120m, 240m): Max 3 to 5 years kedaikkum. (Aana oru API call-ku max 100 days dhaan edukka mudiyum, so loop pottu edukka vendiyirukkum).
+
+Daily (1D): 15+ years (Stock listing aana date-la irundhu kedaikkum).
+
+3. Doc Link: Fyers History API Docs
+
+4. Download Instructions:
+
+myapi.fyers.in portal-la App create panni App ID, Secret Key generate pannunga.
+
+Python-la fyers-apiv3 install pannunga.
+
+Auth flow moolama Access Token vaangittu, fyers.history() function call panni data eduthukalam.
+
+2. DhanHQ API (Free)
+1. Enna Data Kedaikkum?
+NSE, BSE, MCX (Equity, F&O, Currency).
+
+2. Candle Variants & Max Years:
+
+Intraday (1m, 5m, 15m, 25m, 60m): Max 1 to 5 years kedaikkum. (Note: F&O Options/Futures-la expired contracts-ku intraday tharamatanga, Active contracts-ku mattum dhaan kedaikkum).
+
+Daily/Weekly/Monthly (1D, 1W, 1M): 10+ years kedaikkum.
+
+3. Doc Link: DhanHQ Data Docs
+
+4. Download Instructions:
+
+Dhan Web login panni "Profile -> DhanHQ APIs" ponga.
+
+Angaye direct-ah 24-hour Access Token generate pannikkalam (OAuth loop thevai illa).
+
+Python dhanhq library install panni historical_daily_data() alladhu intraday_minute_data() use panni download pannunga.
+
+3. Angel One SmartAPI (Free)
+1. Enna Data Kedaikkum?
+NSE, BSE, MCX, NCDEX (Equity, F&O, Commodity, Currency).
+
+2. Candle Variants & Max Years:
+
+Intraday (1m, 3m, 5m, 10m, 15m, 30m, 1H): Max 1 to 3 years kedaikkum. (Oru request-ku 1m candle na 30-35 days chunk-ah dhaan edukka mudiyum).
+
+Daily (1D): 10+ years kedaikkum.
+
+3. Doc Link: Angel One API Docs
+
+4. Download Instructions:
+
+smartapi.angelone.in-la app create panni API Key edunga.
+
+Client ID, Password kooda TOTP (Google Auth code) pass panni session login pannanum.
+
+Python-la smartapi-python package install panni, getCandleData() method call panni start/end date pass panni edukkalam.
+
+
