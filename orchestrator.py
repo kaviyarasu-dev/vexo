@@ -86,27 +86,27 @@ async def main():
     phases_to_run = EXPECTED_PHASES[START_INDEX:]
     print(f"Starting execution from: {phases_to_run[0]}")
 
-    for phase_name in phases_to_run:
-        matching_key = next(k for k in phases.keys() if phase_name in k)
-        prompt = phases[matching_key]
-        
-        print(f"\n{'='*50}\nStarting {matching_key}...\n{'='*50}")
-        
-        if "--dry-run" in sys.argv:
-            print(f"[DRY-RUN] Would have executed this prompt:\n{prompt[:200]}...\n")
-            print(f"Finished {matching_key}. Moving to next phase...")
-            continue
+    async with Agent(LocalAgentConfig()) as agent:
+        for phase_name in phases_to_run:
+            matching_key = next(k for k in phases.keys() if phase_name in k)
+            prompt = phases[matching_key]
             
-        # Pre-flight check for Stage 4 Hard Gate
-        if "Phase 10" in phase_name:
-            passed, err_msg = check_phase09_gate()
-            if not passed:
-                sys.exit(f"CRITICAL ERROR: Phase 09 HARD GATE must pass before starting Stage 4 (Phase 10)! {err_msg}. Halting.")
-            print("SUCCESS: Phase 09 Hard Gate verified before starting Phase 10!")
+            print(f"\n{'='*50}\nStarting {matching_key}...\n{'='*50}")
+            
+            if "--dry-run" in sys.argv:
+                print(f"[DRY-RUN] Would have executed this prompt:\n{prompt[:200]}...\n")
+                print(f"Finished {matching_key}. Moving to next phase...")
+                continue
+                
+            # Pre-flight check for Stage 4 Hard Gate
+            if "Phase 10" in phase_name:
+                passed, err_msg = check_phase09_gate()
+                if not passed:
+                    sys.exit(f"CRITICAL ERROR: Phase 09 HARD GATE must pass before starting Stage 4 (Phase 10)! {err_msg}. Halting.")
+                print("SUCCESS: Phase 09 Hard Gate verified before starting Phase 10!")
 
-        old_handoff = get_handoff_content()
-            
-        async with Agent(LocalAgentConfig()) as agent:
+            old_handoff = get_handoff_content()
+                
             # We append a strict instruction to enforce GOAL_COMPLETE
             full_prompt = f"{prompt}\n\n[SYSTEM ORCHESTRATOR]: Execute this phase. You MUST reply with <!-- GOAL_COMPLETE --> when you have successfully finished the entire task."
             
@@ -148,7 +148,8 @@ async def main():
                 # If we reach here, GOAL_COMPLETE is present AND Handoff is successfully updated!
                 break
 
-        print(f"Finished {matching_key} successfully. Moving to next phase...")
+            print(f"Finished {matching_key} successfully. Clearing conversation context and moving to next phase...")
+            await chat_with_retry(agent, "/clear")
         
     print("\nAll selected phases completed perfectly!")
 

@@ -1,0 +1,11 @@
+{
+  "comment": "Empty template for manual constituent overrides. Phase 03 Universe Sorter.",
+  "additions": {
+    "NIFTY50": [],
+    "NIFTYNEXT50": [],
+    "NIFTYMIDCAP150": [],
+    "NIFTYSMALLCAP250": []
+  },
+  "exclusions": [],
+  "overrides": {}
+}

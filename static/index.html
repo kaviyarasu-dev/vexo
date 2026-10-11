@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSE Quant App</title>
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/modes.css">
+    <link rel="stylesheet" href="/static/css/education.css">
+    <!-- TradingView LightweightCharts v4.2.1 -->
+    <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark pro-mode-enabled">
+    <div class="app-layout">
+        <!-- Top Navigation -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <div class="logo">NSE Quant App</div>
+                <div class="search-box" id="search-trigger" title="Quick Search Symbols (Shortcut: Ctrl + K)">
+                    <span class="icon">🔍</span>
+                    <span class="placeholder">Search Symbol...</span>
+                    <kbd class="search-key-badge">Ctrl + K</kbd>
+                </div>
+                <div class="data-badge" id="data-badge" title="Active Feed Format">
+                    <span data-indicator="ohlcv">OHLCV</span>
+                </div>
+            </div>
+
+            <div class="topbar-center">
+                <!-- Navigation Tabs -->
+                <nav class="view-tabs" id="main-view-tabs">
+                    <button class="view-tab active" data-view="chart">📈 Chart</button>
+                    <button class="view-tab" data-view="screener">🔍 Screener</button>
+                    <button class="view-tab" data-view="options">⚡ Options & Greeks</button>
+                    <button class="view-tab" data-view="backtest">🧪 Backtest</button>
+                    <button class="view-tab" data-view="journal">📓 Journal</button>
+                </nav>
+            </div>
+
+            <div class="topbar-right">
+                <!-- Alerts Bell Icon with Badge -->
+                <button id="btn-alerts" class="alerts-bell-btn" title="Price & Technical Alerts">
+                    <span class="bell-icon">🔔</span>
+                    <span id="alert-badge-count" class="alert-count-badge">0</span>
+                </button>
+
+                <button id="btn-downloader" class="nav-btn">Downloads</button>
+                <div id="auth-badge" class="auth-badge auth-ok">
+                    🔑 Token: <span id="auth-countdown">--h --m</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW 1: Interactive Chart Workspace -->
+        <div id="view-chart" class="app-view active">
+            <!-- Pro / Simple Mode Toolbar -->
+            <div id="pro-toolbar" class="pro-toolbar">
+                <!-- Active Stock Badge -->
+                <div class="active-symbol-badge" id="active-symbol-badge" title="Selected Stock · Click to Search or Switch (Ctrl + K)">
+                    <span class="active-symbol-dot"></span>
+                    <span class="active-symbol-name" id="pro-symbol-name">NSE:RELIANCE-EQ</span>
+                    <span class="active-symbol-price font-mono" id="pro-symbol-price">₹--</span>
+                    <span class="active-symbol-change badge-pill font-mono" id="pro-symbol-change">--</span>
+                </div>
+
+                <div class="timeframes">
+                    <button class="tf-btn" data-tf="1m">1m</button>
+                    <button class="tf-btn" data-tf="3m">3m</button>
+                    <button class="tf-btn" data-tf="5m">5m</button>
+                    <button class="tf-btn" data-tf="10m">10m</button>
+                    <button class="tf-btn" data-tf="15m">15m</button>
+                    <button class="tf-btn" data-tf="30m">30m</button>
+                    <button class="tf-btn" data-tf="1h">1h</button>
+                    <button class="tf-btn" data-tf="2h">2h</button>
+                    <button class="tf-btn" data-tf="4h">4h</button>
+                    <button class="tf-btn active" data-tf="1D">1D</button>
+                    <button class="tf-btn" data-tf="1W">1W</button>
+                </div>
+                <div class="overlays">
+                    <label>Overlays:</label>
+                    <button class="overlay-btn active" id="btn-overlay-vwap" data-overlay="vwap" data-indicator="vwap" data-simple-name="Average Traded Price" title="Average Traded Price">VWAP</button>
+                    <button class="overlay-btn active" id="btn-overlay-ema" data-overlay="ema" data-indicator="ema" data-simple-name="Moving Average Trend" title="Moving Average Trend">EMA</button>
+                </div>
+                <div class="export-actions">
+                    <button id="btn-export">Export Data</button>
+                </div>
+            </div>
+
+            <!-- Main Chart Container -->
+            <main class="chart-workspace">
+                <div id="chart-container" class="chart-container">
+                    <!-- Floating Chart Legend HUD -->
+                    <div class="chart-legend-overlay" id="chart-legend-overlay">
+                        <div class="legend-header">
+                            <span class="legend-ticker" id="legend-ticker">RELIANCE</span>
+                            <span class="legend-badge legend-exchange">NSE</span>
+                            <span class="legend-badge legend-series" id="legend-series">EQ</span>
+                            <span class="legend-badge legend-tf" id="legend-tf">1D</span>
+                        </div>
+                        <div class="legend-ohlc font-mono" id="legend-ohlc">
+                            <span class="legend-item"><span class="legend-lbl">O</span> <span class="legend-val" id="legend-val-o">--</span></span>
+                            <span class="legend-item"><span class="legend-lbl">H</span> <span class="legend-val" id="legend-val-h">--</span></span>
+                            <span class="legend-item"><span class="legend-lbl">L</span> <span class="legend-val" id="legend-val-l">--</span></span>
+                            <span class="legend-item"><span class="legend-lbl">C</span> <span class="legend-val" id="legend-val-c">--</span></span>
+                            <span class="legend-item"><span class="legend-lbl">Chg</span> <span class="legend-val" id="legend-val-chg">--</span></span>
+                        </div>
+                    </div>
+                </div>
+                <!-- Sub panes added dynamically in Pro mode -->
+                <div id="volume-pane" class="sub-pane"></div>
+                <div id="oscillator-pane" class="sub-pane"></div>
+            </main>
+        </div>
+
+        <!-- VIEW 2: Stock Screener Workspace -->
+        <div id="view-screener" class="app-view hidden">
+            <div class="view-container screener-container">
+                <div class="view-header">
+                    <div>
+                        <h2>NSE Stock Screener</h2>
+                        <p class="view-subtitle">Scan Nifty 500 and broader NSE equities using technical indicators, volume breakouts, and RSI filters.</p>
+                    </div>
+                    <div class="header-actions">
+                        <span id="screener-count-badge" class="badge-pill">Scanning...</span>
+                    </div>
+                </div>
+
+                <!-- Template Selector Chips & New Template Button -->
+                <div class="template-selector-bar">
+                    <div class="template-chips-wrap">
+                        <span class="bar-label">Scans:</span>
+                        <div id="screener-templates" class="template-chips-container">
+                            <!-- Populated dynamically: Built-in & Custom Templates -->
+                        </div>
+                    </div>
+                    <button id="btn-new-screener-template" class="btn-create-template" title="Create Custom Screener Template">
+                        <span>➕ New Template</span>
+                    </button>
+                </div>
+
+                <!-- Search and Status Bar -->
+                <div class="screener-toolbar">
+                    <input type="text" id="screener-table-search" placeholder="Filter stocks by ticker, company name, or category..." class="search-input-field">
+                    <div id="screener-status" class="screener-status-text">Ready</div>
+                </div>
+
+                <!-- Screener Results Table -->
+                <div class="table-card">
+                    <table id="screener-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th onclick="window.screenerController.sortBy('symbol')">Symbol ⬍</th>
+                                <th onclick="window.screenerController.sortBy('name')">Company Name ⬍</th>
+                                <th onclick="window.screenerController.sortBy('category')">Category ⬍</th>
+                                <th onclick="window.screenerController.sortBy('close')" class="text-right">Close Price (₹) ⬍</th>
+                                <th onclick="window.screenerController.sortBy('turnover_cr')" class="text-right">Turnover (Cr) ⬍</th>
+                                <th>Matched Criteria</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="notice-card mt-3">
+                    <span class="icon">ℹ️</span>
+                    <span>Fundamental metrics not imported. Operating on high-precision technical & volume mathematical filters. Click any stock to load its chart instantly.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: Options & Greeks Workspace -->
+        <div id="view-options" class="app-view hidden">
+            <div class="view-container options-container">
+                <div class="view-header">
+                    <div>
+                        <h2>NSE Options Analytics & Greeks</h2>
+                        <p class="view-subtitle">Full strike matrix, Black-Scholes Greeks (Δ, Γ, Θ, Vega), Expiration Max Pain, and Multi-leg Payoff curve.</p>
+                    </div>
+                    <div class="options-controls">
+                        <label for="options-symbol-select">Underlying:</label>
+                        <select id="options-symbol-select" class="dropdown-select">
+                            <option value="NSE:NIFTY50-INDEX">NIFTY 50 (NSE:NIFTY50-INDEX)</option>
+                            <option value="NSE:NIFTYBANK-INDEX">BANK NIFTY (NSE:NIFTYBANK-INDEX)</option>
+                            <option value="NSE:FINNIFTY-INDEX">FIN NIFTY (NSE:FINNIFTY-INDEX)</option>
+                            <option value="NSE:RELIANCE-EQ">RELIANCE (NSE:RELIANCE-EQ)</option>
+                            <option value="NSE:TCS-EQ">TCS (NSE:TCS-EQ)</option>
+                            <option value="NSE:INFY-EQ">INFOSYS (NSE:INFY-EQ)</option>
+                            <option value="NSE:HDFCBANK-EQ">HDFC BANK (NSE:HDFCBANK-EQ)</option>
+                        </select>
+                        <button id="btn-options-refresh" class="btn-secondary" title="Refresh Option Chain">🔄 Refresh</button>
+                        <span id="options-loading-indicator" class="spinner-small hidden">⏳</span>
+                    </div>
+                </div>
+
+                <!-- Sub Navigation Tabs -->
+                <div class="subtabs-bar">
+                    <button class="options-subtab active" data-subtab="matrix">📊 Strike Matrix & Greeks</button>
+                    <button class="options-subtab" data-subtab="payoff">🎯 Max Pain & Payoff Simulator <span id="strategy-legs-badge" class="subtab-badge hidden">0</span></button>
+                </div>
+
+                <!-- Toast Notification for Strategy Actions -->
+                <div id="options-toast" class="options-toast hidden"></div>
+
+                <!-- Subtab 1: Strike Matrix & Greeks Table -->
+                <div id="options-matrix-panel" class="options-subpanel">
+                    <!-- Option Chain Dedicated Metrics -->
+                    <div class="metrics-grid mb-4">
+                        <div class="metric-card">
+                            <div class="metric-label">Underlying Spot</div>
+                            <div class="metric-value font-mono" id="options-spot-val">₹--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Put-Call Ratio (PCR)</div>
+                            <div class="metric-value font-mono" id="options-pcr-val">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">ATM Strike & IV</div>
+                            <div class="metric-value font-mono text-accent" id="options-atm-iv-val">--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Target Expiry</div>
+                            <div class="metric-value font-mono" id="options-expiry-val">--</div>
+                        </div>
+                    </div>
+                    <div class="table-card scrollable-table">
+                        <table id="options-matrix-table" class="options-matrix-data-table">
+                            <thead>
+                                <tr class="super-header">
+                                    <th colspan="9" class="calls-header">CALLS (CE)</th>
+                                    <th class="strike-super-header">STRIKE</th>
+                                    <th colspan="9" class="puts-header">PUTS (PE)</th>
+                                </tr>
+                                <tr>
+                                    <!-- Calls -->
+                                    <th class="text-center">+</th>
+                                    <th class="text-right" title="Delta: Rate of change of option price per ₹1 move in spot">Delta (Δ)</th>
+                                    <th class="text-right" title="Gamma: Rate of change of Delta per ₹1 move in spot">Gamma (Γ)</th>
+                                    <th class="text-right" title="Theta: Daily time decay cost">Theta (Θ)</th>
+                                    <th class="text-right" title="Vega: Sensitivity to 1% change in IV">Vega (V)</th>
+                                    <th class="text-right">IV (%)</th>
+                                    <th class="text-right">OI</th>
+                                    <th class="text-right">Vol</th>
+                                    <th class="text-right">LTP (₹)</th>
+                                    <!-- Strike -->
+                                    <th class="text-center strike-col">Strike Price</th>
+                                    <!-- Puts -->
+                                    <th class="text-right">LTP (₹)</th>
+                                    <th class="text-right">Vol</th>
+                                    <th class="text-right">OI</th>
+                                    <th class="text-right">IV (%)</th>
+                                    <th class="text-right" title="Delta: Rate of change of option price per ₹1 move in spot">Delta (Δ)</th>
+                                    <th class="text-right" title="Gamma: Rate of change of Delta per ₹1 move in spot">Gamma (Γ)</th>
+                                    <th class="text-right" title="Theta: Daily time decay cost">Theta (Θ)</th>
+                                    <th class="text-right" title="Vega: Sensitivity to 1% change in IV">Vega (V)</th>
+                                    <th class="text-center">+</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Subtab 2: Max Pain & Strategy Payoff Simulator -->
+                <div id="options-payoff-panel" class="options-subpanel hidden">
+                    <!-- Simulator & Max Pain Dedicated Metrics -->
+                    <div class="metrics-grid mb-4">
+                        <div class="metric-card">
+                            <div class="metric-label">Expiration Max Pain <span class="badge-mini">Min Payout</span></div>
+                            <div class="metric-value font-mono text-green" id="options-maxpain-val">₹--</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Strategy Net Premium</div>
+                            <div class="metric-value font-mono" id="options-net-premium-val">₹0.00</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Simulated Max Profit</div>
+                            <div class="metric-value font-mono text-green" id="options-sim-profit-val">+₹0</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-label">Simulated Max Loss</div>
+                            <div class="metric-value font-mono text-red" id="options-sim-loss-val">-₹0</div>
+                        </div>
+                    </div>
+
+                    <!-- Strategy Builder Card -->
+                    <div class="card mb-4" id="strategy-builder-card">
+                        <div class="strategy-header">
+                            <div>
+                                <h3>Multi-Leg Strategy Builder</h3>
+                                <p class="text-muted text-sm">Configure multi-leg options strategies (Buy Call, Sell Put, Spreads) and simulate P&L Payoff curve against spot price.</p>
+                            </div>
+                            <div class="strategy-presets">
+                                <span class="text-sm text-muted">Presets:</span>
+                                <button class="strategy-preset-btn" data-preset="bull_call">🐂 Bull Call Spread</button>
+                                <button class="strategy-preset-btn" data-preset="bear_put">🐻 Bear Put Spread</button>
+                                <button class="strategy-preset-btn" data-preset="straddle">⚡ Long Straddle</button>
+                                <button class="strategy-preset-btn" data-preset="iron_condor">🦅 Iron Condor</button>
+                                <button id="btn-clear-legs" class="btn-clear-all" title="Clear all strategy legs">🗑️ Clear All</button>
+                            </div>
+                        </div>
+
+                        <div class="table-card mt-3">
+                            <table id="strategy-legs-table" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Position</th>
+                                        <th>Type</th>
+                                        <th>Strike Price</th>
+                                        <th>Premium (₹)</th>
+                                        <th>Lot / Qty</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-3">
+                            <button id="btn-add-leg" class="btn-secondary">+ Add Custom Leg</button>
+                        </div>
+                    </div>
+
+                    <!-- Payoff Curve Visualizer -->
+                    <div class="card mb-4" id="payoff-visualizer-card">
+                        <div class="payoff-header">
+                            <div>
+                                <h3>Interactive P&L Payoff Curve</h3>
+                                <p class="text-muted text-sm">Simulated payoff at expiration across spot prices.</p>
+                            </div>
+                            <div class="payoff-metrics-row">
+                                <div class="metric-pill">Max Profit: <strong id="payoff-max-profit" class="text-green">+₹0</strong></div>
+                                <div class="metric-pill">Max Loss: <strong id="payoff-max-loss" class="text-red">-₹0</strong></div>
+                                <div class="metric-pill">Breakeven(s): <strong id="payoff-breakevens" class="font-mono">--</strong></div>
+                            </div>
+                        </div>
+                        <div id="payoff-chart-svg" class="payoff-chart-container mt-3">
+                            <!-- SVG Curve injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Max Pain Loss Distribution -->
+                    <div class="card mb-4" id="maxpain-chart-container">
+                        <!-- Populated dynamically via SVG -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 4: Backtesting Engine Workspace -->
+        <div id="view-backtest" class="app-view hidden">
+            <div class="view-container">
+                <div id="backtest-workspace-container"></div>
+            </div>
+        </div>
+
+        <!-- VIEW 5: Trading Journal Workspace -->
+        <div id="view-journal" class="app-view hidden">
+            <div class="view-container">
+                <div class="view-header">
+                    <div>
+                        <h2>Trading Journal & Performance Metrics</h2>
+                        <p class="view-subtitle">Review historical execution, psychological tagging, equity curves, and cost of mistakes.</p>
+                    </div>
+                    <div class="journal-toolbar">
+                        <button id="btn-open-log-trade" class="btn-primary">➕ Log Trade</button>
+                        <button id="btn-import-tradebook" class="btn-secondary">📥 Import FYERS CSV</button>
+                        <input type="file" id="tradebook-upload" accept=".csv" style="display: none;">
+                        <button id="btn-load-sample-trades" class="btn-secondary">⚡ Load Sample Trades</button>
+                        <button id="btn-clear-journal" class="btn-secondary btn-danger-outline">🗑️ Clear All</button>
+                    </div>
+                </div>
+                <div id="journal-metrics" class="metrics-grid mb-4"></div>
+                <div class="card mb-4">
+                    <div class="card-header-flex">
+                        <h3>Cumulative Equity Curve</h3>
+                        <span id="journal-equity-summary" class="badge-pill">Cumulative Net P&L</span>
+                    </div>
+                    <div id="equity-curve-chart" style="height: 300px; width: 100%; position: relative;"></div>
+                </div>
+                <div class="card mb-4">
+                    <div class="card-header-flex">
+                        <h3>Trade Log</h3>
+                        <span id="journal-trade-count-badge" class="badge-pill">0 Trades</span>
+                    </div>
+                    <div class="table-card">
+                        <table id="journal-trades-table" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Symbol</th>
+                                    <th>Direction</th>
+                                    <th>Qty</th>
+                                    <th>Entry</th>
+                                    <th>Exit</th>
+                                    <th>R-Multiple</th>
+                                    <th>Net P&L</th>
+                                    <th>Mistake Tags</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header-flex">
+                        <h3>Psychological Mistake Cloud & Cost Impact</h3>
+                        <span class="badge-pill text-red" id="journal-mistake-cost-badge">Cost of Mistakes: ₹0</span>
+                    </div>
+                    <p class="view-subtitle" style="margin-bottom: 12px;">Visual distribution of execution errors and psychological triggers, weighted by recurrence.</p>
+                    <div id="mistake-cloud" class="p-3 mistake-cloud-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals and Drawers -->
+    <!-- 1. Search Modal -->
+    <div id="search-modal" class="modal hidden">
+        <div class="modal-content search-modal-content">
+            <div class="search-modal-header">
+                <span class="search-modal-title">Search NSE Equities <kbd class="search-key-badge" style="margin-left: 8px;">Ctrl + K</kbd></span>
+                <button id="close-search-modal" class="close-btn" type="button">✕</button>
+            </div>
+            <input type="text" id="symbol-search-input" placeholder="Type stock name or ticker (e.g. RELIANCE, TCS, INFY)..." autocomplete="off">
+            <div class="search-hint">Tip: Press <kbd>Ctrl + K</kbd> anywhere • <kbd>↑</kbd> <kbd>↓</kbd> to navigate • <kbd>Enter</kbd> to select • <kbd>Esc</kbd> to exit</div>
+            <ul id="search-results" class="search-results"></ul>
+        </div>
+    </div>
+
+    <!-- 2. Auth Modal -->
+    <div id="auth-modal" class="modal hidden">
+        <div class="modal-content auth-modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-title-icon">🔐</span>
+                    <h3>Authentication Status</h3>
+                </div>
+                <button class="close-btn close-modal" type="button" title="Close">✕</button>
+            </div>
+            <p class="modal-subtitle">Real-time FYERS broker session token and refresh status.</p>
+            <div class="auth-status-cards">
+                <div class="auth-status-card">
+                    <span class="auth-card-lbl">Session Expires In</span>
+                    <span id="auth-modal-countdown" class="auth-card-val">--</span>
+                </div>
+                <div class="auth-status-card">
+                    <span class="auth-card-lbl">Refresh Window Remaining</span>
+                    <span id="auth-modal-refresh" class="auth-card-val">-- days</span>
+                </div>
+            </div>
+
+            <!-- Feedback Status Banner -->
+            <div id="auth-feedback-banner" class="auth-feedback-banner hidden"></div>
+
+            <div class="modal-actions auth-actions">
+                <button id="btn-reauth" class="btn-primary" type="button">🔄 Quick Refresh</button>
+                <button id="btn-login-browser" class="btn-secondary" type="button">🌐 Login via Browser</button>
+                <button class="close-modal btn-secondary" type="button">Close</button>
+            </div>
+
+            <!-- Manual Token Update Accordion -->
+            <div class="auth-manual-section">
+                <button type="button" id="btn-toggle-manual-token" class="auth-expand-btn">
+                    <span>🔑 Update Access Token Manually</span>
+                    <span id="manual-token-chevron">▼</span>
+                </button>
+                <div id="manual-token-container" class="manual-token-container hidden">
+                    <p class="manual-token-help">Paste fresh access token from <code>generate_fyers_token.py</code> or Fyers Portal:</p>
+                    <div class="manual-token-row">
+                        <input type="password" id="input-manual-token" class="form-control font-mono" placeholder="Paste access_token here..." autocomplete="off">
+                        <button type="button" id="btn-save-manual-token" class="btn-primary">💾 Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Export Modal -->
+    <div id="export-modal" class="modal hidden">
+        <div class="modal-content export-modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-title-icon">📤</span>
+                    <h3>Export Data</h3>
+                </div>
+                <button class="close-btn close-modal" type="button" title="Close">✕</button>
+            </div>
+
+            <p id="export-row-estimate" class="export-estimate-text">Estimated Rows: --</p>
+
+            <!-- Format Options -->
+            <div class="export-options">
+                <label class="export-option-label">
+                    <input type="radio" name="export-format" value="parquet" checked> 
+                    <span>Parquet (Recommended)</span>
+                </label>
+                <label class="export-option-label">
+                    <input type="radio" name="export-format" value="csv"> 
+                    <span>CSV</span>
+                </label>
+                <label class="export-option-label" id="opt-excel-label">
+                    <input type="radio" name="export-format" value="excel" id="export-excel-opt"> 
+                    <span>Excel</span>
+                    <span id="excel-warning" class="amber-badge hidden">⚠️ >1,048,575 rows (Disabled)</span>
+                </label>
+            </div>
+
+            <!-- Minimal 1-line Safety Note -->
+            <p id="excel-note" class="export-mini-note">
+                <span class="note-dim">💡 Note:</span> Excel auto-disables above 1,048,575 rows to prevent corruption. Use Parquet instead.
+            </p>
+
+            <div class="modal-actions">
+                <button id="btn-confirm-export" class="btn-primary" type="button">📥 Download File</button>
+                <button class="close-modal btn-secondary" type="button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3b. Custom Screener Template Modal -->
+    <div id="new-screener-modal" class="modal hidden">
+        <div class="modal-content screener-modal-content">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-title-icon">🎯</span>
+                    <h3>Create Custom Screener Template</h3>
+                </div>
+                <button class="close-btn close-modal" type="button" title="Close">✕</button>
+            </div>
+            <p class="modal-subtitle">Configure custom screening criteria across NSE equities.</p>
+
+            <form id="form-new-screener-template" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group flex-2">
+                        <label for="template-name-input" class="form-label">Template Name <span class="required-star">*</span></label>
+                        <input type="text" id="template-name-input" class="form-control" placeholder="e.g. Bullish Breakout + Volume Spike" required>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="template-universe-select" class="form-label">Stock Universe</label>
+                        <select id="template-universe-select" class="form-control form-select">
+                            <option value="ALL">All NSE (2,581)</option>
+                            <option value="NIFTY500" selected>Nifty 500</option>
+                            <option value="NIFTY50">Nifty 50</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="template-desc-input" class="form-label">Description (Optional)</label>
+                    <input type="text" id="template-desc-input" class="form-control" placeholder="e.g. Scans stocks with RSI < 40 and 20-day Volume Spike">
+                </div>
+
+                <div class="screener-rules-section">
+                    <div class="rules-header">
+                        <div class="rules-header-title">
+                            <span class="rules-icon">⚙️</span>
+                            <label class="rules-label">Screening Rules (All Must Match):</label>
+                        </div>
+                        <button type="button" id="btn-add-screener-rule" class="btn-add-rule">➕ Add Condition</button>
+                    </div>
+                    
+                    <div id="screener-rules-list" class="rules-list">
+                        <!-- Rule rows added dynamically -->
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary" id="btn-save-screener-template">💾 Save & Run Scan</button>
+                    <button type="button" class="close-modal btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Universal Drawer Backdrop Overlay -->
+    <div id="drawer-backdrop" class="drawer-backdrop hidden"></div>
+
+    <!-- 4. Downloader Telemetry Drawer -->
+    <div id="downloader-drawer" class="drawer hidden">
+        <div class="drawer-header">
+            <div class="drawer-title-wrap">
+                <span class="drawer-icon">📥</span>
+                <h3>Downloader Telemetry</h3>
+            </div>
+            <button id="close-drawer" class="close-btn" type="button" title="Close">✕</button>
+        </div>
+        <div class="drawer-content">
+            <div class="progress-section">
+                <div class="progress-status-row">
+                    <span class="progress-label">Worker Status:</span>
+                    <span id="dl-status" class="dl-status-badge">Idle</span>
+                </div>
+                <div class="dl-progress-bar-wrap">
+                    <progress id="dl-progress" class="dl-progress-bar" value="0" max="100"></progress>
+                </div>
+            </div>
+            <div class="telemetry-metrics-grid">
+                <div class="telemetry-metric-card">
+                    <span class="t-lbl">Speed</span>
+                    <span class="t-val"><span id="dl-speed">--</span> <small>req/min</small></span>
+                </div>
+                <div class="telemetry-metric-card">
+                    <span class="t-lbl">Daily Quota</span>
+                    <span class="t-val"><span id="dl-quota">--</span> <small>/ 90,000</small></span>
+                </div>
+                <div class="telemetry-metric-card full-width">
+                    <span class="t-lbl">Current Batch</span>
+                    <span id="dl-current-symbol" class="t-val-mono">None</span>
+                </div>
+            </div>
+            <div class="drawer-controls">
+                <button id="dl-pause" class="btn-drawer-action btn-danger-action" type="button">⏸️ Pause</button>
+                <button id="dl-resume" class="btn-drawer-action btn-success-action" type="button">▶️ Resume</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Alerts & Triggers Drawer -->
+    <div id="alerts-drawer" class="drawer hidden">
+        <div class="drawer-header">
+            <div class="drawer-title-wrap">
+                <span class="drawer-icon">🔔</span>
+                <h3>Alerts & Price Triggers</h3>
+            </div>
+            <button id="close-alerts-drawer" class="close-btn" type="button" title="Close">✕</button>
+        </div>
+        <div class="drawer-content scrollable-drawer">
+            <!-- Quiet Hours Status Indicator -->
+            <div id="quiet-hours-banner" class="quiet-hours-card">
+                <!-- Dynamically updated -->
+            </div>
+
+            <!-- New Alert Form -->
+            <div class="alert-form-section">
+                <h4>Set New Alert</h4>
+                <form id="new-alert-form">
+                    <div class="form-group">
+                        <label>Symbol:</label>
+                        <input type="text" id="alert-input-symbol" value="NSE:RELIANCE-EQ" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Trigger Condition:</label>
+                        <select id="alert-rule-type">
+                            <option value="PRICE_CROSS">Price Cross (Above / Below)</option>
+                            <option value="RSI_THRESHOLD">RSI Oversold / Overbought</option>
+                        </select>
+                    </div>
+
+                    <!-- Price Cross Fields -->
+                    <div id="alert-params-price" class="form-group-row">
+                        <div class="form-group">
+                            <label>Direction:</label>
+                            <select id="alert-price-dir">
+                                <option value="ABOVE">Crosses Above (>)</option>
+                                <option value="BELOW">Crosses Below (<)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target Price (₹):</label>
+                            <input type="number" id="alert-price-threshold" step="0.05" value="2800" required>
+                        </div>
+                    </div>
+
+                    <!-- Technical Fields -->
+                    <div id="alert-params-tech" class="form-group hidden">
+                        <label>RSI Level (0-100):</label>
+                        <input type="number" id="alert-tech-threshold" step="1" value="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Notification Channel:</label>
+                        <select id="alert-channel">
+                            <option value="IN_APP">In-App Notification</option>
+                            <option value="TELEGRAM">Telegram Bot</option>
+                            <option value="EMAIL">Email Alert</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-primary w-full">🔔 Create Alert Trigger</button>
+                    <div id="alert-form-feedback" class="form-feedback hidden"></div>
+                </form>
+            </div>
+
+            <!-- Active Alerts Section -->
+            <div class="active-alerts-section mt-4">
+                <h4>Active Watchlist Triggers</h4>
+                <div id="active-alerts-list">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Manual Log Trade Modal -->
+    <div id="log-trade-modal" class="modal hidden">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <span class="modal-title-icon">📓</span>
+                    <h3>Log Trade Entry</h3>
+                </div>
+                <button id="close-log-trade-modal" class="close-btn" type="button" title="Close">✕</button>
+            </div>
+            <form id="log-trade-form" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="trade-input-symbol" class="form-label">Symbol <span class="required-star">*</span></label>
+                        <input type="text" id="trade-input-symbol" class="form-control font-mono" placeholder="e.g. NSE:RELIANCE-EQ" required value="NSE:RELIANCE-EQ">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="trade-input-direction" class="form-label">Direction <span class="required-star">*</span></label>
+                        <select id="trade-input-direction" class="form-control form-select select-direction">
+                            <option value="LONG" selected>🟢 LONG (Buy)</option>
+                            <option value="SHORT">🔴 SHORT (Sell)</option>
+                        </select>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="trade-input-type" class="form-label">Trade Type</label>
+                        <select id="trade-input-type" class="form-control form-select">
+                            <option value="EQUITY">EQUITY</option>
+                            <option value="F&O">F&O</option>
+                            <option value="INTRADAY">INTRADAY</option>
+                            <option value="SWING">SWING</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label for="trade-input-entry" class="form-label">Entry Price <span class="required-star">*</span></label>
+                        <div class="input-prefix-wrap">
+                            <span class="input-prefix-badge">₹</span>
+                            <input type="number" id="trade-input-entry" class="form-control form-input-with-prefix font-mono" step="0.05" required placeholder="2800.00" value="2800">
+                        </div>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="trade-input-exit" class="form-label">Exit Price <span class="required-star">*</span></label>
+                        <div class="input-prefix-wrap">
+                            <span class="input-prefix-badge">₹</span>
+                            <input type="number" id="trade-input-exit" class="form-control form-input-with-prefix font-mono" step="0.05" required placeholder="2850.00" value="2850">
+                        </div>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="trade-input-qty" class="form-label">Quantity <span class="required-star">*</span></label>
+                        <div class="input-prefix-wrap">
+                            <span class="input-prefix-badge">Qty</span>
+                            <input type="number" id="trade-input-qty" class="form-control form-input-with-prefix font-mono" min="1" step="1" required placeholder="50" value="50">
+                        </div>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label for="trade-input-sl" class="form-label">Stop Loss <span class="required-star">*</span></label>
+                        <div class="input-prefix-wrap">
+                            <span class="input-prefix-badge text-danger">₹</span>
+                            <input type="number" id="trade-input-sl" class="form-control form-input-with-prefix font-mono" step="0.05" required placeholder="2760.00" value="2760">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Psychological Mistake Tags (if applicable)</label>
+                    <div class="tags-checkbox-grid">
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="FOMO" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">🔥</span> FOMO</span>
+                        </label>
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="Revenge Trading" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">⚔️</span> Revenge Trading</span>
+                        </label>
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="Overtrading" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">🔄</span> Overtrading</span>
+                        </label>
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="Chased Entry" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">🏃</span> Chased Entry</span>
+                        </label>
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="Ignored Stop Loss" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">🛑</span> Ignored Stop Loss</span>
+                        </label>
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="Early Exit" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">🚪</span> Early Exit</span>
+                        </label>
+                        <label class="tag-chip-item">
+                            <input type="checkbox" name="mistake-tag" value="Greed / Oversized Position" class="tag-checkbox-input">
+                            <span class="tag-chip-content"><span class="chip-emoji">🤑</span> Greed / Oversized</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="trade-input-notes" class="form-label">Trade Notes & Mindset</label>
+                    <textarea id="trade-input-notes" class="form-control form-textarea" rows="2" placeholder="Context of entry, setup, emotions, execution remarks..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="submit" class="btn-primary">💾 Save Trade to Journal</button>
+                    <button type="button" id="btn-cancel-log-trade" class="btn-secondary">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Persistent Regulatory Compliance Footer -->
+    <footer id="regulatory-compliance-footer" class="compliance-footer">
+        <p><strong>SEBI Statutory Disclaimer:</strong> This application is a self-directed quantitative data analysis and backtesting tool for educational and research purposes only. It does NOT constitute investment advice, financial advisory, or a recommendation to buy or sell any securities under SEBI regulations. All indicators, backtest results, and screener outputs are purely mathematical computations based on historical data. Historical performance is NOT indicative of future returns. Algorithmic trading and equity investments are subject to substantial market risk, including the loss of principal capital.</p>
+    </footer>
+
+    <!-- Application Scripts -->
+    <script src="/static/js/translation_registry.js"></script>
+    <script src="/static/js/ux_mode_controller.js"></script>
+    <script src="/static/js/chart.js"></script>
+    <script src="/static/js/symbol_search.js"></script>
+    <script src="/static/js/screener_ui.js"></script>
+    <script src="/static/js/options_ui.js"></script>
+    <script src="/static/js/alerts_ui.js"></script>
+    <script src="/static/js/backtest_ui.js"></script>
+    <script src="/static/js/journal_ui.js"></script>
+    <script src="/static/js/auth_modal.js"></script>
+    <script src="/static/js/download_progress.js"></script>
+    <script src="/static/js/glossary_tooltip.js"></script>
+    <script src="/static/js/guided_tutorial.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

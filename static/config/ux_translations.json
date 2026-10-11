@@ -1,0 +1,44 @@
+{
+  "vwap": {
+    "pro_label": "VWAP",
+    "plain_label": "Average Traded Price",
+    "beginner_summary": "The true volume-weighted average price paid by investors today. Prices above this line indicate buyers are in control.",
+    "risk_tip": "Buying far above the average price increases your risk of buying at an overstretched top."
+  },
+  "ema": {
+    "pro_label": "EMA",
+    "plain_label": "Moving Average Trend",
+    "beginner_summary": "A 20-period moving average curve showing whether the overall price trend is heading up or down.",
+    "risk_tip": "Moving averages lag behind the real-time market price."
+  },
+  "ohlcv": {
+    "pro_label": "OHLCV",
+    "plain_label": "Daily Price & Volume",
+    "beginner_summary": "Open, High, Low, Close price and Total Volume data for each trading session.",
+    "risk_tip": "Historical price patterns provide context but cannot predict unpredictable future events."
+  },
+  "rsi": {
+    "pro_label": "RSI (14)",
+    "plain_label": "Momentum Meter",
+    "beginner_summary": "Measures how fast a stock is rising or falling on a scale of 0 to 100. Over 70 indicates overheated; under 30 indicates heavily sold.",
+    "risk_tip": "Oversold does not guarantee an immediate bounce. In strong downtrends, prices can stay oversold for weeks."
+  },
+  "bollinger_bands": {
+    "pro_label": "Bollinger Bands",
+    "plain_label": "Normal Price Range Tunnel",
+    "beginner_summary": "An envelope showing where prices trade 95% of the time. Prices touching the outer bands are at statistical extremes.",
+    "risk_tip": "When bands contract tightly, an explosive price breakout in either direction is usually imminent."
+  },
+  "macd": {
+    "pro_label": "MACD",
+    "plain_label": "Trend Reversal Detector",
+    "beginner_summary": "Shows the relationship between short-term and long-term moving averages to detect momentum shifts.",
+    "risk_tip": "Can produce false whipsaws in choppy, sideways markets."
+  },
+  "atr": {
+    "pro_label": "ATR",
+    "plain_label": "Daily Price Swing Size",
+    "beginner_summary": "Measures how much the stock price typically swings in a day, helping set disciplined stop losses.",
+    "risk_tip": "High ATR means high volatility and larger potential losses if trades move against you."
+  }
+}

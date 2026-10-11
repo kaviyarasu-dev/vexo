@@ -44,17 +44,17 @@ graph TD
 ### Stage 1: Core Foundation (Sequential Execution)
 *These four phases establish the bedrock contracts, security, database storage, and instrument master. They must be executed strictly in order.*
 
-1. **Phase 00A & 00**: Canonical Contracts, Interfaces, and Exception Hierarchy (`core/`).
-2. **Phase 01**: Environment Configuration, Pydantic Settings, Keyring Credential Vault, and Fyers API v3 Auth Manager (`config/`, `services/auth_service.py`).
+1. **Phase 00A & 00**: Canonical Contracts, Interfaces, and Exception Hierarchy (`core/`). **ALREADY COMPLETED**
+2. **Phase 01**: Environment Configuration, Pydantic Settings, Keyring Credential Vault, and Fyers API v3 Auth Manager (`config/`, `services/auth_service.py`). **ALREADY COMPLETED**
 3. **Phase 02**: DuckDB Database Initialization, DDL Migrations, Single-Writer Mutex, and Read Cursors (`db/`).
-4. **Phase 03**: NSE Symbol Master Parsing, Tier Classification (Nifty 100 + 150 + 250 = 500), and Checkpoint Seeding (`services/symbol_service.py`).
+4. **Phase 03**: NSE Symbol Master Parsing, Tier Classification (Nifty 100 + 150 + 250 = 500), and Checkpoint Seeding (`services/symbol_service.py`). **ALREADY COMPLETED**
 
 ---
 
 ### Stage 2: Ingestion & In-Database Analytics (Parallel Streams)
 *Once Phase 03 is complete, the download pipeline and resampling analytics can proceed.*
 
-5. **Phase 04**: Global RateGovernor (180 req/min target), Calendar Chunker, and Resumable Historical Downloader (`core/rate_governor.py`, `services/downloader_service.py`).
+5. **Phase 04**: Global RateGovernor (180 req/min target), Calendar Chunker, and Resumable Historical Downloader (`core/rate_governor.py`, `services/downloader_service.py`). **ALREADY COMPLETED**
 6. **Phase 05**: In-Database Dynamic Resampling (with `TIMESTAMP '2000-01-01 03:45:00'` origin) and Technical Indicators Suite (`services/resampling_service.py`, `services/indicators/`).
 7. **Phase 06**: Post-Market 15:45 IST Incremental Sync Scheduler, Trading Calendar, and Missed-Run Catchup (`services/scheduler_service.py`).
 8. **Phase 07**: High-Performance FastAPI Backend, Cursor Pagination, and Streaming Exporters (`api/`, `services/export_service.py`).

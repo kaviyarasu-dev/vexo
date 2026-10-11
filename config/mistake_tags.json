@@ -1,0 +1,9 @@
+{
+  "tags": [
+    { "id": "FOMO", "name": "Chased Extended Move", "category": "ENTRY" },
+    { "id": "NO_PLAN", "name": "Entered Without Stop Loss", "category": "RISK" },
+    { "id": "EARLY_EXIT", "name": "Exited Winner Prematurely", "category": "EXIT" },
+    { "id": "OVERSIZED", "name": "Risked > 2% of Capital", "category": "SIZING" },
+    { "id": "REVENGE", "name": "Revenge Trade Post-Loss", "category": "PSYCHOLOGY" }
+  ]
+}

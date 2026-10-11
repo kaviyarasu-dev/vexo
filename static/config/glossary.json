@@ -1,0 +1,162 @@
+{
+  "vwap": {
+    "term": "Session VWAP (Volume Weighted Average Price)",
+    "plain_label": "Intraday Average Price",
+    "simple_definition": "The true average price paid for all shares traded today, giving more weight to transactions with large volume.",
+    "definition": "The true average price paid for all shares traded today, giving more weight to transactions with large volume.",
+    "everyday_analogy": "Like the wholesale mandi price of onions over a full morning. If retail shops are selling far above it, you are paying a premium; if selling below, you are buying at a discount.",
+    "analogy": "Like the wholesale mandi price of onions over a full morning. If retail shops are selling far above it, you are paying a premium; if selling below, you are buying at a discount.",
+    "risk_caution": "Buying when the price is far above VWAP means you are paying significantly more than the day's average buyer, making you vulnerable to sharp mean-reversion pullbacks.",
+    "risk_warning": "Buying when the price is far above VWAP means you are paying significantly more than the day's average buyer, making you vulnerable to sharp mean-reversion pullbacks."
+  },
+  "rsi": {
+    "term": "RSI (Relative Strength Index)",
+    "plain_label": "Momentum Meter",
+    "simple_definition": "A momentum oscillator measuring the speed and change of price movements on a scale of 0 to 100 to identify overstretched moves.",
+    "definition": "A momentum oscillator measuring the speed and change of price movements on a scale of 0 to 100 to identify overstretched moves.",
+    "everyday_analogy": "Like a car's speedometer. Driving at 120 km/h in city traffic (RSI > 70) means the engine is running red-hot; crawling in first gear (RSI < 30) indicates deeply depressed momentum.",
+    "analogy": "Like a car's speedometer. Driving at 120 km/h in city traffic (RSI > 70) means the engine is running red-hot; crawling in first gear (RSI < 30) indicates deeply depressed momentum.",
+    "risk_caution": "An 'oversold' stock (RSI < 30) can easily drop another 20% or 30% during strong downtrends. Never buy blindly on low RSI alone without a trend reversal trigger.",
+    "risk_warning": "An 'oversold' stock (RSI < 30) can easily drop another 20% or 30% during strong downtrends. Never buy blindly on low RSI alone without a trend reversal trigger."
+  },
+  "macd": {
+    "term": "MACD (Moving Average Convergence Divergence)",
+    "plain_label": "Trend Change Detector",
+    "simple_definition": "A trend-following momentum indicator showing the relationship between two exponential moving averages of a security's price.",
+    "definition": "A trend-following momentum indicator showing the relationship between two exponential moving averages of a security's price.",
+    "everyday_analogy": "Like two sprinters running together: one fast runner (short-term momentum) and one steady runner (long-term trend). When the fast runner crosses ahead of the steady runner, momentum is accelerating upward.",
+    "analogy": "Like two sprinters running together: one fast runner (short-term momentum) and one steady runner (long-term trend). When the fast runner crosses ahead of the steady runner, momentum is accelerating upward.",
+    "risk_caution": "MACD produces frequent false whipsaws in choppy, sideways markets, causing losses if signals are taken without confirming higher-timeframe trend context.",
+    "risk_warning": "MACD produces frequent false whipsaws in choppy, sideways markets, causing losses if signals are taken without confirming higher-timeframe trend context."
+  },
+  "bollinger_bands": {
+    "term": "Bollinger Bands",
+    "plain_label": "Normal Price Range Tunnel",
+    "simple_definition": "A statistical volatility band plotted around a moving average where roughly 95% of historical price activity occurs.",
+    "definition": "A statistical volatility band plotted around a moving average where roughly 95% of historical price activity occurs.",
+    "everyday_analogy": "Like rubber guardrails on a winding highway. Most of the time cars stay within the lanes, but hitting the outer railing signals extreme expansion or an upcoming sharp bounce.",
+    "analogy": "Like rubber guardrails on a winding highway. Most of the time cars stay within the lanes, but hitting the outer railing signals extreme expansion or an upcoming sharp bounce.",
+    "risk_caution": "When bands squeeze tightly together, a violent breakout in either direction is imminent. Buying blindly at the upper band during a squeeze can lead to immediate capital drawdowns.",
+    "risk_warning": "When bands squeeze tightly together, a violent breakout in either direction is imminent. Buying blindly at the upper band during a squeeze can lead to immediate capital drawdowns."
+  },
+  "atr": {
+    "term": "ATR (Average True Range)",
+    "plain_label": "Daily Price Swing Size",
+    "simple_definition": "A technical volatility indicator that measures the absolute average price movement between highs and lows over a specific number of bars, including gaps.",
+    "definition": "A technical volatility indicator that measures the absolute average price movement between highs and lows over a specific number of bars, including gaps.",
+    "everyday_analogy": "Like the daily tidal range at a beach. Knowing whether the tide moves 2 feet or 10 feet dictates how far up the sand you must place your beach umbrella.",
+    "analogy": "Like the daily tidal range at a beach. Knowing whether the tide moves 2 feet or 10 feet dictates how far up the sand you must place your beach umbrella.",
+    "risk_caution": "Ignoring ATR when placing stop losses results in getting prematurely stopped out by normal market noise in high-volatility stocks.",
+    "risk_warning": "Ignoring ATR when placing stop losses results in getting prematurely stopped out by normal market noise in high-volatility stocks."
+  },
+  "stt": {
+    "term": "Securities Transaction Tax (STT)",
+    "plain_label": "Government Trade Tax",
+    "simple_definition": "A statutory direct tax levied by the Government of India on every purchase and sale of equity securities and derivatives on recognized Indian stock exchanges.",
+    "definition": "A statutory direct tax levied by the Government of India on every purchase and sale of equity securities and derivatives on recognized Indian stock exchanges.",
+    "everyday_analogy": "Like road toll tax deducted whenever you pass through a national highway toll booth, payable regardless of whether your trip was productive or frustrating.",
+    "analogy": "Like road toll tax deducted whenever you pass through a national highway toll booth, payable regardless of whether your trip was productive or frustrating.",
+    "risk_caution": "High-frequency scalping and overtrading small intraday gains can lead to accumulated STT and transaction charges exceeding gross trading profits.",
+    "risk_warning": "High-frequency scalping and overtrading small intraday gains can lead to accumulated STT and transaction charges exceeding gross trading profits."
+  },
+  "r_multiple": {
+    "term": "R-Multiple",
+    "plain_label": "Risk-to-Reward Ratio",
+    "simple_definition": "A mathematical measurement of trading gain or loss expressed strictly as a multiple of the initial planned risk (1R = distance from entry to stop loss).",
+    "definition": "A mathematical measurement of trading gain or loss expressed strictly as a multiple of the initial planned risk (1R = distance from entry to stop loss).",
+    "everyday_analogy": "If you bet ₹1,000 on a coin flip with odds that pay ₹3,000 when you win, you made +3.0R. If you lose, you lost exactly -1.0R.",
+    "analogy": "If you bet ₹1,000 on a coin flip with odds that pay ₹3,000 when you win, you made +3.0R. If you lose, you lost exactly -1.0R.",
+    "risk_caution": "Focusing solely on win rate while ignoring R-multiples leads to account ruin: winning 9 tiny trades (+0.2R each = +1.8R) and suffering 1 undisciplined loss (-5.0R) results in a net loss.",
+    "risk_warning": "Focusing solely on win rate while ignoring R-multiples leads to account ruin: winning 9 tiny trades (+0.2R each = +1.8R) and suffering 1 undisciplined loss (-5.0R) results in a net loss."
+  },
+  "max_pain": {
+    "term": "Options Max Pain Strike",
+    "plain_label": "Options Settlement Magnet",
+    "simple_definition": "The strike price at which option buyers would lose the maximum cumulative money and option sellers would experience the least payout at expiration.",
+    "definition": "The strike price at which option buyers would lose the maximum cumulative money and option sellers would experience the least payout at expiration.",
+    "everyday_analogy": "Like a gravitational center on weekly expiry Thursdays where underlying spot prices often get tethered to minimize net option writer payouts.",
+    "analogy": "Like a gravitational center on weekly expiry Thursdays where underlying spot prices often get tethered to minimize net option writer payouts.",
+    "risk_caution": "Max Pain is a dynamic calculation, not a guaranteed price target. Breaking news, global geopolitical events, or massive institutional order flows can easily overpower option open interest.",
+    "risk_warning": "Max Pain is a dynamic calculation, not a guaranteed price target. Breaking news, global geopolitical events, or massive institutional order flows can easily overpower option open interest."
+  },
+  "52w_high": {
+    "term": "52-Week High",
+    "plain_label": "Annual Peak Price",
+    "simple_definition": "The highest recorded price at which a stock traded during the preceding 52 calendar weeks (one trading year).",
+    "definition": "The highest recorded price at which a stock traded during the preceding 52 calendar weeks (one trading year).",
+    "everyday_analogy": "Like an athlete setting their personal best record for the season. Crossing it demonstrates peak performance, but fatigue can set in if energy is depleted.",
+    "analogy": "Like an athlete setting their personal best record for the season. Crossing it demonstrates peak performance, but fatigue can set in if energy is depleted.",
+    "risk_caution": "Buying a stock solely because it touched a 52-week high without volume confirmation or fundamental support can trap you at a bull trap peak right before profit taking.",
+    "risk_warning": "Buying a stock solely because it touched a 52-week high without volume confirmation or fundamental support can trap you at a bull trap peak right before profit taking."
+  },
+  "volume_z_score": {
+    "term": "Volume Z-Score",
+    "plain_label": "Unusual Volume Score",
+    "simple_definition": "A statistical measurement showing how many standard deviations today's trading volume deviates from its 20-day historical moving average.",
+    "definition": "A statistical measurement showing how many standard deviations today's trading volume deviates from its 20-day historical moving average.",
+    "everyday_analogy": "Like foot traffic at a neighborhood grocery store. If typical daily footfall is 100 people, a day with 500 visitors (Z-score > +3.0) signals an extraordinary event occurred.",
+    "analogy": "Like foot traffic at a neighborhood grocery store. If typical daily footfall is 100 people, a day with 500 visitors (Z-score > +3.0) signals an extraordinary event occurred.",
+    "risk_caution": "High volume z-score indicates institutional interest, but volume spikes on heavy downward price candles indicate aggressive institutional dumping rather than buying.",
+    "risk_warning": "High volume z-score indicates institutional interest, but volume spikes on heavy downward price candles indicate aggressive institutional dumping rather than buying."
+  },
+  "slippage": {
+    "term": "Execution Slippage",
+    "plain_label": "Price Execution Gap",
+    "simple_definition": "The difference between the expected price of a trade and the actual price at which the order executes on the exchange matching engine.",
+    "definition": "The difference between the expected price of a trade and the actual price at which the order executes on the exchange matching engine.",
+    "everyday_analogy": "Like hailing an auto-rickshaw that quotes ₹50, but by the time you reach due to peak-hour surge traffic, the meter registers ₹58.",
+    "analogy": "Like hailing an auto-rickshaw that quotes ₹50, but by the time you reach due to peak-hour surge traffic, the meter registers ₹58.",
+    "risk_caution": "Using market orders during illiquid market openings or volatile earnings announcements can cause massive adverse slippage that immediately erodes trade expectancy.",
+    "risk_warning": "Using market orders during illiquid market openings or volatile earnings announcements can cause massive adverse slippage that immediately erodes trade expectancy."
+  },
+  "bhavcopy": {
+    "term": "NSE Bhavcopy",
+    "plain_label": "Official Daily Market Report",
+    "simple_definition": "The authoritative end-of-day summary document published daily by the National Stock Exchange of India containing official open, high, low, close, volume, and turnover numbers for all listed securities.",
+    "definition": "The authoritative end-of-day summary document published daily by the National Stock Exchange of India containing official open, high, low, close, volume, and turnover numbers for all listed securities.",
+    "everyday_analogy": "Like the official gazette or verified exam scorecard published by a university at the end of semester exams.",
+    "analogy": "Like the official gazette or verified exam scorecard published by a university at the end of semester exams.",
+    "risk_caution": "Relying on raw unadjusted Bhavcopy historical data without adjusting for stock splits and bonus issues will cause artificial price crashes on historical charts.",
+    "risk_warning": "Relying on raw unadjusted Bhavcopy historical data without adjusting for stock splits and bonus issues will cause artificial price crashes on historical charts."
+  },
+  "stop_loss": {
+    "term": "Stop Loss Order",
+    "plain_label": "Automatic Safety Exit",
+    "simple_definition": "A predetermined order placed with a broker to sell an asset when it reaches a specific price, designed to limit investor loss on a position.",
+    "definition": "A predetermined order placed with a broker to sell an asset when it reaches a specific price, designed to limit investor loss on a position.",
+    "everyday_analogy": "Like an emergency circuit breaker (fuse) in your household electrical box that instantly cuts the current to prevent the house from catching fire when a surge occurs.",
+    "analogy": "Like an emergency circuit breaker (fuse) in your household electrical box that instantly cuts the current to prevent the house from catching fire when a surge occurs.",
+    "risk_caution": "Moving or canceling your stop loss when the market moves against you turns a calculated, manageable risk into an uncontrolled, account-threatening loss.",
+    "risk_warning": "Moving or canceling your stop loss when the market moves against you turns a calculated, manageable risk into an uncontrolled, account-threatening loss."
+  },
+  "survivorship_bias": {
+    "term": "Survivorship Bias",
+    "plain_label": "Winner-Only Blindspot",
+    "simple_definition": "A logical error in financial analysis where only companies that survived to the present day are analyzed, ignoring delisted, bankrupt, or merged companies.",
+    "definition": "A logical error in financial analysis where only companies that survived to the present day are analyzed, ignoring delisted, bankrupt, or merged companies.",
+    "everyday_analogy": "Interviewing only lottery jackpot winners to write a book on 'guaranteed wealth strategies', while ignoring the millions of participants who lost their ticket money.",
+    "analogy": "Interviewing only lottery jackpot winners to write a book on 'guaranteed wealth strategies', while ignoring the millions of participants who lost their ticket money.",
+    "risk_caution": "Backtesting strategies strictly on today's Nifty 500 constituents over past years produces artificially inflated returns because all historically failed companies were silently removed.",
+    "risk_warning": "Backtesting strategies strictly on today's Nifty 500 constituents over past years produces artificially inflated returns because all historically failed companies were silently removed."
+  },
+  "open_interest": {
+    "term": "Open Interest (OI)",
+    "plain_label": "Active Outstanding Contracts",
+    "simple_definition": "The total number of outstanding derivative contracts (futures or options) that have not been settled or closed by an offsetting transaction.",
+    "definition": "The total number of outstanding derivative contracts (futures or options) that have not been settled or closed by an offsetting transaction.",
+    "everyday_analogy": "Like counting the total number of live rental lease agreements currently active between landlords and tenants in an apartment complex.",
+    "analogy": "Like counting the total number of live rental lease agreements currently active between landlords and tenants in an apartment complex.",
+    "risk_caution": "Rising open interest simply confirms capital entering the market; it does not indicate whether buyers or sellers are stronger without analyzing price direction and delivery volumes.",
+    "risk_warning": "Rising open interest simply confirms capital entering the market; it does not indicate whether buyers or sellers are stronger without analyzing price direction and delivery volumes."
+  },
+  "implied_volatility": {
+    "term": "Implied Volatility (IV)",
+    "plain_label": "Market Expectation of Price Swings",
+    "simple_definition": "The market's forecast of a likely movement in a security's price as reflected in option pricing models.",
+    "definition": "The market's forecast of a likely movement in a security's price as reflected in option pricing models.",
+    "everyday_analogy": "Like umbrella prices doubling when dark storm clouds appear on the horizon, before a single drop of rain actually falls.",
+    "analogy": "Like umbrella prices doubling when dark storm clouds appear on the horizon, before a single drop of rain actually falls.",
+    "risk_caution": "Buying options when IV is exceptionally high (e.g., right before general election results or earnings) subjects buyers to an 'IV crush' where option value plunges even if the price moves in your favor.",
+    "risk_warning": "Buying options when IV is exceptionally high (e.g., right before general election results or earnings) subjects buyers to an 'IV crush' where option value plunges even if the price moves in your favor."
+  }
+}

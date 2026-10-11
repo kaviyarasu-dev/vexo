@@ -1,0 +1,33 @@
+/* modes.css: Visibility utilities for Simple/Pro modes */
+
+.mode-simple .mode-pro-only {
+    display: none !important;
+}
+
+.mode-pro .mode-simple-only {
+    display: none !important;
+}
+
+/* Base adaptive styles */
+.mode-adaptive {
+    transition: all 0.3s ease;
+}
+
+/* Example: Main Candlestick Pane heights */
+.mode-simple .chart-pane-main {
+    height: 100%;
+}
+
+.mode-pro .chart-pane-main {
+    height: 70%;
+}
+
+/* Example: Oscillator Pane heights */
+.mode-simple .chart-pane-oscillator {
+    display: none;
+}
+
+.mode-pro .chart-pane-oscillator {
+    height: 15%;
+    display: block;
+}

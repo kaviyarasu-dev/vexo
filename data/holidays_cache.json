@@ -1,0 +1,128 @@
+[
+  {
+    "holiday_date": "2026-01-15",
+    "description": "Municipal Corporation Election",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-01-26",
+    "description": "Republic Day",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-02-01",
+    "description": "Budget Day Session",
+    "is_special_session": true,
+    "trading_start": "18:15:00",
+    "trading_end": "19:15:00"
+  },
+  {
+    "holiday_date": "2026-03-03",
+    "description": "Holi",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-03-26",
+    "description": "Ram Navami",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-03-31",
+    "description": "Mahavir Jayanti",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-04-03",
+    "description": "Good Friday",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-04-14",
+    "description": "Dr. Baba Saheb Ambedkar Jayanti",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-05-01",
+    "description": "Maharashtra Day",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-05-28",
+    "description": "Bakri Id / Eid-ul-Adha",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-06-26",
+    "description": "Muharram",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-09-14",
+    "description": "Ganesh Chaturthi",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-10-02",
+    "description": "Gandhi Jayanti",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-10-20",
+    "description": "Dussehra",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-11-08",
+    "description": "Diwali Laxmi Pujan",
+    "is_special_session": true,
+    "trading_start": "18:15:00",
+    "trading_end": "19:15:00"
+  },
+  {
+    "holiday_date": "2026-11-10",
+    "description": "Diwali-Balipratipada",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-11-24",
+    "description": "Guru Nanak Jayanti",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  },
+  {
+    "holiday_date": "2026-12-25",
+    "description": "Christmas",
+    "is_special_session": false,
+    "trading_start": "09:15:00",
+    "trading_end": "15:30:00"
+  }
+]

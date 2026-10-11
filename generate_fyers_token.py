@@ -1,9 +1,10 @@
+import os
 from fyers_apiv3 import fyersModel
 import webbrowser
 
-# Replace if needed, but these are from your previous script attempt
-CLIENT_ID = "2Q10WHDO67-200"
-SECRET_KEY = "jsvGf4pLiIzFqqPa" # Assuming this was the secret key you used earlier
+# Credentials from environment or placeholders
+CLIENT_ID = os.getenv("FYERS_APP_ID", "YOUR_CLIENT_ID_HERE")
+SECRET_KEY = os.getenv("FYERS_SECRET_KEY", "YOUR_SECRET_KEY_HERE")
 REDIRECT_URI = "https://127.0.0.1:5000/" # Standard local redirect URI (must match what you set in Fyers Portal)
 RESPONSE_TYPE = "code"
 GRANT_TYPE = "authorization_code"
