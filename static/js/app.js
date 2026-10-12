@@ -39,11 +39,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.screenerController && typeof window.screenerController.closeCreateTemplateModal === 'function') {
                 window.screenerController.closeCreateTemplateModal();
             }
+        } else if (modal.id === 'study-modal-backdrop' || modal.id === 'study-modal') {
+            if (typeof window.closeStudyDialog === 'function') {
+                window.closeStudyDialog();
+            }
         }
     }
 
     function closeAllModals() {
         let count = 0;
+        const studyBackdrop = document.getElementById('study-modal-backdrop');
+        if (studyBackdrop && studyBackdrop.classList.contains('open')) {
+            if (typeof window.closeStudyDialog === 'function') {
+                window.closeStudyDialog();
+                count++;
+            }
+        }
         document.querySelectorAll('.modal').forEach(m => {
             if (!m.classList.contains('hidden') || m.id === 'welcome-modal') {
                 closeModal(m);
@@ -127,7 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Close all open modals
             const openModals = document.querySelectorAll('.modal:not(.hidden)');
-            if (openModals.length > 0 || document.getElementById('welcome-modal')) {
+            const studyBackdrop = document.getElementById('study-modal-backdrop');
+            if (openModals.length > 0 || document.getElementById('welcome-modal') || (studyBackdrop && studyBackdrop.classList.contains('open'))) {
                 closeAllModals();
                 handled = true;
             }
@@ -303,6 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.switchAppView = switchAppView;
+    window.switchView = switchAppView; // Universal alias for view switching
 
     document.querySelectorAll('.view-tab').forEach(tab => {
         tab.addEventListener('click', (e) => {

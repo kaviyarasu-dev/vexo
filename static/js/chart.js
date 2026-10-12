@@ -93,6 +93,7 @@ function initCharts() {
 
     // Main Candle pane
     mainChart = LightweightCharts.createChart(container, chartOptions);
+    window.mainChart = mainChart;
     
     candleSeries = createCandlestickSeries(mainChart, {
         upColor: '#089981', 
@@ -101,26 +102,31 @@ function initCharts() {
         wickUpColor: '#089981', 
         wickDownColor: '#F23645'
     });
+    window.candleSeries = candleSeries;
     
     vwapSeries = createLineSeries(mainChart, {
         color: '#F5AC00',
         lineWidth: 2,
         title: 'VWAP',
     });
+    window.vwapSeries = vwapSeries;
 
     emaSeries = createLineSeries(mainChart, {
         color: '#2962FF',
         lineWidth: 2,
         title: 'EMA 20',
     });
+    window.emaSeries = emaSeries;
 
     // Volume pane
     volumeChart = LightweightCharts.createChart(volContainer, chartOptions);
+    window.volumeChart = volumeChart;
     volumeSeries = createHistogramSeries(volumeChart, {
         color: '#2962FF',
         priceFormat: { type: 'volume' },
         priceScaleId: '', // overlay
     });
+    window.volumeSeries = volumeSeries;
 
     // Crosshair Sync Logic & Live Legend OHLC Update
     mainChart.subscribeCrosshairMove(param => {
@@ -130,6 +136,11 @@ function initCharts() {
             } else {
                 volumeChart.setCrosshairPosition(param.point.x, param.point.y, mainChart);
             }
+        }
+
+        // Forward crosshair to active studies subpanes
+        if (window.activeStudiesManager && typeof window.activeStudiesManager.syncCrosshairToSubpanes === 'function') {
+            window.activeStudiesManager.syncCrosshairToSubpanes(param);
         }
 
         // Live Legend OHLC update
@@ -152,10 +163,13 @@ function initCharts() {
         }
     });
 
-    // Backward lazy-loading on scroll to left edge
+    // Backward lazy-loading on scroll to left edge & volume profile redraw on pan/zoom
     if (mainChart && mainChart.timeScale()) {
         mainChart.timeScale().subscribeVisibleLogicalRangeChange(newRange => {
             if (!newRange) return;
+            if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
+                window.volumeProfileOverlay.requestRedraw();
+            }
             if (newRange.from < 20 && window.nextCandleCursor && !window.isLoadingMoreCandles) {
                 loadOlderCandles();
             }
@@ -462,6 +476,18 @@ async function loadOlderCandles() {
                 if (candleSeries) candleSeries.setData(mergedCandles);
                 if (volumeSeries) volumeSeries.setData(mergedVolumes);
                 updateOverlays();
+                if (window.activeStudiesManager && typeof window.activeStudiesManager.recalculateAll === 'function') {
+                    window.activeStudiesManager.recalculateAll(mergedCandles);
+                }
+                if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
+                    window.volumeProfileOverlay.requestRedraw();
+                }
+                if (window.chartPatternManager && typeof window.chartPatternManager.rescan === 'function') {
+                    window.chartPatternManager.rescan();
+                }
+                if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
+                    window.chartOptionsOverlay.recalculateAll();
+                }
                 updateActiveSymbolDisplay();
             } else {
                 window.nextCandleCursor = null; // Reached end of historical data
@@ -536,6 +562,18 @@ async function fetchChartData(symbol, timeframe) {
                     if (mainChart) mainChart.timeScale().fitContent();
                     if (volumeChart) volumeChart.timeScale().fitContent();
                     updateOverlays();
+                    if (window.activeStudiesManager && typeof window.activeStudiesManager.recalculateAll === 'function') {
+                        window.activeStudiesManager.recalculateAll(formattedCandles);
+                    }
+                    if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
+                        window.volumeProfileOverlay.requestRedraw();
+                    }
+                    if (window.chartPatternManager && typeof window.chartPatternManager.rescan === 'function') {
+                        window.chartPatternManager.rescan();
+                    }
+                    if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
+                        window.chartOptionsOverlay.recalculateAll();
+                    }
                     updateActiveSymbolDisplay();
                     handleResize();
                     return;
@@ -595,6 +633,18 @@ function mockData(symbol) {
     if (mainChart) mainChart.timeScale().fitContent();
     if (volumeChart) volumeChart.timeScale().fitContent();
     updateOverlays();
+    if (window.activeStudiesManager && typeof window.activeStudiesManager.recalculateAll === 'function') {
+        window.activeStudiesManager.recalculateAll(data);
+    }
+    if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
+        window.volumeProfileOverlay.requestRedraw();
+    }
+    if (window.chartPatternManager && typeof window.chartPatternManager.rescan === 'function') {
+        window.chartPatternManager.rescan();
+    }
+    if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
+        window.chartOptionsOverlay.recalculateAll();
+    }
     updateActiveSymbolDisplay();
 }
 
@@ -602,3 +652,5 @@ window.fetchChartData = fetchChartData;
 window.updateOverlays = updateOverlays;
 window.updateActiveSymbolDisplay = updateActiveSymbolDisplay;
 window.resetLegendToLatest = resetLegendToLatest;
+window.calculateVWAP = calculateVWAP;
+window.calculateEMA = calculateEMA;

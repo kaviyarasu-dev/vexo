@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from core.logging_config import RedactingFormatter
 from core.security import OrderExecutionGateMiddleware, order_gate_router
-from api.routers import health, symbols, candles, export, system, screener, alerts, options, journal, backtest, auth
+from api.routers import health, symbols, candles, export, system, screener, alerts, options, journal, backtest, auth, studies, volume_profile, patterns, paper_trading
 from api.models.envelope import ApiResponse
 from db.connection import DuckDBConnectionManager, get_db
 
@@ -128,6 +128,10 @@ app.include_router(options.router)
 app.include_router(journal.router)
 app.include_router(backtest.router)
 app.include_router(auth.router)
+app.include_router(volume_profile.router)
+app.include_router(patterns.router)
+app.include_router(studies.router)
+app.include_router(paper_trading.router)
 app.include_router(order_gate_router)
 
 import os

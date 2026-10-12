@@ -143,6 +143,9 @@ SCHEMA_TABLES_DDL = {
         CREATE TABLE IF NOT EXISTS paper_account (
             account_id VARCHAR PRIMARY KEY,
             balance DOUBLE NOT NULL,
+            initial_balance DOUBLE DEFAULT 1000000.0,
+            realized_pnl DOUBLE DEFAULT 0.0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """,
@@ -151,7 +154,62 @@ SCHEMA_TABLES_DDL = {
             symbol VARCHAR PRIMARY KEY,
             quantity INTEGER NOT NULL,
             average_price DOUBLE NOT NULL,
+            side VARCHAR DEFAULT 'LONG',
+            trade_type VARCHAR DEFAULT 'DELIVERY',
+            stop_loss DOUBLE,
+            take_profit DOUBLE,
+            trailing_sl_pct DOUBLE,
+            highest_price DOUBLE,
+            lowest_price DOUBLE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """,
+    "paper_orders": """
+        CREATE TABLE IF NOT EXISTS paper_orders (
+            order_id VARCHAR PRIMARY KEY,
+            symbol VARCHAR NOT NULL,
+            side VARCHAR NOT NULL,
+            order_type VARCHAR NOT NULL DEFAULT 'MARKET',
+            trade_type VARCHAR NOT NULL DEFAULT 'DELIVERY',
+            quantity INTEGER NOT NULL,
+            price DOUBLE,
+            trigger_price DOUBLE,
+            status VARCHAR NOT NULL DEFAULT 'FILLED',
+            stop_loss DOUBLE,
+            take_profit DOUBLE,
+            trailing_sl_pct DOUBLE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            filled_at TIMESTAMP
+        );
+    """,
+    "paper_trades": """
+        CREATE TABLE IF NOT EXISTS paper_trades (
+            trade_id VARCHAR PRIMARY KEY,
+            order_id VARCHAR NOT NULL,
+            symbol VARCHAR NOT NULL,
+            side VARCHAR NOT NULL,
+            quantity INTEGER NOT NULL,
+            fill_price DOUBLE NOT NULL,
+            brokerage DOUBLE NOT NULL DEFAULT 0.0,
+            stt DOUBLE NOT NULL DEFAULT 0.0,
+            total_charges DOUBLE NOT NULL DEFAULT 0.0,
+            gross_pnl DOUBLE DEFAULT 0.0,
+            net_pnl DOUBLE DEFAULT 0.0,
+            executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """,
+    "paper_auto_strategies": """
+        CREATE TABLE IF NOT EXISTS paper_auto_strategies (
+            strategy_id VARCHAR PRIMARY KEY,
+            strategy_name VARCHAR NOT NULL,
+            symbol VARCHAR NOT NULL,
+            timeframe VARCHAR NOT NULL DEFAULT '1D',
+            parameters JSON NOT NULL,
+            trade_type VARCHAR NOT NULL DEFAULT 'DELIVERY',
+            allocated_capital DOUBLE NOT NULL DEFAULT 100000.0,
+            status VARCHAR NOT NULL DEFAULT 'ACTIVE',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """
 }

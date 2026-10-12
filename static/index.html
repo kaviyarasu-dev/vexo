@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NSE Quant App</title>
-    <link rel="stylesheet" href="/static/css/theme.css">
-    <link rel="stylesheet" href="/static/css/modes.css">
-    <link rel="stylesheet" href="/static/css/education.css">
+    <link rel="stylesheet" href="/static/css/theme.css?v=5">
+    <link rel="stylesheet" href="/static/css/modes.css?v=5">
+    <link rel="stylesheet" href="/static/css/education.css?v=5">
+    <link rel="stylesheet" href="/static/css/study_dialog.css?v=5">
     <!-- TradingView LightweightCharts v4.2.1 -->
     <script src="https://unpkg.com/lightweight-charts@4.2.1/dist/lightweight-charts.standalone.production.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,6 +80,11 @@
                     <button class="tf-btn active" data-tf="1D">1D</button>
                     <button class="tf-btn" data-tf="1W">1W</button>
                 </div>
+                <div class="studies-trigger-wrap">
+                    <button id="btn-open-studies" class="tv-studies-btn" title="Indicators, metrics, and strategies (fx)">
+                        <span class="fx-icon">fx</span> Indicators
+                    </button>
+                </div>
                 <div class="overlays">
                     <label>Overlays:</label>
                     <button class="overlay-btn active" id="btn-overlay-vwap" data-overlay="vwap" data-indicator="vwap" data-simple-name="Average Traded Price" title="Average Traded Price">VWAP</button>
@@ -111,6 +117,7 @@
                 </div>
                 <!-- Sub panes added dynamically in Pro mode -->
                 <div id="volume-pane" class="sub-pane"></div>
+                <div id="chart-subpanes-container" class="chart-subpanes-container"></div>
                 <div id="oscillator-pane" class="sub-pane"></div>
             </main>
         </div>
@@ -815,6 +822,195 @@
         </div>
     </div>
 
+    <!-- TradingView Indicators, Metrics, and Strategies Modal -->
+    <div id="study-modal-backdrop" class="tv-study-modal-backdrop modal-overlay" role="dialog" aria-modal="true" aria-labelledby="study-modal-title">
+        <div class="tv-study-modal modal-content" id="study-modal">
+            <!-- Modal Header -->
+            <div class="tv-study-header">
+                <div class="tv-study-title" id="study-modal-title">Indicators, metrics, and strategies</div>
+                <button class="tv-study-close-btn" id="study-modal-close" title="Close (Esc)">✕</button>
+            </div>
+
+            <!-- Search Area -->
+            <div class="tv-study-search-wrap">
+                <div class="tv-study-search-box">
+                    <span class="tv-study-search-icon">🔍</span>
+                    <input type="text" id="study-search-input" class="tv-study-search-input" placeholder="Search" autocomplete="off" spellcheck="false">
+                    <button id="study-search-clear" class="tv-study-search-clear" title="Clear search">✕</button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="tv-study-body">
+                <!-- Left Sidebar -->
+                <nav class="tv-study-sidebar" aria-label="Study Categories">
+                    <div class="tv-study-sidebar-section-title">Personal</div>
+                    <button class="tv-study-nav-item" data-section="personal" data-category="my_scripts">
+                        <span class="nav-icon">👤</span> My scripts
+                    </button>
+                    <button class="tv-study-nav-item" data-section="personal" data-category="favorites">
+                        <span class="nav-icon">⭐</span> Favorites / Saved
+                    </button>
+
+                    <div class="tv-study-sidebar-section-title">Built-in</div>
+                    <button class="tv-study-nav-item active" data-section="builtin" data-category="technicals">
+                        <span class="nav-icon">📈</span> Technicals
+                    </button>
+                    <button class="tv-study-nav-item" data-section="builtin" data-category="fundamentals">
+                        <span class="nav-icon">📊</span> Fundamentals
+                    </button>
+
+                    <div class="tv-study-sidebar-section-title">Community</div>
+                    <button class="tv-study-nav-item" data-section="community" data-category="community">
+                        <span class="nav-icon">🔖</span> Editors' picks
+                    </button>
+                </nav>
+
+                <!-- Main Panel -->
+                <section class="tv-study-main">
+                    <!-- Technicals Sub-Pills & Create Button -->
+                    <div class="tv-study-pills-bar" id="study-pills-bar">
+                        <div class="tv-study-pills-scroll" id="study-pills-scroll">
+                            <button class="tv-study-pill-btn active" data-sub="indicators">Indicators</button>
+                            <button class="tv-study-pill-btn" data-sub="strategies">Strategies</button>
+                            <button class="tv-study-pill-btn" data-sub="profiles">Profiles</button>
+                            <button class="tv-study-pill-btn" data-sub="patterns">Patterns</button>
+                            <button class="tv-study-pill-btn" data-sub="options">Options</button>
+                        </div>
+                        <button class="tv-study-create-btn" id="study-create-new-btn" title="Create new custom study in this tab">
+                            + Create New Indicator
+                        </button>
+                    </div>
+
+                    <!-- Column Header -->
+                    <div class="tv-study-list-header">
+                        <span>Script Name</span>
+                        <span>Type</span>
+                    </div>
+
+                    <!-- Studies Scroll List -->
+                    <div class="tv-study-list-container">
+                        <ul class="tv-study-list" id="study-items-list">
+                            <!-- Populated dynamically via study_dialog.js -->
+                        </ul>
+
+                        <!-- Empty Search Fallback -->
+                        <div class="tv-study-empty-state" id="study-empty-state" style="display: none;">
+                            <div class="tv-study-empty-icon">🔍</div>
+                            <div class="tv-study-empty-title">No matching studies found</div>
+                            <div>Try searching with a different term or keyword.</div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Detail / Action Bar -->
+                    <div class="tv-study-detail-bar" id="study-detail-bar">
+                        <div class="tv-study-detail-text" id="study-detail-desc">
+                            Select an indicator or strategy to view specifications and parameters.
+                        </div>
+                        <div class="tv-study-detail-actions">
+                            <button class="tv-study-primary-btn" id="study-detail-apply-btn">+ Apply to Chart</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create New Custom Study Dialog Modal (Top-Level Viewport Fixed Overlay) -->
+    <div class="tv-study-create-dialog-backdrop" id="study-create-modal" style="display: none;">
+        <div class="tv-study-create-dialog">
+            <div class="tv-study-create-header">
+                <div class="tv-study-create-title-box">
+                    <h3 id="create-modal-title">Create New Indicator</h3>
+                    <span id="create-modal-badge" class="tv-modal-category-badge">Indicators</span>
+                </div>
+                <button type="button" class="tv-study-close-btn" id="create-modal-close" title="Close dialog">✕</button>
+            </div>
+            <form id="create-study-form" class="tv-study-create-form">
+                <div class="tv-study-create-body">
+                    <div class="form-group">
+                        <label for="create-study-category">Target Category / Tab</label>
+                        <select id="create-study-category" class="tv-input-select">
+                            <option value="indicators">Indicators</option>
+                            <option value="strategies">Strategies</option>
+                            <option value="profiles">Profiles</option>
+                            <option value="patterns">Patterns</option>
+                            <option value="options">Options</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="create-study-name">Script / Study Name <span class="required" style="color:#FF5252;">*</span></label>
+                        <input type="text" id="create-study-name" class="tv-input-text" placeholder="e.g. My Fast 9 EMA Scalp" required autocomplete="off" />
+                    </div>
+                    <div class="form-group">
+                        <label for="create-study-base">Base Engine / Algorithm</label>
+                        <select id="create-study-base" class="tv-input-select">
+                            <!-- Dynamically populated based on category -->
+                        </select>
+                    </div>
+                    <!-- Row 1: Primary Parameters (Period, Multiplier, etc.) -->
+                    <div class="form-row" id="create-param-period-row">
+                        <div class="form-group half" id="create-param-period-group">
+                            <label for="create-param-period" id="create-param-period-label">Period / Length</label>
+                            <input type="number" id="create-param-period" class="tv-input-text" value="20" min="1" max="500" />
+                        </div>
+                        <div class="form-group half" id="create-param-mult-group">
+                            <label for="create-param-mult" id="create-param-mult-label">Multiplier / StdDev</label>
+                            <input type="number" id="create-param-mult" class="tv-input-text" value="2.0" step="0.1" min="0.1" max="20" />
+                        </div>
+                    </div>
+                    <!-- Row 2: Secondary Parameters / Profiles (Rows, Value Area %, etc.) -->
+                    <div class="form-row" id="create-param-secondary-row" style="display: none;">
+                        <div class="form-group half" id="create-param-rows-group">
+                            <label for="create-param-rows" id="create-param-rows-label">Rows / Value Area %</label>
+                            <input type="number" id="create-param-rows" class="tv-input-text" value="70" min="10" max="300" />
+                        </div>
+                        <div class="form-group half" id="create-param-sec2-group" style="display:none;">
+                            <label for="create-param-sec2" id="create-param-sec2-label">Secondary Parameter</label>
+                            <input type="number" id="create-param-sec2" class="tv-input-text" value="14" min="1" max="500" />
+                        </div>
+                    </div>
+                    <!-- Row 3: Theme Color & Display Mode (Symmetrical 2-column) -->
+                    <div class="form-row" id="create-param-style-row">
+                        <div class="form-group half" id="create-param-color-group">
+                            <label for="create-param-color" id="create-param-color-label">Theme Color</label>
+                            <div class="tv-color-picker-box">
+                                <input type="color" id="create-param-color" class="tv-input-color-swatch" value="#2962FF" />
+                                <span id="create-param-color-hex" class="tv-color-hex-text">#2962FF</span>
+                            </div>
+                        </div>
+                        <div class="form-group half" id="create-param-overlay-group">
+                            <label id="create-display-mode-label">Chart Display Mode</label>
+                            <div class="tv-radio-group">
+                                <label class="tv-radio-label">
+                                    <input type="radio" name="create-display-mode" value="overlay" checked /> Chart Overlay
+                                </label>
+                                <label class="tv-radio-label">
+                                    <input type="radio" name="create-display-mode" value="subpane" /> Sub-Pane
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="create-study-desc">Description / Rules (Optional)</label>
+                        <textarea id="create-study-desc" class="tv-input-textarea" rows="2" placeholder="Custom algorithm specifications and parameters..."></textarea>
+                    </div>
+                </div>
+                <!-- Fixed Footer Actions -->
+                <div class="tv-study-create-actions">
+                    <label class="tv-checkbox-label">
+                        <input type="checkbox" id="create-study-auto-apply" checked />
+                        <span>Apply immediately to active chart</span>
+                    </label>
+                    <div class="tv-study-actions-btns">
+                        <button type="button" class="tv-study-secondary-btn" id="create-modal-cancel">Cancel</button>
+                        <button type="submit" class="tv-study-primary-btn" id="create-modal-submit">+ Create & Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Persistent Regulatory Compliance Footer -->
     <footer id="regulatory-compliance-footer" class="compliance-footer">
         <p><strong>SEBI Statutory Disclaimer:</strong> This application is a self-directed quantitative data analysis and backtesting tool for educational and research purposes only. It does NOT constitute investment advice, financial advisory, or a recommendation to buy or sell any securities under SEBI regulations. All indicators, backtest results, and screener outputs are purely mathematical computations based on historical data. Historical performance is NOT indicative of future returns. Algorithmic trading and equity investments are subject to substantial market risk, including the loss of principal capital.</p>
@@ -823,17 +1019,23 @@
     <!-- Application Scripts -->
     <script src="/static/js/translation_registry.js"></script>
     <script src="/static/js/ux_mode_controller.js"></script>
-    <script src="/static/js/chart.js"></script>
+    <script src="/static/js/chart.js?v=6"></script>
+    <script src="/static/js/volume_profile_overlay.js?v=6"></script>
+    <script src="/static/js/chart_studies.js?v=6"></script>
+    <script src="/static/js/chart_patterns.js?v=6"></script>
+    <script src="/static/js/strategy_tester_dock.js?v=6"></script>
+    <script src="/static/js/chart_options_overlay.js?v=6"></script>
+    <script src="/static/js/study_dialog.js?v=6"></script>
     <script src="/static/js/symbol_search.js"></script>
     <script src="/static/js/screener_ui.js"></script>
     <script src="/static/js/options_ui.js"></script>
     <script src="/static/js/alerts_ui.js"></script>
-    <script src="/static/js/backtest_ui.js"></script>
+    <script src="/static/js/backtest_ui.js?v=6"></script>
     <script src="/static/js/journal_ui.js"></script>
     <script src="/static/js/auth_modal.js"></script>
     <script src="/static/js/download_progress.js"></script>
     <script src="/static/js/glossary_tooltip.js"></script>
     <script src="/static/js/guided_tutorial.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=6"></script>
 </body>
 </html>

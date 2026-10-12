@@ -346,3 +346,25 @@
   - Fyers personal non-commercial license verified and attached to all export formats (Parquet, CSV, Excel).
   - Architectural hard gate operational: Order execution is strictly out of scope, returning HTTP 403.
   - All phase plans (00 to 19) complete, compliant, and verified.
+
+---
+
+### Feature: TradingView Study Dialog & Quantitative Indicators Suite (`study-dialog`)
+- **Status**: STATUS: DONE
+- **Plans Executed**:
+  - `01-modal-shell-and-catalog/001-modal-ui-and-catalog.md` (Plan 01-001)
+  - `02-indicators-and-oscillators/001-subpanes-and-indicators.md` (Plan 02-001)
+  - `03-volume-profiles-and-market-profiles/001-volume-profiles.md` (Plan 03-001)
+  - `04-patterns-strategies-and-options/001-patterns-strategies-options.md` (Plan 04-001)
+- **Artifacts Produced**:
+  - **Catalog & Shell**: `services/study_catalog_service.py`, `api/routers/studies.py`, `static/css/study_dialog.css`, `static/js/study_dialog.js`, `static/index.html` (modal markup & `fx Indicators` button)
+  - **Sub-Panes & Oscillators**: `services/indicators/trend.py` (SMA, EMA, Supertrend), `services/indicators/oscillators.py` (Stochastic), `static/js/chart_studies.js` (ActiveStudiesManager, dynamic sub-panes, synced crosshairs/time-scale, HUD legends)
+  - **Volume Profiles & TPO**: `services/indicators/volume_profile.py` (Vectorized binning, 70% Value Area traversal, session profiles, TPO 30-min brackets A-M), `api/routers/volume_profile.py`, `static/js/volume_profile_overlay.js` (60fps Canvas overlay for VRVP, SVP, and TPO)
+  - **Patterns & Strategies**: `services/pattern_recognition_service.py` (Vectorized candlestick & chart patterns scanner), `api/routers/patterns.py`, `static/js/chart_patterns.js` (Markers & educational tooltip popups), `static/js/strategy_tester_dock.js` (Collapsible HUD dock with live P&L, win rate, Buy/Sell execution arrows, and deep dive link to Backtest lab)
+  - **Options Studies**: `static/js/chart_options_overlay.js` (Max Pain benchmark ray, PCR oscillator/tag, Strike OI distribution)
+  - **Tests**: `tests/unit/test_study_catalog.py`, `tests/integration/test_study_modal_integration.py`, `tests/unit/test_indicators_extended.py`, `tests/integration/test_subpanes_and_studies.py`, `tests/unit/test_volume_profile.py`, `tests/integration/test_volume_profile_api.py`, `tests/unit/test_pattern_recognition.py`, `tests/integration/test_patterns_and_strategies.py` (All 36 tests passing)
+- **Handoff Summary**:
+  - Full TradingView dark-themed modal dialog with real-time fuzzy search, categorized tabs (Personal, Built-in, Community), sub-category pills (Indicators, Strategies, Profiles, Patterns, Options, Fundamentals), and starred favorites persisted in `localStorage`.
+  - Multi-indicator presets can be saved into "My scripts" directly from the UI and re-applied with one click.
+  - All 4 plans in `docs/plans/study-dialog/manifest.json` completely fulfilled with zero regressions.
+

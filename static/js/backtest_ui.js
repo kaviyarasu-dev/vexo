@@ -15,6 +15,16 @@ class BacktestUI {
         this.benchmarkSeries = null;
         this.drawdownSeries = null;
 
+        // Universe Scan State
+        this.currentMatches = [];
+        this.pastMatches = [];
+        this.isScanning = false;
+        this.currentSignalFilter = 'ALL';
+        this.currentSearchTerm = '';
+        this.pastSearchTerm = '';
+        this.pastSortKey = 'win_rate';
+        this.pastSortAsc = false;
+
         // Default Configuration
         this.config = {
             strategy: 'SMA_CROSS',
@@ -42,8 +52,9 @@ class BacktestUI {
         if (!this.container) return;
         this.renderStudio();
         this.bindEvents();
-        // Automatically run initial backtest
+        // Automatically run initial backtest and scan universe
         this.runBacktest();
+        this.scanUniverse();
     }
 
     renderStudio() {
@@ -276,8 +287,132 @@ class BacktestUI {
 
                     <!-- RIGHT COLUMN: Studio Results Dashboard -->
                     <main class="backtest-results-panel">
-                        <!-- Results Top Bar -->
-                        <div class="results-header-bar">
+                        <!-- 1. CURRENT MATCH TABLE SECTION -->
+                        <section class="studio-universe-section" id="section-current-matches">
+                            <div class="studio-section-header">
+                                <div class="section-header-left">
+                                    <span class="section-header-icon pulse-live">⚡</span>
+                                    <div class="section-header-title-box">
+                                        <h3 class="section-title">Current Match Table</h3>
+                                        <span class="section-subtitle">Stocks matching active <strong id="current-matches-strat-name">SMA Crossover</strong> signals</span>
+                                    </div>
+                                    <span class="badge-count" id="badge-current-matches-count">0 Signals</span>
+                                </div>
+                                <div class="section-header-right">
+                                    <div class="pill-filter-group" id="current-matches-filter-group">
+                                        <button type="button" class="filter-chip active" data-signal-filter="ALL">All</button>
+                                        <button type="button" class="filter-chip chip-buy" data-signal-filter="BUY">BUY</button>
+                                        <button type="button" class="filter-chip chip-sell" data-signal-filter="SELL">SELL</button>
+                                    </div>
+                                    <div class="search-input-wrapper">
+                                        <input type="text" id="input-search-current-matches" class="table-search-input" placeholder="Filter symbol...">
+                                    </div>
+                                    <button type="button" id="btn-refresh-matches-scan" class="btn-refresh-scan" title="Rescan Universe">
+                                        <span class="refresh-icon">🔄</span> Rescan
+                                    </button>
+                                    <button type="button" id="btn-toggle-current-table" class="btn-toggle-collapse" title="Collapse/Expand">▼</button>
+                                </div>
+                            </div>
+                            <div class="studio-section-content" id="content-current-matches">
+                                <div class="table-container">
+                                    <table class="quant-table" id="table-current-matches">
+                                        <thead>
+                                            <tr>
+                                                <th class="th-stock">Stock / Symbol</th>
+                                                <th class="th-signal text-center">Signal</th>
+                                                <th class="th-trigger-time">Triggered</th>
+                                                <th class="th-price text-right">Trigger Price</th>
+                                                <th class="th-price text-right">Current Price</th>
+                                                <th class="th-move text-right">Move %</th>
+                                                <th class="th-reason">Signal Context</th>
+                                                <th class="th-action text-center">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-current-matches">
+                                            <tr>
+                                                <td colspan="8" class="text-center p-4 text-muted">Scanning universe for active signals...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="table-empty-box d-none" id="empty-current-matches">
+                                    <span class="empty-icon">🔎</span>
+                                    <p class="empty-title">No Fresh Signals in Latest Sessions</p>
+                                    <p class="empty-desc">No stocks have fresh entry/exit triggers on the latest candles for this strategy. Check past match table below or adjust strategy parameters.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 2. PAST MATCH TABLE SECTION -->
+                        <section class="studio-universe-section" id="section-past-matches">
+                            <div class="studio-section-header">
+                                <div class="section-header-left">
+                                    <span class="section-header-icon">📊</span>
+                                    <div class="section-header-title-box">
+                                        <h3 class="section-title">Past Match Table</h3>
+                                        <span class="section-subtitle">Win/Loss track record &amp; Net Return for <strong id="past-matches-strat-name">SMA Crossover</strong> across all stocks</span>
+                                    </div>
+                                    <span class="badge-count" id="badge-past-matches-count">0 Stocks Scanned</span>
+                                </div>
+                                <div class="section-header-right">
+                                    <div class="search-input-wrapper">
+                                        <input type="text" id="input-search-past-matches" class="table-search-input" placeholder="Search stocks...">
+                                    </div>
+                                    <div class="sort-select-wrapper">
+                                        <label>Sort:</label>
+                                        <select id="select-past-sort" class="sort-select">
+                                            <option value="win_rate" selected>Win Rate (%)</option>
+                                            <option value="net_pnl">Net Return (₹)</option>
+                                            <option value="total_trades">Total Trades</option>
+                                            <option value="profit_factor">Profit Factor</option>
+                                            <option value="symbol">Symbol A-Z</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" id="btn-toggle-past-table" class="btn-toggle-collapse" title="Collapse/Expand">▼</button>
+                                </div>
+                            </div>
+                            <div class="studio-section-content" id="content-past-matches">
+                                <div class="table-container">
+                                    <table class="quant-table" id="table-past-matches">
+                                        <thead>
+                                            <tr>
+                                                <th class="th-sortable" data-sort-key="symbol">Stock Name / Symbol <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable text-center" data-sort-key="total_trades">Trades <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable text-center" data-sort-key="win_count">Wins <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable text-center" data-sort-key="loss_count">Losses <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable" data-sort-key="win_rate" style="min-width: 140px;">Win Rate % <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable text-right" data-sort-key="net_pnl">Net Return (₹ / %) <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable text-right" data-sort-key="profit_factor">Profit Factor <span class="sort-arrow">↕</span></th>
+                                                <th class="th-action text-center">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-past-matches">
+                                            <tr>
+                                                <td colspan="8" class="text-center p-4 text-muted">Calculating historical win/loss matrix across universe...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 3. CURRENT VIEW (Detailed Single-Stock Studio) -->
+                        <section class="studio-current-view-section" id="section-current-view">
+                            <div class="current-view-title-bar">
+                                <div class="view-title-left">
+                                    <span class="section-header-icon">🎯</span>
+                                    <div>
+                                        <h3 class="current-view-title">Current View: Detailed Stock Backtest</h3>
+                                        <span class="current-view-subtitle">Interactive Performance Dashboard, Equity Curves, and Trade Ledger</span>
+                                    </div>
+                                </div>
+                                <div class="current-view-stock-indicator">
+                                    <span class="active-stock-tag" id="current-view-active-stock">NSE:RELIANCE-EQ</span>
+                                </div>
+                            </div>
+
+                            <!-- Results Top Bar -->
+                            <div class="results-header-bar">
                             <div class="results-meta-tags">
                                 <div class="meta-tag" id="meta-strategy-tag">Strategy: <strong>SMA Crossover</strong></div>
                                 <div class="meta-tag" id="meta-symbol-tag">Asset: <strong>NSE:RELIANCE-EQ</strong></div>
@@ -526,8 +661,9 @@ class BacktestUI {
                                 </table>
                             </div>
                         </div>
+                    </section>
 
-                        <!-- Footer: Audit & Disclaimer -->
+                    <!-- Footer: Audit & Disclaimer -->
                         <div class="backtest-footer-audit">
                             <div class="audit-badge">
                                 <span>🔒 Tamper-Proof Audit Hash:</span>
@@ -637,6 +773,9 @@ class BacktestUI {
                 this.config.strategy = this.activeStrategy;
                 this.config.parameters = {}; // Reset parameters for chosen strategy
                 this.updateDynamicParams();
+                // Automatically run single backtest & universe scan for new strategy
+                this.runBacktest();
+                this.scanUniverse();
             });
         });
 
@@ -651,6 +790,7 @@ class BacktestUI {
                 const symInput = document.getElementById('bt-symbol-input');
                 if (symInput) symInput.value = symbol;
                 this.config.symbol = symbol;
+                this.selectStockAndBacktest(symbol);
             });
         });
 
@@ -658,7 +798,11 @@ class BacktestUI {
         const symInput = document.getElementById('bt-symbol-input');
         if (symInput) {
             symInput.addEventListener('change', (e) => {
-                this.config.symbol = e.target.value.trim().toUpperCase();
+                const sym = e.target.value.trim().toUpperCase();
+                if (sym) {
+                    this.config.symbol = sym;
+                    this.selectStockAndBacktest(sym);
+                }
             });
         }
 
@@ -670,7 +814,6 @@ class BacktestUI {
                 const target = e.currentTarget;
                 target.classList.add('active');
                 const preset = target.dataset.preset;
-                const end = new Date(2023, 11, 31);
                 let startYear = 2023 - 3;
                 if (preset === '1Y') startYear = 2022;
                 else if (preset === '3Y') startYear = 2020;
@@ -750,6 +893,86 @@ class BacktestUI {
         if (runBtn) {
             runBtn.addEventListener('click', () => {
                 this.runBacktest();
+                this.scanUniverse();
+            });
+        }
+
+        // 11. Rescan Universe Button
+        const rescanBtn = document.getElementById('btn-refresh-matches-scan');
+        if (rescanBtn) {
+            rescanBtn.addEventListener('click', () => {
+                this.scanUniverse();
+            });
+        }
+
+        // 12. Current Matches Filter Chips (ALL, BUY, SELL)
+        const currentFilterChips = this.container.querySelectorAll('#current-matches-filter-group .filter-chip');
+        currentFilterChips.forEach(chip => {
+            chip.addEventListener('click', (e) => {
+                currentFilterChips.forEach(c => c.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                this.currentSignalFilter = e.currentTarget.dataset.signalFilter || 'ALL';
+                this.renderCurrentMatchesTable();
+            });
+        });
+
+        // 13. Current Matches Search Input
+        const currentSearchInput = document.getElementById('input-search-current-matches');
+        if (currentSearchInput) {
+            currentSearchInput.addEventListener('input', (e) => {
+                this.currentSearchTerm = e.target.value.trim().toUpperCase();
+                this.renderCurrentMatchesTable();
+            });
+        }
+
+        // 14. Past Matches Search Input
+        const pastSearchInput = document.getElementById('input-search-past-matches');
+        if (pastSearchInput) {
+            pastSearchInput.addEventListener('input', (e) => {
+                this.pastSearchTerm = e.target.value.trim().toUpperCase();
+                this.renderPastMatchesTable();
+            });
+        }
+
+        // 15. Past Matches Sort Dropdown
+        const pastSortSelect = document.getElementById('select-past-sort');
+        if (pastSortSelect) {
+            pastSortSelect.addEventListener('change', (e) => {
+                this.pastSortKey = e.target.value;
+                this.pastSortAsc = (this.pastSortKey === 'symbol');
+                this.renderPastMatchesTable();
+            });
+        }
+
+        // 16. Past Matches Sortable Headers
+        const pastSortHeaders = this.container.querySelectorAll('#table-past-matches th.th-sortable');
+        pastSortHeaders.forEach(th => {
+            th.addEventListener('click', (e) => {
+                const sortKey = e.currentTarget.dataset.sortKey;
+                if (!sortKey) return;
+                if (this.pastSortKey === sortKey) {
+                    this.pastSortAsc = !this.pastSortAsc;
+                } else {
+                    this.pastSortKey = sortKey;
+                    this.pastSortAsc = (sortKey === 'symbol');
+                }
+                if (pastSortSelect) pastSortSelect.value = sortKey;
+                this.renderPastMatchesTable();
+            });
+        });
+
+        // 17. Section Collapse / Expand Toggles
+        const toggleCurrentBtn = document.getElementById('btn-toggle-current-table');
+        if (toggleCurrentBtn) {
+            toggleCurrentBtn.addEventListener('click', () => {
+                this.toggleCollapse('content-current-matches', 'btn-toggle-current-table');
+            });
+        }
+
+        const togglePastBtn = document.getElementById('btn-toggle-past-table');
+        if (togglePastBtn) {
+            togglePastBtn.addEventListener('click', () => {
+                this.toggleCollapse('content-past-matches', 'btn-toggle-past-table');
             });
         }
 
@@ -867,6 +1090,112 @@ class BacktestUI {
         }
     }
 
+    setStrategyAndParams(strategyName, params = {}, symbol = null, timeframe = null) {
+        console.log(`[BacktestUI] Pre-filling strategy: ${strategyName}`, params, symbol, timeframe);
+        const map = {
+            'SMA_CROSS': 'SMA_CROSS',
+            'SMA_CROSSOVER': 'SMA_CROSS',
+            'strat_sma_cross': 'SMA_CROSS',
+            'strat_ema_cross': 'SMA_CROSS',
+            'RSI_REVERSION': 'RSI_REVERSION',
+            'RSI_REVERSAL': 'RSI_REVERSION',
+            'strat_rsi_reversal': 'RSI_REVERSION',
+            'BOLLINGER_BANDS': 'BOLLINGER_BANDS',
+            'strat_bb_breakout': 'BOLLINGER_BANDS',
+            'strat_bollinger_breakout': 'BOLLINGER_BANDS',
+            'SUPERTREND': 'SUPERTREND',
+            'strat_supertrend': 'SUPERTREND',
+            'MACD': 'MACD',
+            'strat_macd': 'MACD'
+        };
+
+        const targetStrategy = map[strategyName] || 'SMA_CROSS';
+        this.activeStrategy = targetStrategy;
+        this.config.strategy = targetStrategy;
+
+        // Highlight active strategy card
+        if (this.container) {
+            const strategyCards = this.container.querySelectorAll('.strategy-card');
+            strategyCards.forEach(card => {
+                if (card.dataset.strategy === targetStrategy) {
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        }
+
+        // Set symbol if provided
+        if (symbol) {
+            this.config.symbol = symbol;
+            const symInput = document.getElementById('bt-symbol-input');
+            if (symInput) symInput.value = symbol;
+            if (this.container) {
+                const stockChips = this.container.querySelectorAll('.chip-btn');
+                stockChips.forEach(chip => {
+                    if (chip.dataset.symbol === symbol) {
+                        chip.classList.add('active');
+                    } else {
+                        chip.classList.remove('active');
+                    }
+                });
+            }
+        }
+
+        // Set timeframe if provided
+        if (timeframe) {
+            this.config.timeframe = timeframe;
+            const tfSelect = document.getElementById('bt-timeframe-select');
+            if (tfSelect) tfSelect.value = timeframe;
+        }
+
+        // Normalize strategy parameters
+        if (targetStrategy === 'SMA_CROSS') {
+            const shortWin = params.short_window || params.fast_period || params.period || 20;
+            const longWin = params.long_window || params.slow_period || params.multiplier || 50;
+            this.config.parameters = { short_window: parseInt(shortWin, 10), long_window: parseInt(longWin, 10) };
+        } else if (targetStrategy === 'RSI_REVERSION') {
+            const rsiPer = params.rsi_period || params.period || 14;
+            const oversold = params.oversold || (params.multiplier && params.multiplier < 50 ? params.multiplier : 30);
+            const overbought = params.overbought || 70;
+            this.config.parameters = { rsi_period: parseInt(rsiPer, 10), oversold: parseFloat(oversold), overbought: parseFloat(overbought) };
+        } else if (targetStrategy === 'BOLLINGER_BANDS') {
+            const period = params.period || 20;
+            const stdDev = params.std_dev || params.stdDev || params.multiplier || 2.0;
+            this.config.parameters = { period: parseInt(period, 10), std_dev: parseFloat(stdDev) };
+        } else if (targetStrategy === 'SUPERTREND') {
+            const period = params.period || 10;
+            const mult = params.multiplier || 3.0;
+            this.config.parameters = { period: parseInt(period, 10), multiplier: parseFloat(mult) };
+        } else if (targetStrategy === 'MACD') {
+            const fastPer = params.fast_period || params.period || 12;
+            const slowPer = params.slow_period || params.multiplier || 26;
+            const sigPer = params.signal_period || params.sec2 || 9;
+            this.config.parameters = { fast_period: parseInt(fastPer, 10), slow_period: parseInt(slowPer, 10), signal_period: parseInt(sigPer, 10) };
+        }
+
+        // Set stop loss / take profit if passed
+        if (params.stop_loss_pct || params.rows) {
+            this.config.stop_loss_pct = parseFloat(params.stop_loss_pct || params.rows);
+            const slInput = document.getElementById('bt-stop-loss');
+            if (slInput) slInput.value = this.config.stop_loss_pct;
+        }
+        if (params.take_profit_pct || params.sec2) {
+            this.config.take_profit_pct = parseFloat(params.take_profit_pct || params.sec2);
+            const tpInput = document.getElementById('bt-take-profit');
+            if (tpInput) tpInput.value = this.config.take_profit_pct;
+        }
+
+        // Re-render parameter fields with updated values
+        this.updateDynamicParams();
+
+        // Run the backtest with pre-filled inputs
+        this.runBacktest();
+
+        // Resize charts to fit viewport smoothly
+        setTimeout(() => this.resizeCharts(), 120);
+    }
+
     renderOverviewResults(result, config) {
         // Meta tags
         const stratMap = {
@@ -881,6 +1210,16 @@ class BacktestUI {
         document.getElementById('meta-symbol-tag').innerHTML = `Asset: <strong>${config.symbol}</strong>`;
         document.getElementById('meta-period-tag').innerHTML = `Period: <strong>${config.start_date} to ${config.end_date}</strong>`;
         document.getElementById('meta-capital-tag').innerHTML = `Capital: <strong>₹${Number(config.initial_capital).toLocaleString('en-IN')}</strong>`;
+
+        const activeStockBadge = document.getElementById('current-view-active-stock');
+        if (activeStockBadge) activeStockBadge.textContent = config.symbol;
+
+        // Sync table row highlights
+        if (this.container) {
+            this.container.querySelectorAll('#tbody-current-matches tr, #tbody-past-matches tr').forEach(tr => {
+                tr.classList.toggle('active-selected-row', tr.dataset.symbol === config.symbol);
+            });
+        }
 
         // Headline Net Return
         const netPnl = result.net_pnl || 0;
@@ -1295,6 +1634,319 @@ class BacktestUI {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }
+
+    async scanUniverse() {
+        if (this.isScanning) return;
+        this.isScanning = true;
+
+        const stratMap = {
+            'SMA_CROSS': 'SMA Crossover',
+            'RSI_REVERSION': 'RSI Reversal',
+            'BOLLINGER_BANDS': 'Bollinger Bands',
+            'SUPERTREND': 'Supertrend',
+            'MACD': 'MACD Momentum'
+        };
+        const friendlyStrat = stratMap[this.activeStrategy] || this.activeStrategy;
+
+        const stratTitle1 = document.getElementById('current-matches-strat-name');
+        const stratTitle2 = document.getElementById('past-matches-strat-name');
+        if (stratTitle1) stratTitle1.textContent = friendlyStrat;
+        if (stratTitle2) stratTitle2.textContent = friendlyStrat;
+
+        const badgeCurrent = document.getElementById('badge-current-matches-count');
+        const badgePast = document.getElementById('badge-past-matches-count');
+        if (badgeCurrent) badgeCurrent.textContent = 'Scanning...';
+        if (badgePast) badgePast.textContent = 'Scanning...';
+
+        const tbodyCurrent = document.getElementById('tbody-current-matches');
+        const tbodyPast = document.getElementById('tbody-past-matches');
+        if (tbodyCurrent && this.currentMatches.length === 0) {
+            tbodyCurrent.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-muted"><span class="spinner-inline">⏳</span> Scanning universe for active signals...</td></tr>';
+        }
+        if (tbodyPast && this.pastMatches.length === 0) {
+            tbodyPast.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-muted"><span class="spinner-inline">⏳</span> Backtesting universe across historical data...</td></tr>';
+        }
+
+        const rescanBtn = document.getElementById('btn-refresh-matches-scan');
+        if (rescanBtn) rescanBtn.classList.add('loading');
+
+        try {
+            const payload = this.gatherFormData();
+            const resp = await fetch('/api/v1/backtest/scan-universe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    strategy: payload.strategy,
+                    timeframe: payload.timeframe,
+                    start_date: payload.start_date,
+                    end_date: payload.end_date,
+                    initial_capital: payload.initial_capital,
+                    parameters: payload.parameters,
+                    slippage_bps: payload.slippage_bps,
+                    stop_loss_pct: payload.stop_loss_pct,
+                    take_profit_pct: payload.take_profit_pct,
+                    position_size_type: payload.position_size_type,
+                    position_size_val: payload.position_size_val,
+                    max_symbols: 100
+                })
+            });
+
+            if (!resp.ok) {
+                throw new Error(`Universe scan error HTTP ${resp.status}`);
+            }
+
+            const data = await resp.json();
+            this.currentMatches = data.current_matches || [];
+            this.pastMatches = data.past_matches || [];
+
+            this.renderCurrentMatchesTable();
+            this.renderPastMatchesTable();
+
+        } catch (err) {
+            console.error('[BacktestUI] Universe scan failed:', err);
+            if (badgeCurrent) badgeCurrent.textContent = 'Scan Error';
+            if (badgePast) badgePast.textContent = 'Scan Error';
+        } finally {
+            this.isScanning = false;
+            if (rescanBtn) rescanBtn.classList.remove('loading');
+        }
+    }
+
+    renderCurrentMatchesTable() {
+        const tbody = document.getElementById('tbody-current-matches');
+        const emptyBox = document.getElementById('empty-current-matches');
+        const badgeCount = document.getElementById('badge-current-matches-count');
+        if (!tbody) return;
+
+        let filtered = [...this.currentMatches];
+
+        // Apply signal filter (BUY / SELL)
+        if (this.currentSignalFilter && this.currentSignalFilter !== 'ALL') {
+            filtered = filtered.filter(m => m.signal === this.currentSignalFilter);
+        }
+
+        // Apply symbol search
+        if (this.currentSearchTerm) {
+            filtered = filtered.filter(m => 
+                (m.symbol && m.symbol.toUpperCase().includes(this.currentSearchTerm)) ||
+                (m.name && m.name.toUpperCase().includes(this.currentSearchTerm))
+            );
+        }
+
+        if (badgeCount) {
+            badgeCount.textContent = `${this.currentMatches.length} Signals (${filtered.length} shown)`;
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            if (emptyBox) emptyBox.classList.remove('d-none');
+            return;
+        }
+
+        if (emptyBox) emptyBox.classList.add('d-none');
+
+        tbody.innerHTML = filtered.map(item => {
+            const isBuy = item.signal === 'BUY';
+            const badgeClass = isBuy ? 'badge-signal-buy' : 'badge-signal-sell';
+            const icon = isBuy ? '▲' : '▼';
+            const chgClass = (item.change_pct >= 0) ? 'text-green' : 'text-red';
+            const chgSign = (item.change_pct >= 0) ? '+' : '';
+            const isActiveStock = (item.symbol === this.config.symbol);
+            const rowClass = isActiveStock ? 'active-selected-row' : '';
+
+            let timeLabel = item.signal_date || '';
+            if (item.bars_ago === 0) timeLabel = `Today (${item.signal_date})`;
+            else if (item.bars_ago === 1) timeLabel = `1d ago (${item.signal_date})`;
+            else if (item.bars_ago > 1) timeLabel = `${item.bars_ago}d ago (${item.signal_date})`;
+
+            return `
+                <tr class="${rowClass}" data-symbol="${item.symbol}">
+                    <td>
+                        <div class="symbol-cell">
+                            <span class="symbol-ticker">${item.symbol}</span>
+                            <span class="symbol-fullname">${item.name || ''}</span>
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <span class="${badgeClass}">${icon} ${item.signal}</span>
+                    </td>
+                    <td class="text-muted font-mono" style="font-size: 11px;">
+                        ${timeLabel}
+                    </td>
+                    <td class="text-right font-mono">
+                        ₹${Number(item.signal_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td class="text-right font-mono font-bold">
+                        ₹${Number(item.current_price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td class="text-right font-mono font-bold ${chgClass}">
+                        ${chgSign}${item.change_pct}%
+                    </td>
+                    <td class="text-secondary" style="font-size: 11px;">
+                        ${item.indicator_details || '-'}
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn-select-stock" data-symbol="${item.symbol}">
+                            Select &amp; Backtest →
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Attach click listeners to rows & buttons
+        tbody.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('click', (e) => {
+                const sym = row.dataset.symbol;
+                if (sym) this.selectStockAndBacktest(sym);
+            });
+        });
+    }
+
+    renderPastMatchesTable() {
+        const tbody = document.getElementById('tbody-past-matches');
+        const badgeCount = document.getElementById('badge-past-matches-count');
+        if (!tbody) return;
+
+        let filtered = [...this.pastMatches];
+
+        // Apply symbol search
+        if (this.pastSearchTerm) {
+            filtered = filtered.filter(m => 
+                (m.symbol && m.symbol.toUpperCase().includes(this.pastSearchTerm)) ||
+                (m.name && m.name.toUpperCase().includes(this.pastSearchTerm))
+            );
+        }
+
+        // Apply sorting
+        const key = this.pastSortKey || 'win_rate';
+        const asc = this.pastSortAsc || false;
+
+        filtered.sort((a, b) => {
+            let valA = a[key];
+            let valB = b[key];
+            if (typeof valA === 'string') {
+                return asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            }
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+            return asc ? (valA - valB) : (valB - valA);
+        });
+
+        if (badgeCount) {
+            badgeCount.textContent = `${this.pastMatches.length} Stocks Scanned (${filtered.length} shown)`;
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center p-4 text-muted">No stocks matched the filter search.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = filtered.map(item => {
+            const pnlClass = (item.net_pnl >= 0) ? 'text-green' : 'text-red';
+            const pnlSign = (item.net_pnl >= 0) ? '+' : '';
+            const isActiveStock = (item.symbol === this.config.symbol);
+            const rowClass = isActiveStock ? 'active-selected-row' : '';
+
+            const pfClass = (item.profit_factor >= 1.5) ? 'text-green' : (item.profit_factor < 1.0 ? 'text-red' : 'text-primary');
+
+            return `
+                <tr class="${rowClass}" data-symbol="${item.symbol}">
+                    <td>
+                        <div class="symbol-cell">
+                            <span class="symbol-ticker">${item.symbol}</span>
+                            <span class="symbol-fullname">${item.name || ''}</span>
+                        </div>
+                    </td>
+                    <td class="text-center font-mono font-bold">
+                        ${item.total_trades}
+                    </td>
+                    <td class="text-center">
+                        <span class="badge-win">${item.win_count}W</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge-loss">${item.loss_count}L</span>
+                    </td>
+                    <td>
+                        <div class="win-rate-flex-cell">
+                            <div class="win-rate-track">
+                                <div class="win-rate-fill" style="width: ${Math.min(100, Math.max(0, item.win_rate))}%;"></div>
+                            </div>
+                            <span class="font-mono font-bold" style="font-size: 11px;">${item.win_rate}%</span>
+                        </div>
+                    </td>
+                    <td class="text-right font-mono font-bold ${pnlClass}">
+                        ${pnlSign}₹${Number(item.net_pnl).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <span style="font-size: 10px; opacity: 0.85; margin-left: 4px;">(${pnlSign}${item.net_pnl_pct}%)</span>
+                    </td>
+                    <td class="text-right font-mono font-bold ${pfClass}">
+                        ${item.profit_factor}
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn-select-stock" data-symbol="${item.symbol}">
+                            View Backtest →
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        // Attach click listeners to rows & buttons
+        tbody.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('click', (e) => {
+                const sym = row.dataset.symbol;
+                if (sym) this.selectStockAndBacktest(sym);
+            });
+        });
+    }
+
+    selectStockAndBacktest(symbol) {
+        if (!symbol) return;
+        console.log(`[BacktestUI] Switching active stock to: ${symbol}`);
+        this.config.symbol = symbol;
+
+        // Update symbol input
+        const symInput = document.getElementById('bt-symbol-input');
+        if (symInput) symInput.value = symbol;
+
+        // Update quick chips
+        if (this.container) {
+            const stockChips = this.container.querySelectorAll('.chip-btn');
+            stockChips.forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.symbol === symbol);
+            });
+        }
+
+        // Update active stock tags
+        const activeStockTag = document.getElementById('current-view-active-stock');
+        if (activeStockTag) activeStockTag.textContent = symbol;
+        const metaSymTag = document.getElementById('meta-symbol-tag');
+        if (metaSymTag) metaSymTag.innerHTML = `Asset: <strong>${symbol}</strong>`;
+
+        // Update active row highlighting across both tables
+        if (this.container) {
+            this.container.querySelectorAll('#tbody-current-matches tr, #tbody-past-matches tr').forEach(tr => {
+                tr.classList.toggle('active-selected-row', tr.dataset.symbol === symbol);
+            });
+        }
+
+        // Run full backtest for this stock
+        this.runBacktest();
+
+        // Smoothly scroll to the Current View section so user sees updated charts/stats
+        const currentViewSection = document.getElementById('section-current-view');
+        if (currentViewSection) {
+            currentViewSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    toggleCollapse(contentId, btnId) {
+        const content = document.getElementById(contentId);
+        const btn = document.getElementById(btnId);
+        if (!content) return;
+        const isCollapsed = content.classList.toggle('collapsed');
+        if (btn) btn.textContent = isCollapsed ? '▲' : '▼';
     }
 }
 

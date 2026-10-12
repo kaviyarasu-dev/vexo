@@ -27,9 +27,7 @@ class MockWriter(ICandleWriter):
 class MockCheckpoint(ICheckpointRepository):
     def __init__(self):
         self.updates = 0
-        self.cp = Checkpoint()
-        self.cp.symbol = "NSE:RELIANCE-EQ"
-        self.cp.timeframe = "1D"
+        self.cp = Checkpoint(symbol="NSE:RELIANCE-EQ", timeframe="1D")
         self.cp.earliest_ts = None
         self.cp.latest_ts = datetime.date(2024, 1, 22)
         self.cp.total_candles = 10
