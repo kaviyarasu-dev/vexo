@@ -65,8 +65,19 @@ class JournalService(IJournalService):
         return True
 
     def seed_sample_trades(self) -> int:
-        """Populates realistic institutional sample trades with psychological tags and equity trajectory."""
+        """Populates realistic institutional sample trades with psychological tags and equity trajectory.
+        Reads from static/data/sample_tradebook.csv if available.
+        """
         self.clear_all_trades()
+        from pathlib import Path
+        sample_csv = Path("static/data/sample_tradebook.csv")
+        if sample_csv.exists():
+            from services.journal.importer_engine import TradeImporterEngine
+            text = sample_csv.read_text(encoding="utf-8")
+            engine = TradeImporterEngine(self.db)
+            res = engine.import_tradebook_csv(text, broker_hint="ZERODHA")
+            return res.get("imported_trades", 0)
+
         import datetime
 
         now = datetime.datetime.now()
@@ -220,89 +231,11 @@ class JournalService(IJournalService):
             cursor.close()
 
     def import_tradebook_csv(self, file_content: str, broker: str = "FYERS") -> int:
-        if broker != "FYERS":
-            raise NotImplementedError("Only FYERS tradebook import is supported")
-            
-        reader = csv.DictReader(io.StringIO(file_content))
-        headers = reader.fieldnames or []
-        required = {'symbol', 'trade_date', 'price', 'quantity', 'side'}
-        
-        # We need a lenient check since exact broker headers might differ slightly.
-        # But requirement specifies validating 'symbol', 'trade_date', 'price', 'quantity'.
-        if not required.issubset(set(h.lower() for h in headers)):
-            raise ValueError(f"CSV missing required columns. Found: {headers}, Expected at least: {required}")
-            
-        fills = []
-        for row in reader:
-            normalized_row = {k.lower(): v for k, v in row.items()}
-            fills.append(normalized_row)
-            
-        # Simplified FIFO matching logic
-        # For a production system this would be more robust.
-        # We'll match buys and sells of the same symbol.
-        open_positions = {}
-        completed_trades = 0
-        
-        for fill in fills:
-            sym = fill['symbol']
-            qty = int(fill['quantity'])
-            price = float(fill['price'])
-            side = fill['side'].upper()
-            dt = datetime.fromisoformat(fill['trade_date'].replace('Z', '+00:00')) if 'T' in fill['trade_date'] else datetime.strptime(fill['trade_date'], '%Y-%m-%d %H:%M:%S')
-
-            if sym not in open_positions:
-                open_positions[sym] = []
-                
-            if not open_positions[sym]:
-                open_positions[sym].append({'side': side, 'qty': qty, 'price': price, 'dt': dt})
-            else:
-                top = open_positions[sym][0]
-                if top['side'] != side:
-                    match_qty = min(top['qty'], qty)
-                    # We have a matched pair
-                    direction = "LONG" if top['side'] == "BUY" else "SHORT"
-                    entry_p = top['price']
-                    exit_p = price
-                    
-                    gross = (exit_p - entry_p) * match_qty if direction == "LONG" else (entry_p - exit_p) * match_qty
-                    
-                    # Assume some default Stop Loss for R-Multiple (5% away)
-                    sl = entry_p * 0.95 if direction == "LONG" else entry_p * 1.05
-                    r = self.calculate_r_multiple(entry_p, exit_p, sl, direction)
-                    
-                    entry = JournalEntry(
-                        trade_id=str(uuid.uuid4()),
-                        symbol=sym,
-                        trade_type="MANUAL",
-                        direction=direction,
-                        entry_time=top['dt'],
-                        entry_price=entry_p,
-                        exit_time=dt,
-                        exit_price=exit_p,
-                        quantity=match_qty,
-                        stop_loss=sl,
-                        take_profit=None,
-                        pnl_gross=gross,
-                        total_charges=0.0,
-                        pnl_net=gross,
-                        r_multiple=r,
-                        mistake_tags=[],
-                        notes="Imported via CSV"
-                    )
-                    self.record_trade(entry)
-                    completed_trades += 1
-                    
-                    top['qty'] -= match_qty
-                    qty -= match_qty
-                    if top['qty'] == 0:
-                        open_positions[sym].pop(0)
-                        
-                    if qty > 0:
-                        open_positions[sym].append({'side': side, 'qty': qty, 'price': price, 'dt': dt})
-                else:
-                    open_positions[sym].append({'side': side, 'qty': qty, 'price': price, 'dt': dt})
-                    
-        return completed_trades
+        from services.journal.importer_engine import TradeImporterEngine
+        engine = TradeImporterEngine(self.db)
+        hint = broker if broker not in ("AUTO", None) else None
+        res = engine.import_tradebook_csv(file_content, broker_hint=hint)
+        return res["imported_trades"]
 
     def get_performance_summary(self) -> Dict[str, Any]:
         trades = self.list_trades()

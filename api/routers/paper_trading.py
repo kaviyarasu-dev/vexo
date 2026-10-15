@@ -194,10 +194,13 @@ def deploy_strategy(
 
 
 @router.get("/auto-strategies", response_model=Dict[str, Any])
-def list_auto_strategies(service: PaperTradingService = Depends(get_paper_service)):
-    """Returns all active deployed automated strategies."""
+def list_auto_strategies(
+    status: Optional[str] = Query(default=None),
+    service: PaperTradingService = Depends(get_paper_service)
+):
+    """Returns deployed automated strategies with optional status filter."""
     try:
-        strategies = service.list_auto_strategies()
+        strategies = service.list_auto_strategies(status=status)
         return {
             "success": True,
             "data": [s.model_dump() for s in strategies],
@@ -207,17 +210,80 @@ def list_auto_strategies(service: PaperTradingService = Depends(get_paper_servic
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/auto-strategies/{strategy_id}", response_model=Dict[str, Any])
-def delete_auto_strategy(
+@router.post("/auto-strategies/{strategy_id}/stop", response_model=Dict[str, Any])
+def stop_auto_strategy(
     strategy_id: str,
     service: PaperTradingService = Depends(get_paper_service)
 ):
-    """Stops and removes an active automated strategy."""
+    """Stops an active automated strategy, switching status to STOPPED."""
     try:
-        service.delete_auto_strategy(strategy_id)
+        service.stop_auto_strategy(strategy_id)
         return {
             "success": True,
-            "message": f"Strategy {strategy_id} removed from forward testing"
+            "message": f"Strategy {strategy_id} stopped"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/auto-strategies/{strategy_id}", response_model=Dict[str, Any])
+def delete_auto_strategy(
+    strategy_id: str,
+    stop_only: bool = Query(default=False),
+    service: PaperTradingService = Depends(get_paper_service)
+):
+    """Stops or permanently removes an automated strategy."""
+    try:
+        if stop_only:
+            service.stop_auto_strategy(strategy_id)
+            msg = f"Strategy {strategy_id} stopped"
+        else:
+            service.delete_auto_strategy(strategy_id)
+            msg = f"Strategy {strategy_id} removed from forward testing"
+        return {
+            "success": True,
+            "message": msg
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/auto-strategies/evaluate", response_model=Dict[str, Any])
+def evaluate_auto_strategies(
+    symbol: Optional[str] = Query(default=None),
+    service: PaperTradingService = Depends(get_paper_service)
+):
+    """Evaluates active automated strategies against market candles and triggers orders on signal triggers."""
+    try:
+        cursor = service.db.get_read_cursor()
+        try:
+            if symbol:
+                rows = cursor.execute("""
+                    SELECT date, open, high, low, close, volume, symbol
+                    FROM candles_1d_adjusted
+                    WHERE symbol = ?
+                    ORDER BY date ASC
+                """, [symbol.strip().upper()]).fetchall()
+            else:
+                rows = cursor.execute("""
+                    SELECT date, open, high, low, close, volume, symbol
+                    FROM candles_1d_adjusted
+                    ORDER BY date ASC
+                """).fetchall()
+        finally:
+            cursor.close()
+
+        import pandas as pd
+        if rows:
+            df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume", "symbol"])
+        else:
+            df = pd.DataFrame(columns=["date", "open", "high", "low", "close", "volume", "symbol"])
+
+        executions = service.evaluate_auto_strategies_on_candle(df, symbol=symbol)
+        return {
+            "success": True,
+            "executions": executions,
+            "count": len(executions)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

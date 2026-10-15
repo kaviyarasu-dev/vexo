@@ -6,11 +6,20 @@ from typing import List, Dict, Any, Optional
 from core.interfaces import JournalEntry
 from db.connection import get_db, DuckDBConnectionManager
 from services.journal_service import JournalService
+from services.journal.calendar_service import JournalCalendarService
+from services.journal.diagnostics_service import JournalDiagnosticsService
+from api.models.journal_models import CalendarResponse, DiagnosticsResponse
 
 router = APIRouter(prefix="/api/v1/journal", tags=["Journal"])
 
 def get_journal_service(db: DuckDBConnectionManager = Depends(get_db)) -> JournalService:
     return JournalService(db)
+
+def get_calendar_service(db: DuckDBConnectionManager = Depends(get_db)) -> JournalCalendarService:
+    return JournalCalendarService(db)
+
+def get_diagnostics_service(db: DuckDBConnectionManager = Depends(get_db)) -> JournalDiagnosticsService:
+    return JournalDiagnosticsService(db)
 
 class CreateTradeRequest(BaseModel):
     symbol: str
@@ -119,17 +128,40 @@ async def clear_all_trades(
     service.clear_all_trades()
     return {"status": "success", "message": "All trades cleared"}
 
-@router.post("/import", response_model=Dict[str, int])
+@router.get("/sample-csv")
+def download_sample_csv():
+    """Serves the institutional multi-broker sample tradebook CSV file for direct download."""
+    from pathlib import Path
+    from fastapi.responses import FileResponse
+    csv_path = Path("static/data/sample_tradebook.csv")
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail="Sample CSV not found")
+    return FileResponse(
+        path=str(csv_path),
+        filename="sample_tradebook.csv",
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="sample_tradebook.csv"'}
+    )
+
+@router.post("/import", response_model=Dict[str, Any])
 async def import_trades(
     file: UploadFile = File(...),
-    broker: str = "FYERS",
+    broker: str = "AUTO",
     service: JournalService = Depends(get_journal_service)
 ):
     content = await file.read()
     text = content.decode('utf-8')
     try:
-        count = service.import_tradebook_csv(text, broker=broker)
-        return {"imported_trades": count}
+        from services.journal.importer_engine import TradeImporterEngine
+        engine = TradeImporterEngine(service.db)
+        hint = broker if broker not in ("AUTO", "") else None
+        res = engine.import_tradebook_csv(text, broker_hint=hint)
+        return {
+            "status": "success",
+            "imported_trades": res["imported_trades"],
+            "broker_detected": res["broker_detected"],
+            "fills_parsed": res["fills_parsed"]
+        }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -140,4 +172,19 @@ async def get_performance_summary(
     service: JournalService = Depends(get_journal_service)
 ):
     return service.get_performance_summary()
+
+@router.get("/calendar", response_model=CalendarResponse)
+async def get_monthly_calendar(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    service: JournalCalendarService = Depends(get_calendar_service)
+):
+    return service.get_monthly_calendar(year=year, month=month)
+
+@router.get("/diagnostics", response_model=DiagnosticsResponse)
+async def get_quantitative_diagnostics(
+    service: JournalDiagnosticsService = Depends(get_diagnostics_service)
+):
+    return service.get_quantitative_diagnostics()
+
 

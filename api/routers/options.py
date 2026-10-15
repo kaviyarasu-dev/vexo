@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Optional, List
 from fastapi import APIRouter, Query, Depends, HTTPException
 from pydantic import BaseModel
@@ -8,7 +9,13 @@ from core.rate_governor import RateGovernor
 from services.fyers_client import FyersMarketDataProvider
 from services.options.greeks_engine import BlackScholesGreeks
 from services.options.payoff_calculator import PayoffCalculator
+from services.options.oi_engine import OpenInterestEngine, FOUniverseRegistry
+from services.options.strategy_greeks_service import StrategyGreeksAggregator
+from services.options.payoff_simulator import PreExpiryPayoffSimulator
+from api.models.options_models import StrategyGreeksRequest, PayoffSimulationRequest
 from db.connection import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/options", tags=["Options"])
 
@@ -16,6 +23,9 @@ governor = RateGovernor()
 fyers = FyersMarketDataProvider()
 greeks_engine = BlackScholesGreeks()
 payoff_calc = PayoffCalculator()
+oi_engine = OpenInterestEngine(fyers_client=fyers)
+strategy_greeks_service = StrategyGreeksAggregator()
+payoff_simulator = PreExpiryPayoffSimulator()
 
 BANNER_TEXT = "No historical options data available prior to local collection start date."
 
@@ -70,110 +80,49 @@ def _get_spot_for_symbol(db, symbol: str) -> float:
     return 2500.0
 
 
-def _generate_synthetic_chain(spot: float, symbol: str, t_days: float = 4.0, r: float = 0.065):
-    """Generates a complete, mathematically sound options chain with Greeks centered on spot."""
-    import math
-
-    if spot > 30000:
-        step = 100.0
-    elif spot > 10000:
-        step = 50.0
-    elif spot > 2500:
-        step = 50.0
-    elif spot > 1000:
-        step = 20.0
-    elif spot > 500:
-        step = 10.0
-    else:
-        step = 5.0
-
-    atm_strike = round(spot / step) * step
-    strikes = [atm_strike + i * step for i in range(-10, 11)]
-
-    # Next Thursday expiry
+def _cache_option_chain_to_db(db, symbol: str, expiry_date: str, records: list):
+    """Persists real option chain snapshot into DuckDB option_chain_snapshots table."""
+    if not records or db is None:
+        return
     today = datetime.date.today()
-    days_ahead = (3 - today.weekday()) % 7
-    if days_ahead == 0 and datetime.datetime.now().hour >= 15:
-        days_ahead = 7
-    expiry_date = (today + datetime.timedelta(days=max(1, days_ahead))).strftime("%Y-%m-%d")
-
-    chain = []
-    matrix = []
-
-    def norm_cdf(x):
-        return (1.0 + math.erf(x / math.sqrt(2.0))) / 2.0
-
-    T = max(0.001, t_days / 365.0)
-
-    for strike in strikes:
-        moneyness = (strike - spot) / spot
-        iv = max(0.08, 0.145 + 0.08 * (moneyness ** 2))
-
-        d1 = (math.log(spot / strike) + (r + (iv * iv) / 2.0) * T) / (iv * math.sqrt(T))
-        d2 = d1 - iv * math.sqrt(T)
-
-        ce_theo = spot * norm_cdf(d1) - strike * math.exp(-r * T) * norm_cdf(d2)
-        pe_theo = strike * math.exp(-r * T) * norm_cdf(-d2) - spot * norm_cdf(-d1)
-
-        ce_ltp = round(max(0.5, ce_theo), 2)
-        pe_ltp = round(max(0.5, pe_theo), 2)
-
-        # OI model: Higher OI near ATM and key psychological strikes
-        dist_factor = math.exp(-3.5 * (moneyness ** 2))
-        round_bonus = 1.35 if (strike % (step * 2) == 0) else 1.0
-        base_oi = int(120000 * dist_factor * round_bonus) + 1500
-
-        ce_oi = int(base_oi * (1.1 if strike >= spot else 0.85))
-        pe_oi = int(base_oi * (1.1 if strike <= spot else 0.85))
-
-        ce_vol = int(ce_oi * 0.42)
-        pe_vol = int(pe_oi * 0.38)
-
-        ce_greeks = greeks_engine.calculate(spot, strike, t_days, iv, r, "CE")
-        pe_greeks = greeks_engine.calculate(spot, strike, t_days, iv, r, "PE")
-
-        call_record = {
-            "snapshot_date": today.strftime("%Y-%m-%d"),
-            "underlying_symbol": symbol,
-            "expiry_date": expiry_date,
-            "strike_price": strike,
-            "option_type": "CE",
-            "ltp": ce_ltp,
-            "oi": ce_oi,
-            "volume": ce_vol,
-            "iv": round(iv * 100, 2),
-            "delta": round(ce_greeks.delta, 4),
-            "gamma": round(ce_greeks.gamma, 5),
-            "theta": round(ce_greeks.theta, 2),
-            "vega": round(ce_greeks.vega, 3)
-        }
-
-        put_record = {
-            "snapshot_date": today.strftime("%Y-%m-%d"),
-            "underlying_symbol": symbol,
-            "expiry_date": expiry_date,
-            "strike_price": strike,
-            "option_type": "PE",
-            "ltp": pe_ltp,
-            "oi": pe_oi,
-            "volume": pe_vol,
-            "iv": round(iv * 100, 2),
-            "delta": round(pe_greeks.delta, 4),
-            "gamma": round(pe_greeks.gamma, 5),
-            "theta": round(pe_greeks.theta, 2),
-            "vega": round(pe_greeks.vega, 3)
-        }
-
-        chain.append(call_record)
-        chain.append(put_record)
-
-        matrix.append({
-            "strike_price": strike,
-            "call": call_record,
-            "put": put_record
-        })
-
-    return chain, matrix, expiry_date, strikes
+    rows = []
+    for r in records:
+        strike = float(r.get("strike_price") or 0.0)
+        if strike <= 0:
+            continue
+        rows.append((
+            today,
+            symbol,
+            r.get("expiry_date") or expiry_date or today.strftime("%Y-%m-%d"),
+            strike,
+            r.get("option_type", "CE"),
+            float(r.get("ltp", 0.0)),
+            int(r.get("oi", 0)),
+            int(r.get("volume", 0)),
+            float(r.get("iv", 0.0)),
+            float(r.get("delta", 0.0)),
+            float(r.get("gamma", 0.0)),
+            float(r.get("theta", 0.0)),
+            float(r.get("vega", 0.0)),
+            datetime.datetime.now()
+        ))
+    if not rows:
+        return
+    try:
+        def _insert(conn):
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO option_chain_snapshots 
+                (snapshot_date, underlying_symbol, expiry_date, strike_price, option_type, 
+                ltp, oi, volume, iv, delta, gamma, theta, vega, captured_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows
+            )
+        db.execute_write_batch(_insert)
+        logger.info("Auto-cached %d real option chain records for %s into DuckDB.", len(rows), symbol)
+    except Exception as exc:
+        logger.warning("Failed to auto-cache option chain records into DuckDB for %s: %s", symbol, exc)
 
 
 @router.get("/chain")
@@ -183,13 +132,14 @@ async def get_option_chain(
     expiry: Optional[str] = None
 ):
     """
-    Get option chain. If date is provided, fetches from local DB snapshot.
-    If no date is provided, fetches live from Fyers or falls back to simulated chain with real Greeks.
+    Get option chain. If date is provided, fetches from local DuckDB snapshot.
+    If no date is provided, fetches live real data from Fyers API and auto-caches into DuckDB.
+    Strictly zero synthetic/fake data generation.
     """
     db = get_db()
     if date:
-        query = "SELECT * FROM option_chain_snapshots WHERE underlying_symbol = ? AND snapshot_date = ?"
-        params = [symbol, date]
+        query = "SELECT * FROM option_chain_snapshots WHERE (underlying_symbol = ? OR underlying_symbol LIKE ?) AND snapshot_date = ?"
+        params = [symbol, f"%{symbol}%", date]
         if expiry:
             query += " AND expiry_date = ?"
             params.append(expiry)
@@ -201,7 +151,6 @@ async def get_option_chain(
         
         if data:
             spot = _get_spot_for_symbol(db, symbol)
-            # Reconstruct matrix
             strikes_map = {}
             for r in data:
                 s = r["strike_price"]
@@ -221,21 +170,30 @@ async def get_option_chain(
                 "expiry_date": expiry or (data[0]["expiry_date"] if data else "")
             })
 
-    # Live or synthetic fallback
+    # Fetch live real option chain from Fyers API
     spot = _get_spot_for_symbol(db, symbol)
     live_chain = None
+    expiry_data = []
+    fyers_sym = FOUniverseRegistry.get_fyers_symbol(symbol)
+
     try:
-        # RateGovernor execute is synchronous
-        live_res = fyers.fetch_option_chain(symbol=symbol, strikes=50)
+        live_res = fyers.fetch_option_chain(symbol=fyers_sym, strikes=50)
         if isinstance(live_res, dict) and live_res.get("s") == "ok":
             raw_options = live_res.get("data", {}).get("optionsChain", [])
+            expiry_data = live_res.get("data", {}).get("expiryData", [])
             if raw_options:
                 live_chain = raw_options
-    except Exception:
+    except Exception as exc:
+        logger.warning("Fyers live option chain fetch failed for %s: %s", symbol, exc)
         live_chain = None
 
     if live_chain:
-        # Enrich live chain with Greeks
+        # Extract underlying spot price if index 0 has strike_price == -1
+        if live_chain and float(live_chain[0].get("strike_price", 0)) == -1:
+            spot = float(live_chain[0].get("ltp") or spot)
+
+        resolved_expiry = expiry or (expiry_data[0].get("date", "") if expiry_data else live_chain[0].get("expiry_date", ""))
+
         enriched_chain = []
         strikes_map = {}
         for opt in live_chain:
@@ -260,6 +218,7 @@ async def get_option_chain(
             record["gamma"] = round(greeks.gamma, 5)
             record["theta"] = round(greeks.theta, 2)
             record["vega"] = round(greeks.vega, 3)
+            record["expiry_date"] = resolved_expiry
             enriched_chain.append(record)
 
             if strike not in strikes_map:
@@ -270,25 +229,69 @@ async def get_option_chain(
                 strikes_map[strike]["put"] = record
 
         matrix = [strikes_map[k] for k in sorted(strikes_map.keys())]
+
+        # Auto-persist real chain snapshot into DuckDB
+        _cache_option_chain_to_db(db, symbol, resolved_expiry, enriched_chain)
+
         return format_response({
             "chain": enriched_chain,
             "matrix": matrix,
             "spot": spot,
             "source": "live",
             "underlying": symbol,
-            "expiry_date": live_chain[0].get("expiry_date", "")
+            "expiry_date": resolved_expiry
         })
 
-    # Graceful fallback: synthesize chain with Black-Scholes Greeks
-    chain, matrix, exp_date, _ = _generate_synthetic_chain(spot, symbol)
-    return format_response({
-        "chain": chain,
-        "matrix": matrix,
-        "spot": spot,
-        "source": "computed_bsm",
-        "underlying": symbol,
-        "expiry_date": exp_date
-    })
+    # Check latest historical DB snapshot before failing
+    if db:
+        try:
+            cursor = db.get_read_cursor()
+            try:
+                latest_row = cursor.execute(
+                    "SELECT MAX(snapshot_date) FROM option_chain_snapshots WHERE underlying_symbol = ? OR underlying_symbol LIKE ?",
+                    [symbol, f"%{symbol}%"]
+                ).fetchone()
+                if latest_row and latest_row[0]:
+                    latest_date = str(latest_row[0])
+                    query = "SELECT * FROM option_chain_snapshots WHERE (underlying_symbol = ? OR underlying_symbol LIKE ?) AND snapshot_date = ?"
+                    params = [symbol, f"%{symbol}%", latest_date]
+                    rows = cursor.execute(query, params).fetchall()
+                    if rows:
+                        cols = ["snapshot_date", "underlying_symbol", "expiry_date", "strike_price", "option_type", 
+                                "ltp", "oi", "volume", "iv", "delta", "gamma", "theta", "vega", "captured_at"]
+                        data = [dict(zip(cols, r)) for r in rows]
+                        strikes_map = {}
+                        for r in data:
+                            s = r["strike_price"]
+                            if s not in strikes_map:
+                                strikes_map[s] = {"strike_price": s, "call": None, "put": None}
+                            if r["option_type"] == "CE":
+                                strikes_map[s]["call"] = r
+                            else:
+                                strikes_map[s]["put"] = r
+                        matrix = [strikes_map[k] for k in sorted(strikes_map.keys())]
+                        return format_response({
+                            "chain": data,
+                            "matrix": matrix,
+                            "spot": spot,
+                            "source": "historical_latest",
+                            "underlying": symbol,
+                            "expiry_date": data[0]["expiry_date"] if data else ""
+                        })
+            finally:
+                cursor.close()
+        except Exception:
+            pass
+
+    # Strict Zero-Fake Mode: Throw HTTP 400 with actionable error prompt
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            f"No verified real option chain data available for '{symbol}'. "
+            f"Live Fyers API returned no data and no snapshot exists in DuckDB. "
+            f"Please ensure Fyers is authenticated and symbol is an active F&O contract."
+        )
+    )
 
 
 @router.get("/greeks")
@@ -304,7 +307,7 @@ async def get_greeks(
     if option_type not in ("CE", "PE"):
         raise HTTPException(status_code=400, detail="option_type must be CE or PE")
         
-    res = greeks_engine.calculate(spot, strike, t_days, iv, r, option_type) # type: ignore
+    res = greeks_engine.calculate(spot, strike, t_days, iv, r, option_type)
     
     return format_response({
         "delta": res.delta,
@@ -315,13 +318,62 @@ async def get_greeks(
 
 
 @router.get("/maxpain")
+@router.get("/max-pain")
 async def get_max_pain(symbol: str):
-    """Calculates Max Pain for the given symbol (live or synthesized chain)."""
+    """Calculates Max Pain for the given symbol using verified real market data."""
     db = get_db()
     spot = _get_spot_for_symbol(db, symbol)
+    fyers_sym = FOUniverseRegistry.get_fyers_symbol(symbol)
 
-    # Use synthesized chain if live is unavailable
-    chain, _, exp_date, _ = _generate_synthetic_chain(spot, symbol)
+    chain = []
+    exp_date = ""
+
+    # 1. Attempt live real Fyers option chain
+    try:
+        live_res = fyers.fetch_option_chain(symbol=fyers_sym, strikes=50)
+        if isinstance(live_res, dict) and live_res.get("s") == "ok":
+            raw_options = live_res.get("data", {}).get("optionsChain", [])
+            expiry_data = live_res.get("data", {}).get("expiryData", [])
+            if raw_options:
+                if float(raw_options[0].get("strike_price", 0)) == -1:
+                    spot = float(raw_options[0].get("ltp") or spot)
+                exp_date = (expiry_data[0].get("date", "") if expiry_data else raw_options[0].get("expiry_date", ""))
+                chain = [opt for opt in raw_options if float(opt.get("strike_price") or 0) > 0]
+    except Exception as exc:
+        logger.warning("Max Pain live chain fetch failed for %s: %s", symbol, exc)
+
+    # 2. If live unavailable, check DuckDB latest snapshot
+    if not chain and db:
+        try:
+            cursor = db.get_read_cursor()
+            try:
+                latest_row = cursor.execute(
+                    "SELECT MAX(snapshot_date) FROM option_chain_snapshots WHERE underlying_symbol = ? OR underlying_symbol LIKE ?",
+                    [symbol, f"%{symbol}%"]
+                ).fetchone()
+                if latest_row and latest_row[0]:
+                    latest_date = str(latest_row[0])
+                    rows = cursor.execute(
+                        "SELECT strike_price, option_type, oi, expiry_date FROM option_chain_snapshots WHERE (underlying_symbol = ? OR underlying_symbol LIKE ?) AND snapshot_date = ?",
+                        [symbol, f"%{symbol}%", latest_date]
+                    ).fetchall()
+                    if rows:
+                        exp_date = str(rows[0][3])
+                        chain = [{"strike_price": r[0], "option_type": r[1], "oi": r[2]} for r in rows]
+            finally:
+                cursor.close()
+        except Exception:
+            pass
+
+    # 3. Strict Zero-Fake Mode: Reject if no real data
+    if not chain:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No verified real options data available for '{symbol}' to calculate Max Pain. "
+                f"Please ensure Fyers is authenticated and symbol is an active F&O contract."
+            )
+        )
 
     strikes_set = set()
     call_oi_map = {}
@@ -329,11 +381,14 @@ async def get_max_pain(symbol: str):
     
     for opt in chain:
         strike = float(opt.get("strike_price", 0))
+        if strike <= 0:
+            continue
         strikes_set.add(strike)
-        oi = int(opt.get("oi", 0))
-        if opt.get("option_type") == "CE":
+        oi = int(opt.get("oi") or opt.get("open_interest") or 0)
+        opt_type = opt.get("option_type") or opt.get("type") or "CE"
+        if opt_type == "CE":
             call_oi_map[strike] = call_oi_map.get(strike, 0) + oi
-        elif opt.get("option_type") == "PE":
+        elif opt_type == "PE":
             put_oi_map[strike] = put_oi_map.get(strike, 0) + oi
             
     strikes = sorted(list(strikes_set))
@@ -342,7 +397,7 @@ async def get_max_pain(symbol: str):
     
     max_pain = payoff_calc.max_pain(strikes, call_oi, put_oi)
 
-    # Compute payout curve across strikes
+    # Compute payout curve across real strikes
     payout_curve = []
     for cand in strikes:
         payout = 0.0
@@ -426,3 +481,69 @@ async def get_payoff(spot: float, legs: str):
         "max_profit": max_profit if max_profit > 0 else 0,
         "max_loss": max_loss if max_loss < 0 else 0
     })
+
+
+@router.get("/open-interest")
+async def get_open_interest(
+    symbol: str,
+    expiry: Optional[str] = None,
+    date: Optional[str] = None
+):
+    """
+    Get Strike-by-Strike Open Interest and ΔOI analysis, Put/Call Ratio (PCR),
+    major support/resistance strikes, and sentiment classification.
+    """
+    try:
+        res = oi_engine.analyze_open_interest(symbol=symbol, expiry=expiry, date=date)
+        return format_response(res.model_dump())
+    except ValueError as e:
+        logger.warning("Real data unavailable for open interest (%s): %s", symbol, e)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error("Failed to analyze open interest for %s: %s", symbol, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/underlyings")
+async def get_fo_underlyings():
+    """
+    Get full list of supported NSE F&O indices and equities with standardized lot sizes,
+    spot prices, and strike steps.
+    """
+    try:
+        db = get_db()
+        catalog = FOUniverseRegistry.get_all_underlyings(db=db)
+        return format_response(catalog.model_dump())
+    except Exception as e:
+        logger.error("Failed to fetch F&O underlyings: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/strategy/greeks")
+async def get_strategy_greeks(payload: StrategyGreeksRequest):
+    """
+    Calculate Net Strategy Greeks (Delta, Gamma, Theta, Vega) and
+    lot-size adjusted Indian Rupee (₹) risk exposures for multi-leg strategies.
+    """
+    try:
+        res = strategy_greeks_service.calculate_greeks(payload)
+        return format_response(res.model_dump())
+    except Exception as e:
+        logger.error("Failed calculating strategy greeks: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/strategy/payoff")
+async def simulate_strategy_payoff(payload: PayoffSimulationRequest):
+    """
+    Simulate multi-leg option strategy payoff curves comparing Expiration P&L
+    against pre-expiration theoretical Black-Scholes curve with IV shock adjustments.
+    """
+    try:
+        res = payoff_simulator.simulate_payoff(payload)
+        return format_response(res.model_dump())
+    except Exception as e:
+        logger.error("Failed simulating strategy payoff: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+

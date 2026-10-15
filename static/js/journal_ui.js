@@ -455,6 +455,7 @@ class JournalUI {
             if (res.ok) {
                 const data = await res.json();
                 await this.refresh();
+                alert(`Successfully loaded ${data.seeded_count || 92} sample trades from tradebook!`);
             } else {
                 alert('Failed to load sample trades.');
             }

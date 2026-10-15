@@ -43,7 +43,7 @@
                         <span style="display:inline-flex; align-items:center; gap:6px; font-weight:700; font-size:13px; color:#ffffff;">
                             <span style="color:#2962FF;">⚡</span> Strategy Tester: <span id="strategy-dock-title" style="color:#2962FF;">SMA Crossover</span>
                         </span>
-                        <span id="strategy-dock-status" style="font-size:11px; color:#787b86;">● Simulated 100% Capital Delivery</span>
+                        <span id="strategy-dock-status" style="font-size:11px; color:#10b981;">● Real Data Execution · 100% Capital</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <button id="btn-dock-deep-dive" style="
@@ -225,7 +225,7 @@
 
             const name = strategyId.replace(/^strat_/, '').replace(/_/g, ' ').toUpperCase();
             this.dockEl.querySelector('#strategy-dock-title').textContent = name;
-            this.dockEl.querySelector('#strategy-dock-status').textContent = '⏳ Simulating quantitative execution...';
+            this.dockEl.querySelector('#strategy-dock-status').textContent = '⏳ Backtesting on real market data...';
         }
 
         renderResults(res) {

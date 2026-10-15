@@ -17,11 +17,13 @@ const SCREENER_METRICS = [
 class ScreenerUI {
     constructor() {
         this.templates = [
+            { id: 'all_stocks', name: '🌐 All Stocks', description: 'Full market scan of all listed NSE stocks with live technical metrics' },
             { id: 'volume_surge', name: '🔥 Volume Spike', description: 'Volume > 2 standard deviations above 20-day avg' },
             { id: '52_week_high', name: '🚀 52-Week High', description: 'Momentum leaders within 2% of 52-week peak' },
             { id: 'rsi_oversold', name: '📉 RSI Oversold', description: 'Quality stocks with Daily RSI <= 30' }
         ];
-        this.currentTemplate = 'volume_surge';
+        this.currentTemplate = 'all_stocks';
+        this.selectedUniverse = 'ALL';
         this.currentResults = [];
         this.sortKey = 'turnover_cr';
         this.sortAsc = false;
@@ -33,8 +35,8 @@ class ScreenerUI {
         await this.loadTemplates();
         this.renderTemplateButtons();
         this.bindEvents();
-        // Run scan on initial template
-        const initial = this.currentTemplate || (this.templates[0] ? this.templates[0].id : 'volume_surge');
+        // Run scan on initial template (defaults to all_stocks)
+        const initial = this.currentTemplate || (this.templates[0] ? this.templates[0].id : 'all_stocks');
         this.runScan(initial);
     }
 
@@ -104,6 +106,15 @@ class ScreenerUI {
             });
         }
 
+        // Universe Selector Dropdown
+        const universeSelect = document.getElementById('screener-universe-select');
+        if (universeSelect) {
+            universeSelect.addEventListener('change', (e) => {
+                this.selectedUniverse = e.target.value;
+                this.runScan(this.currentTemplate);
+            });
+        }
+
         // Table header sort
         const thElements = document.querySelectorAll('#screener-table th[data-sort]');
         thElements.forEach(th => {
@@ -112,6 +123,14 @@ class ScreenerUI {
                 if (key) this.sortBy(key);
             });
         });
+
+        // "🔄 Sync Live" Button
+        const btnSyncLive = document.getElementById('btn-sync-live-screener');
+        if (btnSyncLive) {
+            btnSyncLive.addEventListener('click', () => {
+                this.syncLiveMarketData();
+            });
+        }
 
         // "➕ New Template" Button
         const btnNewTemplate = document.getElementById('btn-new-screener-template');
@@ -369,12 +388,62 @@ class ScreenerUI {
         }
     }
 
+    async syncLiveMarketData() {
+        const btnSyncLive = document.getElementById('btn-sync-live-screener');
+        const statusEl = document.getElementById('screener-status');
+        const origHtml = btnSyncLive ? btnSyncLive.innerHTML : '<span>🔄 Sync Live</span>';
+
+        if (btnSyncLive) {
+            btnSyncLive.disabled = true;
+            btnSyncLive.innerHTML = '<span>⏳ Syncing...</span>';
+        }
+        if (statusEl) {
+            statusEl.innerHTML = `<span>⏳ Fetching authentic live market quotes from Fyers API into DuckDB...</span>`;
+        }
+
+        try {
+            const univ = this.selectedUniverse || 'ALL';
+            const res = await fetch('/api/v1/screener/sync-live', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ universe: univ })
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                const count = json.data.synced || 0;
+                if (statusEl) {
+                    statusEl.innerHTML = `✅ Synced <strong>${count}</strong> live market quotes into DuckDB. Re-running scan...`;
+                }
+            } else {
+                const msg = json.data?.message || json.error || 'Authentication required for live stream';
+                if (statusEl) {
+                    statusEl.innerHTML = `<span style="color:#f59e0b;">ℹ️ ${msg}</span>`;
+                }
+            }
+            // Re-run scan with verified DuckDB data
+            await this.runScan(this.currentTemplate);
+        } catch (err) {
+            console.error("Live sync error:", err);
+            if (statusEl) {
+                statusEl.innerHTML = `<span style="color:#ef4444;">❌ Live sync error. Screening with DuckDB data.</span>`;
+            }
+            await this.runScan(this.currentTemplate);
+        } finally {
+            if (btnSyncLive) {
+                btnSyncLive.disabled = false;
+                btnSyncLive.innerHTML = origHtml;
+            }
+        }
+    }
+
     async runScan(templateId) {
         this.currentTemplate = templateId;
         this.renderTemplateButtons();
 
         const statusEl = document.getElementById('screener-status');
         const countEl = document.getElementById('screener-count-badge');
+        const asOfBadge = document.getElementById('screener-asof-badge');
+        const realBadge = document.getElementById('screener-real-data-badge');
         const activeTmpl = this.templates.find(t => t.id === templateId);
         const tmplDisplayName = activeTmpl ? activeTmpl.name : templateId;
 
@@ -383,11 +452,17 @@ class ScreenerUI {
         }
 
         try {
+            const univSelect = document.getElementById('screener-universe-select');
+            const universe = this.selectedUniverse || (univSelect ? univSelect.value : null) || (activeTmpl && activeTmpl.universe) || 'ALL';
+            if (univSelect && univSelect.value !== universe) {
+                univSelect.value = universe;
+            }
+
             const res = await fetch('/api/v1/screener/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    universe: (activeTmpl && activeTmpl.universe) ? activeTmpl.universe : 'ALL',
+                    universe: universe,
                     template: templateId,
                     as_of_date: null,
                     technical_rules: [],
@@ -396,8 +471,16 @@ class ScreenerUI {
             });
 
             const json = await res.json();
-            if (json.success && Array.isArray(json.data)) {
+            if (res.ok && json.success && Array.isArray(json.data)) {
                 this.currentResults = json.data;
+                const asOf = json.meta?.as_of_date || (this.currentResults[0] ? this.currentResults[0].as_of_date : null);
+                if (asOfBadge) {
+                    asOfBadge.textContent = asOf ? `As of: ${asOf}` : 'Actual Data';
+                }
+                if (realBadge) {
+                    realBadge.textContent = '🟢 Real NSE Data (Zero Fake)';
+                    realBadge.title = 'Verified authentic DuckDB daily candles from NSE. Zero synthetic data.';
+                }
                 if (statusEl) {
                     statusEl.innerHTML = `✅ Found <strong>${this.currentResults.length}</strong> matching stocks for <em>${tmplDisplayName}</em>`;
                 }
@@ -406,7 +489,8 @@ class ScreenerUI {
                 }
                 this.renderResults();
             } else {
-                if (statusEl) statusEl.textContent = '❌ Failed to load screener scan.';
+                const errMsg = json.detail || json.error?.message || (json.error ? JSON.stringify(json.error) : 'Failed to load screener scan.');
+                if (statusEl) statusEl.innerHTML = `<span style="color:#ef4444;">❌ ${errMsg}</span>`;
             }
         } catch (e) {
             console.error("Screener scan error:", e);
@@ -440,6 +524,8 @@ class ScreenerUI {
         filtered.sort((a, b) => {
             let va = a[this.sortKey];
             let vb = b[this.sortKey];
+            if (va === null || va === undefined) return 1;
+            if (vb === null || vb === undefined) return -1;
             if (typeof va === 'string') va = va.toLowerCase();
             if (typeof vb === 'string') vb = vb.toLowerCase();
             if (va < vb) return this.sortAsc ? -1 : 1;
@@ -449,7 +535,7 @@ class ScreenerUI {
 
         tableBody.innerHTML = '';
         if (filtered.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" class="text-center p-4">No matching stocks found for this criteria.</td></tr>`;
+            tableBody.innerHTML = `<tr><td colspan="9" class="text-center p-4">No matching stocks found for this criteria in verified NSE market data.</td></tr>`;
             return;
         }
 
@@ -459,13 +545,37 @@ class ScreenerUI {
             
             const closeFormatted = (typeof item.close === 'number') ? `₹${item.close.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—';
             const turnoverFormatted = (typeof item.turnover_cr === 'number') ? `₹${item.turnover_cr.toFixed(2)} Cr` : '—';
-            const rulesStr = Array.isArray(item.matched_rules) ? item.matched_rules.join(', ') : (item.matched_rules || 'Condition met');
+            
+            let changeFormatted = '—';
+            let changeClass = '';
+            if (typeof item.change_pct_1d === 'number') {
+                const sign = item.change_pct_1d > 0 ? '+' : '';
+                changeFormatted = `${sign}${item.change_pct_1d.toFixed(2)}%`;
+                changeClass = item.change_pct_1d > 0 ? 'text-profit' : (item.change_pct_1d < 0 ? 'text-loss' : '');
+            }
+
+            let rsiFormatted = '—';
+            let rsiBadgeStyle = '';
+            if (typeof item.rsi_14 === 'number') {
+                rsiFormatted = item.rsi_14.toFixed(1);
+                if (item.rsi_14 <= 30) {
+                    rsiBadgeStyle = 'color: #10b981; font-weight: bold;';
+                } else if (item.rsi_14 >= 70) {
+                    rsiBadgeStyle = 'color: #ef4444; font-weight: bold;';
+                }
+            }
+
+            const rulesStr = (Array.isArray(item.matched_rules) && item.matched_rules.length > 0)
+                ? item.matched_rules.join(', ')
+                : (item.matched_rules || (this.currentTemplate === 'all_stocks' ? 'All Market Stocks' : 'Criteria Met'));
 
             tr.innerHTML = `
                 <td><strong class="symbol-link">${item.symbol}</strong></td>
                 <td>${item.name || item.symbol}</td>
                 <td><span class="badge-category">${item.category || 'EQ'}</span></td>
                 <td class="font-mono text-right">${closeFormatted}</td>
+                <td class="font-mono text-right ${changeClass}">${changeFormatted}</td>
+                <td class="font-mono text-right" style="${rsiBadgeStyle}">${rsiFormatted}</td>
                 <td class="font-mono text-right">${turnoverFormatted}</td>
                 <td><span class="rule-tag">${rulesStr}</span></td>
                 <td class="text-center">

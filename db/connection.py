@@ -30,19 +30,20 @@ class DuckDBConnectionManager:
     - Stale lock recovery mechanism detecting orphaned lock/PID files.
     """
 
-    def __init__(self, db_path: Optional[str] = None) -> None:
+    def __init__(self, db_path: Optional[str] = None, read_only: bool = False) -> None:
         if db_path is None:
             settings = get_settings()
             db_path = settings.DUCKDB_PATH
 
         self.db_path = str(db_path)
+        self.read_only = read_only
         self.is_memory = (self.db_path == ":memory:")
         self._write_lock = threading.RLock()
         self._conn: Optional[duckdb.DuckDBPyConnection] = None
         self._pid_file: Optional[Path] = None
         self._is_closed = False
 
-        if not self.is_memory:
+        if not self.is_memory and not self.read_only:
             db_file = Path(self.db_path)
             db_file.parent.mkdir(parents=True, exist_ok=True)
             self._pid_file = Path(f"{self.db_path}.pid")
@@ -102,17 +103,32 @@ class DuckDBConnectionManager:
 
     def _init_connection(self) -> None:
         """Initialize the primary DuckDB connection."""
-        self._check_and_recover_stale_lock()
+        if not self.read_only:
+            self._check_and_recover_stale_lock()
 
         try:
-            self._conn = duckdb.connect(database=self.db_path, read_only=False)
-        except duckdb.IOException as exc:
+            self._conn = duckdb.connect(database=self.db_path, read_only=self.read_only)
+        except Exception as exc:
             msg = str(exc)
-            if "Could not set lock on file" in msg or "database is locked" in msg.lower():
-                # Attempt recovery once
-                self._check_and_recover_stale_lock()
+            if "Failure while replaying WAL file" in msg and not self.read_only:
+                logger.warning(
+                    "Detected unreplayable WAL file on %s. Archiving and recovering database.",
+                    self.db_path
+                )
+                wal_path = Path(f"{self.db_path}.wal")
+                if wal_path.exists():
+                    wal_bak = Path(f"{self.db_path}.wal.bak")
+                    try:
+                        wal_path.replace(wal_bak)
+                    except Exception as e:
+                        logger.error("Failed to archive corrupted WAL: %s", e)
+                self._conn = duckdb.connect(database=self.db_path, read_only=False)
+            elif isinstance(exc, duckdb.IOException) and ("Could not set lock on file" in msg or "database is locked" in msg.lower()):
+                if not self.read_only:
+                    # Attempt recovery once
+                    self._check_and_recover_stale_lock()
                 try:
-                    self._conn = duckdb.connect(database=self.db_path, read_only=False)
+                    self._conn = duckdb.connect(database=self.db_path, read_only=self.read_only)
                 except Exception as retry_exc:
                     raise DatabaseLockError(
                         f"DuckDB database '{self.db_path}' is locked by another process: {retry_exc}"
@@ -120,8 +136,9 @@ class DuckDBConnectionManager:
             else:
                 raise exc
 
+
         # Record owning PID
-        if self._pid_file:
+        if self._pid_file and not self.read_only:
             try:
                 self._pid_file.write_text(str(os.getpid()))
             except Exception as e:

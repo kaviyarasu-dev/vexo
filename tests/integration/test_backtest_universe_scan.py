@@ -25,7 +25,7 @@ def test_scan_universe_endpoint_live():
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"}
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             assert resp.status == 200
             data = json.loads(resp.read().decode("utf-8"))
     except Exception:

@@ -97,6 +97,13 @@ class ScreenerResult:
     turnover_cr: float
     matched_rules: list[str]
     as_of_date: str
+    change_pct_1d: Optional[float] = None
+    rsi_14: Optional[float] = None
+    volume_zscore_20: Optional[float] = None
+    dist_from_52w_high_pct: Optional[float] = None
+    dist_from_52w_low_pct: Optional[float] = None
+    dist_from_sma_20_pct: Optional[float] = None
+
 @dataclass
 class AlertRule:
     alert_id: str

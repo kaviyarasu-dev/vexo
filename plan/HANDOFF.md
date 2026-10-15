@@ -368,3 +368,289 @@
   - Multi-indicator presets can be saved into "My scripts" directly from the UI and re-applied with one click.
   - All 4 plans in `docs/plans/study-dialog/manifest.json` completely fulfilled with zero regressions.
 
+---
+
+### Feature: Portfolio / Multi-Stock Basket Backtesting Engine & Studio UI (`portfolio-basket-backtest`)
+- **Status**: STATUS: DONE (All 3 Plans Completed)
+- **Plans Executed**:
+  - `01-engine-and-allocation/001-engine-and-allocation.md` (Plan 01-001) - **STATUS: DONE**
+  - `02-api-and-presets/001-api-and-presets.md` (Plan 02-001) - **STATUS: DONE**
+  - `03-studio-ui-and-analytics/001-studio-ui-and-analytics.md` (Plan 03-001) - **STATUS: DONE**
+- **Artifacts Produced**:
+  - `services/backtest/allocation.py` (`AllocationModel` ABC, `EqualWeightAllocator`, `InverseATRAllocator`, `FixedAmountAllocator`, `create_allocator` factory)
+  - `services/backtest/portfolio_broker.py` (`PortfolioBroker` multi-symbol shared cash pool, FIFO trade matching, `IndianEquityCostModel` statutory deductions, SL/TP risk exits, MTM daily snapshots)
+  - `services/backtest/portfolio_engine.py` (`PortfolioEngine` multi-asset timeline synchronizer, zero lookahead bias, `SignalContentionResolver` for RSI oversold / ROC momentum / volume surge, asset contribution breakdown, monthly returns heatmap matrix, benchmark alpha comparison)
+  - `services/portfolio_universe_service.py` (`PortfolioUniverseService` with NIFTY 50, NIFTY NEXT 50, NIFTY MIDCAP 150 presets, symbol normalization, DuckDB batch candle query)
+  - `api/models/portfolio_backtest_models.py` (`PortfolioBacktestRequest`, `PortfolioBacktestResponse`, `PortfolioMetrics`, `DailyEquityPoint`, `AssetContribution`)
+  - `api/routers/backtest.py` (`GET /api/v1/backtest/portfolio/universes`, `POST /api/v1/backtest/portfolio/run`)
+  - `static/js/portfolio_backtest_ui.js` (`PortfolioBacktestController` managing dual-mode switching, universe chips, custom ticker cloud, portfolio sizing/contention rules, Lightweight Charts portfolio equity vs. NIFTY 50 benchmark curve, sortable asset contribution table with visual win/loss bars, monthly heatmap matrix, and combined trade ledger with CSV export)
+  - `static/js/backtest_ui.js` (Dual-mode switcher integration, portfolio universe & allocation configurator cards, portfolio results section, and delegated run button execution)
+  - `static/index.html` (Registered `portfolio_backtest_ui.js` script tag)
+  - `static/css/theme.css` (Dark/light mode styling for dual-mode switcher, universe chips, custom symbol tag cloud, 9 KPI cards, visual contribution bars, and institutional alert banner)
+  - `tests/unit/test_portfolio_backtest_engine.py` (20 unit tests, 100% pass)
+  - `tests/integration/test_portfolio_backtest_api.py` (8 integration tests, 100% pass)
+  - `tests/integration/test_portfolio_studio_ui_integration.py` (8 integration tests, 100% pass)
+- **Handoff Summary**:
+  - Complete institutional-grade portfolio backtesting user experience delivered.
+  - Seamless dual-mode switching between Single Asset stock tester and Multi-Stock Basket backtest studio.
+  - Presets for NIFTY 50, NIFTY NEXT 50, NIFTY MIDCAP 150 and Custom Baskets supported with constituent count badges.
+  - Consolidated portfolio equity curve and NIFTY 50 index benchmark rendered via Lightweight Charts with underwater drawdown sub-pane.
+  - Sortable Asset Contribution Breakdown Table provides quantitative alpha attribution per symbol with proportional visual performance bars.
+  - Full test suite verified (36 portfolio tests, 287 repository tests total passing with zero regressions).
+
+---
+
+### Feature: Options Open Interest (ΔOI) Analytics, Strategy Net Greeks & Pre-Expiry Payoff Simulator (`options-oi-and-net-greeks`)
+- **Status**: STATUS: DONE (All 3 Plans Completed)
+- **Plans Executed**:
+  - `01-oi-engine-and-api/001-oi-engine-and-api.md` (Plan 01-001) - **STATUS: DONE**
+  - `02-net-greeks-and-payoff/001-net-greeks-and-payoff.md` (Plan 02-001) - **STATUS: DONE**
+  - `03-options-lab-ui/001-options-lab-ui.md` (Plan 03-001) - **STATUS: DONE**
+- **Artifacts Produced**:
+  - `api/models/options_models.py` (`StrikeOIData`, `OpenInterestAnalysisResponse`, `FOUnderlyingItem`, `FOUnderlyingListResponse`, `OptionLeg`, `StrategyGreeksRequest`, `StrategyGreeksResponse`, `PayoffPoint`, `PayoffSimulationRequest`, `PayoffSimulationResponse`)
+  - `services/options/oi_engine.py` (`FOUniverseRegistry` with standardized lot sizes for NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY + 185 NSE equities and DuckDB spot retrieval; `OpenInterestEngine` calculating strike-by-strike Call/Put OI, Call/Put ΔOI, Put/Call Ratio, sentiment classification, major resistance/support walls, active battleground strikes, and max pain strike)
+  - `services/options/strategy_greeks_service.py` (`StrategyGreeksAggregator` computing Net Delta, Gamma, Theta, Vega and lot-size adjusted INR exposures per point, per calendar day, and per 1% IV shift)
+  - `services/options/payoff_simulator.py` (`PreExpiryPayoffSimulator` simulating dual curves: Expiration hockey-stick P&L and theoretical Black-Scholes curve at Target Date T+x with dynamic IV shock adjustments and zero-crossing breakeven detection)
+  - `api/routers/options.py` (Exposed `GET /api/v1/options/open-interest`, `GET /api/v1/options/underlyings`, `POST /api/v1/options/strategy/greeks`, and `POST /api/v1/options/strategy/payoff`)
+  - `static/js/options_analytics.js` (`OptionsAnalyticsController` managing hybrid underlying selector with quick index chips and searchable 180+ F&O equities catalog, dedicated Open Interest ΔOI subtab with SVG dual-bar chart, persistent Strategy Net Greeks HUD with ₹ rupee exposure, interactive pre-expiry payoff simulator with real-time Target Date and IV Shock sliders, and 8 1-click strategy presets)
+  - `static/index.html` (Injected quick chips, search dropdown, subtab navigation `#options-subtabs-nav`, `#options-oi-panel`, `#oi-dual-bar-chart`, `#net-greeks-hud-card`, `#slider-target-days`, `#slider-iv-shock`, and `#payoff-chart-svg`)
+  - `static/css/theme.css` (Visual styling for chips, F&O search input, dual-bar chart rows and ATM highlights, Greek HUD grid cards, simulation range sliders, and dual curve legend indicators)
+  - `tests/unit/test_options_oi_engine.py` (5 unit tests, 100% pass)
+  - `tests/integration/test_options_oi_api.py` (4 integration tests, 100% pass)
+  - `tests/unit/test_options_strategy_greeks.py` (5 unit tests, 100% pass)
+  - `tests/integration/test_options_payoff_api.py` (4 integration tests, 100% pass)
+  - `tests/integration/test_options_lab_ui_integration.py` (8 integration tests, 100% pass)
+- **Handoff Summary**:
+  - Full institutional options suite operational: Open Interest distribution, PCR sentiment, Wall callouts, persistent Strategy Net Greeks HUD, pre-expiration theoretical curves, and quick presets.
+  - Verification passed: `pytest tests/integration/test_options_lab_ui_integration.py -v` (8/8 passed).
+  - Full test suite verified: 313 tests passing across the repository with zero regressions.
+
+---
+
+### Feature: Trade Journal Analytics: Monthly Green/Red P&L Calendar, Time-of-Day Diagnostics & Multi-Broker Importers (`journal-calendar-and-analytics`)
+- **Status**: STATUS: DONE
+- **Plans Executed**:
+  - `01-calendar-and-diagnostics-api/001-calendar-and-diagnostics-api.md` (Plan 01-001) - **STATUS: DONE**
+  - `02-multi-broker-importers/001-multi-broker-importers.md` (Plan 02-001) - **STATUS: DONE**
+  - `03-journal-analytics-ui/001-journal-analytics-ui.md` (Plan 03-001) - **STATUS: DONE**
+- **Artifacts Produced**:
+  - `api/models/journal_models.py` (`CalendarDayItem`, `CalendarWeekSummary`, `CalendarMonthlyKPIs`, `CalendarResponse`, `DiagnosticBucket`, `DiagnosticsResponse`)
+  - `services/journal/__init__.py` (Package initializer)
+  - `services/journal/calendar_service.py` (`JournalCalendarService` computing day-by-day realized P&L mapped to exit date in IST, weekly row summaries, consecutive win/loss day streaks, monthly Net ₹ P&L, win day percentage, and average win/loss day ratios)
+  - `services/journal/diagnostics_service.py` (`JournalDiagnosticsService` evaluating trades across 4 quantitative dimensions: Time-of-Day session windows [Morning 09:15-10:30, Midday 10:30-13:00, Afternoon 13:00-15:30, Off-hours], Direction [Long vs Short], Holding Duration [Intraday vs Swing], and Instrument [Equity Cash vs F&O])
+  - `services/journal/parsers/base_parser.py` (`RawTradeFill` dataclass and `IBrokerParser` ABC interface)
+  - `services/journal/parsers/fyers_parser.py` (`FyersParser` parsing FYERS tradebook CSV exports)
+  - `services/journal/parsers/zerodha_parser.py` (`ZerodhaParser` parsing Zerodha Console tradebook CSV exports)
+  - `services/journal/parsers/groww_parser.py` (`GrowwParser` parsing Groww Stock/F&O trade report CSV exports)
+  - `services/journal/importer_engine.py` (`BrokerParserFactory` header auto-detector, `FIFOReconciler` pairing buy/sell fills into closed trades with IST timestamps, and `TradeImporterEngine`)
+  - `tests/fixtures/sample_zerodha_tradebook.csv` (Zerodha Console tradebook test fixture)
+  - `tests/fixtures/sample_groww_tradebook.csv` (Groww tradebook test fixture)
+  - `api/routers/journal.py` (Exposed `GET /api/v1/journal/calendar`, `GET /api/v1/journal/diagnostics`, and multi-broker `POST /api/v1/journal/import`)
+  - `static/js/journal_analytics.js` (`JournalAnalyticsController` managing tabbed workspace navigation, monthly calendar grid rendering, 6 monthly KPI badges, click-to-filter interaction with trade ledger, quantitative diagnostics breakdown, and drag-and-drop multi-broker import modal)
+  - `static/index.html` (Injected `#journal-subtabs-nav`, `#journal-calendar-panel`, `#journal-diagnostics-panel`, `#journal-trades-panel`, `#journal-mistakes-panel`, `#import-tradebook-modal`, and `<script src="/static/js/journal_analytics.js"></script>`)
+  - `static/css/theme.css` (Visual styling for 8-column calendar grid, win/loss day cells, weekly summary bars, diagnostics progress meters, date filter banner, and import dropzone)
+  - `tests/unit/test_journal_calendar_engine.py` (3 unit tests verifying empty calendar, daily attribution, streaks, and diagnostics - 100% pass)
+  - `tests/integration/test_journal_calendar_api.py` (4 integration tests validating GET /calendar and GET /diagnostics endpoints with default and seeded sample data - 100% pass)
+  - `tests/unit/test_multi_broker_importers.py` (5 unit tests covering auto-detection, Zerodha/Groww parsing, FIFO reconciliation, and end-to-end import - 100% pass)
+  - `tests/integration/test_multi_broker_import_api.py` (5 integration tests covering FYERS, Zerodha, Groww auto-detection, explicit broker parameter, and invalid CSV 400 error handling - 100% pass)
+  - `tests/integration/test_journal_analytics_ui_integration.py` (5 integration tests covering static asset serving, DOM contract, theme styles, and calendar/diagnostics API integration - 100% pass)
+- **Handoff Summary**:
+  - Full feature suite operational: Monthly Green/Red Wall Calendar, Time-of-Day Diagnostics, Multi-Broker Importers (FYERS, Zerodha Console, Groww), and Tabbed Journal Workspace.
+  - Verification passed: `pytest tests/integration/test_journal_analytics_ui_integration.py -v` (5/5 passed).
+  - All 24 feature tests passing: `pytest tests/unit/test_journal_calendar_engine.py tests/integration/test_journal_calendar_api.py tests/unit/test_multi_broker_importers.py tests/integration/test_multi_broker_import_api.py tests/integration/test_journal_analytics_ui_integration.py tests/unit/test_tradebook_import.py -v` (24/24 passed).
+  - Full repository test suite verified: 335 tests passing across the repository with zero regressions.
+---
+
+### Feature: Strategy Parameter Optimization 2D Heatmap & Walk-Forward Validation (`strategy-parameter-optimization`)
+- **Status**: STATUS: DONE
+- **Plans Executed**:
+  - `01-engine-and-stability/001-engine-and-stability.md` (Plan 01-001) - **STATUS: DONE**
+  - `02-api-and-presets/001-api-and-presets.md` (Plan 02-001) - **STATUS: DONE**
+  - `03-heatmap-ui-and-walkforward/001-heatmap-ui-and-walkforward.md` (Plan 03-001) - **STATUS: DONE**
+- **Artifacts Produced**:
+  - `services/backtest/optimization_engine.py` (Implements `ParamSpec`, `OptimizationCell`, `StabilityResult`, `WalkForwardResult`, `generate_param_ticks`, `create_strategy_instance`, `WalkForwardSplitter`, `StabilityAnalyzer`, and `OptimizationEngine`)
+  - `api/models/optimization_models.py` (Pydantic models: `ParamRangeSpec`, `OptimizationRequest`, `HeatmapCellDto`, `StabilityDto`, `WalkForwardDto`, `OptimizationResponse`, `StrategyOptimizationPreset`, `PresetsResponse`)
+  - `services/backtest/optimization_preset_registry.py` (Curated 2D search ranges for `SMA_CROSS`, `RSI_REVERSION`, `BOLLINGER_BANDS`, `SUPERTREND`, and `MACD`)
+  - `api/routers/backtest.py` (Exposed `GET /api/v1/backtest/optimize/presets` and `POST /api/v1/backtest/optimize` with 400 combination cap enforcement, DuckDB non-blocking read cursors, and NaN-safe DTO mapping)
+  - `static/js/backtest_optimization_ui.js` (`BacktestOptimizationController` managing subtab switching, preset auto-population, real-time combination calculation, SVG 2D Heatmap rendering, color interpolation, tooltips, metric switching, 3x3 Plateau Stability HUD, Walk-Forward side-by-side table, and 1-click parameter application)
+  - `static/js/backtest_ui.js` (Injected `#backtest-subtabs-nav`, `#btn-backtest-tab-optimize`, and full `#backtest-optimize-panel` workspace)
+  - `static/index.html` (Added `<script src="/static/js/backtest_optimization_ui.js"></script>`)
+  - `static/css/theme.css` (Added visual styling for `.studio-optimize-view-section`, `.opt-control-card`, `.opt-param-box`, `.badge-robust`, `.badge-moderate`, `.badge-cliff`, `.opt-heatmap-svg`, `.heatmap-cell`, `.opt-heatmap-tooltip`, and `.btn-apply-optimal`)
+  - `tests/unit/test_parameter_optimization_engine.py` (17 unit tests - 100% pass)
+  - `tests/integration/test_parameter_optimization_api.py` (6 integration tests - 100% pass)
+  - `tests/integration/test_parameter_optimization_ui_integration.py` (7 integration tests - 100% pass)
+- **Handoff Summary**:
+  - Full institutional feature operational: In-memory 2D Cartesian Grid Optimization, 3x3 Plateau Stability Index, Walk-Forward Validation, and Interactive Heatmap Studio UI.
+  - Verification passed: `pytest tests/integration/test_parameter_optimization_ui_integration.py -v` (7/7 passed).
+  - All 30 feature tests passing: `pytest tests/unit/test_parameter_optimization_engine.py tests/integration/test_parameter_optimization_api.py tests/integration/test_parameter_optimization_ui_integration.py -v` (30/30 passed).
+  - Full repository test suite verified: 365 tests passing across repository with zero regressions.
+  - Feature Milestone: COMPLETED.
+
+---
+
+### Feature: Options Analytics & Greeks: Strict Real Data Enforcement & Zero Simulation Guarantee (`options-oi-and-net-greeks`)
+- **Status**: STATUS: DONE
+- **Plans Executed**:
+  - `01-real-data-enforcement-options-oi-greeks` - **STATUS: DONE**
+- **Artifacts Modified & Produced**:
+  - `db/migrations.py`: Added `option_chain_snapshots` table DDL with composite primary key `(symbol, expiry_date, strike_price, option_type, timestamp)` and single-writer auto-cache index.
+  - `services/options/oi_engine.py`:
+    - Completely excised `_generate_synthetic_analysis()` (140+ lines of fake Gaussian OI generation).
+    - Added `INDEX_ALIASES` mapping (`NIFTY` -> `NSE:NIFTY50-INDEX`, `BANKNIFTY` -> `NSE:NIFTYBANK-INDEX`).
+    - Implemented authentic live extraction from Fyers Option Chain v3 payload (`_load_from_live_fyers`), pulling actual spot, real OI change (`oich`), real strikes, and real expiration dates.
+    - Implemented `_load_latest_db_snapshot()` falling back to verified historical DuckDB snapshots.
+    - Enforced zero fake data guarantee: raises `ValueError` if real data is unavailable.
+  - `api/routers/options.py`:
+    - Completely deleted `_generate_synthetic_chain()`.
+    - Added `_cache_option_chain_to_db()` storing live market quotes into DuckDB using `db.execute_write_batch()`.
+    - Rewrote `/chain`, `/maxpain`, and `/open-interest` to strictly require verified real market data; returns HTTP 400 with a descriptive error message when live feed and snapshot are unavailable.
+  - `static/index.html`: Added visual badge `🟢 Real Data (Fyers / DuckDB)` to Options workspace header.
+  - `static/js/options_ui.js`:
+    - Refactored `loadOptionsData()` to clear fake matrices and present clean real-data warnings when HTTP 400 is returned.
+    - Added `renderDedicatedMetricsEmpty()`.
+    - Updated `applyStrategyPreset()` and `addStrategyLeg()` to populate real strikes, real LTP premiums, and real IVs strictly from the loaded real Strike Matrix.
+  - `static/js/options_analytics.js`:
+    - Updated `applyExpandedPreset()` to extract real strikes, real LTPs, and real IVs from `window.optionsUI.matrix`.
+  - `tests/integration/test_options_real_data_enforcement.py`:
+    - 6 end-to-end integration tests verifying live Fyers option chain retrieval, real Max Pain, real OI analytics, auto-caching, and strict HTTP 400 rejection for non-F&O / non-existent symbols.
+- **Handoff Summary**:
+  - Zero simulation / fake data across the entire Options Analytics & Greeks module.
+  - All 30 options tests passing (`pytest tests/unit/test_options_oi_engine.py tests/integration/test_options_oi_api.py tests/integration/test_options_lab_ui_integration.py tests/integration/test_options_payoff_api.py tests/integration/test_options_real_data_enforcement.py -v`).
+  - Single-writer DuckDB caching active.
+  - Resolved UI data loading & subtabs visibility bug:
+    1. Added missing `.options-subpanel.hidden { display: none !important; }` in `theme.css`.
+    2. Synchronized `window.optionsUI` and `window.optionsController` instances so `OptionsAnalyticsController` hooks correctly.
+    3. Added eager `loadOpenInterest()` and `updateStrategyGreeksAndPayoff()` in `OptionsAnalyticsController.prototype.init()` and `OptionsUI.prototype.switchOptionsTab()`.
+    4. Wired leg mutations in `options_ui.js` (`addLegToStrategy`, `addStrategyLeg`, `applyStrategyPreset`, `clearAllLegs`) to automatically update the Combined Strategy Net Greeks HUD.
+  - Resolved Option Expiration Max Pain Chart UI bug (Horizontal X-Axis Strike Label Overlap):
+    1. Eliminated hardcoded `idx % 3 === 0` label rendering which caused 35+ labels to collide horizontally when rendering long chains (e.g. 101 strikes).
+    2. Implemented collision-free adaptive X-axis label calculation based on physical container width and minimum 68px label spacing, with dedicated suppression of adjacent ticks around the Max Pain strike to guarantee zero overlap.
+    3. Added `minBarHeight = 12px` ensuring the minimum seller payout bar at Max Pain is prominently visible instead of having 0px height.
+    4. Added segmented view toggle: `Focused (ATM ±15 Strikes)` (default for chains > 30 strikes) vs `All Strikes` for maximum resolution.
+    5. Added vertical dashed amber reference line and label for current Underlying Spot.
+    6. Added dynamic interactive hover feedback displaying Strike, Cumulative Seller Payout in ₹ Crores/Lakhs, and point distance from Spot.
+    7. Verified with automated integration test `test_max_pain_chart_collision_free_rendering_and_styling()` (30/30 options tests passing).
+
+---
+
+### Feature: NSE Stock Screener Real Data Enforcement & Technical Metrics Enrichment (`nse-stock-screener-real-data`)
+- **Status**: STATUS: DONE
+- **Plans Executed**:
+  - `01-real-data-enforcement-screener` - **STATUS: DONE**
+- **Artifacts Modified & Produced**:
+  - `core/interfaces.py`: Updated `ScreenerResult` dataclass to include technical metrics: `change_pct_1d`, `rsi_14`, `volume_zscore_20`, `dist_from_52w_high_pct`, `dist_from_52w_low_pct`, and `dist_from_sma_20_pct`.
+  - `services/screener_service.py`:
+    - Added `get_latest_market_date()` querying authentic `MAX(date)` from DuckDB `candles_1d_adjusted`.
+    - Added strict validation raising `ValueError` ("No verified real market candles found in database. NSE Stock Screener operates strictly on actual market data.") if no candles exist, preventing silent empty or synthetic fallbacks.
+    - Cleaned duplicate signatures and mapped all computed technical indicators (`change_pct_1d`, `rsi_14`, `volume_zscore_20`, `dist_from_52w_high_pct`, `dist_from_52w_low_pct`, `dist_from_sma_20_pct`) into returned `ScreenerResult` instances.
+  - `api/routers/screener.py`:
+    - Added `GET /api/v1/screener/status` providing real data verification guarantee and latest market date.
+    - Updated `POST /api/v1/screener/run` to catch `ValueError` and return HTTP 400 with explicit real-data error messaging.
+    - Enriched returned response with all computed technical indicator fields and a metadata block (`is_real_data: True`, `zero_fake_data_guarantee: True`, `data_source`, `as_of_date`).
+  - `data/screener_templates.json`:
+    - Refined `52_week_high` preset threshold to `<= 5.0%` for authentic momentum leaders in normal market environments.
+    - Added `rsi_momentum` (RSI >= 60, volume Z-score >= 0.5) and `sma_support` (price within 2% of 20-SMA) presets based strictly on verified DuckDB indicators.
+  - `static/index.html`:
+    - Added `🟢 Real NSE Data (Zero Fake)` badge and dynamic `As of: <date>` badge to the Screener workspace header.
+    - Added sortable `1D Change ⬍` and `RSI (14) ⬍` table headers to `#screener-table`.
+  - `static/js/screener_ui.js`:
+    - Updated `runScan()` to update the real data and as-of date badges dynamically from scan response metadata.
+    - Added error handling to display explicit real data validation messages if a scan fails.
+    - Updated `renderResults()` to render colored `1D Change %` (+/- green/red) and styled `RSI (14)` with oversold/overbought accents across 9 columns with null-safe sorting.
+  - `tests/integration/test_screener_real_data_enforcement.py`:
+    - Created test suite verifying real data status guarantees, enriched technical indicator return values, built-in presets execution against real DuckDB candles, and strict `ValueError` rejection when no authentic candles exist.
+- **Handoff Summary**:
+  - NSE Stock Screener operates strictly on verified real NSE market data in DuckDB (323,000+ daily candles) with zero synthetic/mock fallback.
+  - All 7 screener integration tests passing: `pytest tests/integration/test_screener_real_data_enforcement.py tests/integration/test_custom_screener_templates.py tests/integration/test_screener_execution.py -v` (100% pass).
+
+---
+
+### Bug Fix: Backtest 3-Subtab Switcher & Workspace Section Visibility (`backtest-3tab-switcher-fix`)
+- **Status**: STATUS: DONE
+- **Root Cause Analysis**:
+  1. *Missing Universal Display None*: `static/css/theme.css` defined `.hidden` only for specific elements like `.app-view.hidden`, `.modal.hidden`, etc. There was no universal `.hidden { display: none !important; }` rule, nor rules for `.studio-portfolio-view-section.hidden` or `.studio-optimize-view-section.hidden`. Because flex/grid styles had higher specificity, applying `.hidden` in JavaScript had zero effect in the browser, causing Single Asset, Portfolio Basket, and Parameter Optimization sections to remain simultaneously visible stacked vertically.
+  2. *Fragmented & Conflicting Mode Handlers*: `PortfolioBacktestController.prototype.switchMode` only handled `'single'` and `'portfolio'` (exiting early on `'optimize'` and not managing `#backtest-optimize-panel`), while `BacktestOptimizationController` only toggled `#backtest-optimize-panel` without updating subtab buttons or hiding portfolio cards. Additionally, `portfolio_backtest_ui.js` overrode `BacktestUI.prototype.switchMode` without 3-way awareness.
+  3. *Double Instantiation on View Switch*: `DOMContentLoaded` created `new BacktestUI()` without setting `window.backtestInitialized`, causing `app.js`'s `switchAppView('backtest')` to recreate `new BacktestUI()`, wiping DOM bindings and event handlers.
+- **Artifacts Modified & Produced**:
+  - `static/css/theme.css`:
+    - Added universal `.hidden { display: none !important; }`.
+    - Added explicit section overrides for `#section-portfolio-view.hidden`, `#backtest-optimize-panel.hidden`, `.studio-portfolio-view-section.hidden`, `.studio-optimize-view-section.hidden`, `.studio-universe-section.hidden`, `.studio-current-view-section.hidden`, `#card-single-asset.hidden`, `#card-single-risk.hidden`, `#card-portfolio-universe.hidden`, and `#card-portfolio-allocation.hidden`.
+  - `static/js/backtest_ui.js`:
+    - Implemented centralized `switchMode(mode)` supporting `'single'`, `'portfolio'`, and `'optimize'`.
+    - Coordinates left control cards and right result dashboard sections with strict exclusivity.
+    - Added robust click event listener binding to all mode toggle buttons under `#studio-mode-switcher` and `#backtest-subtabs-nav`.
+    - Set default mode to `'single'` in `init()`.
+    - Guarded against double instantiation by flagging `window.backtestInitialized = true`.
+  - `static/js/portfolio_backtest_ui.js`:
+    - Delegated `switchMode(mode)` to `this.ui.switchMode(mode)`.
+    - Added guarded fallback to `BacktestUI.prototype.switchMode` preventing unintended override of the unified 3-mode switcher.
+  - `static/js/backtest_optimization_ui.js`:
+    - Updated `activateOptimizeTab()` and `deactivateOptimizeTab()` to invoke `this.ui.switchMode('optimize')` and `this.ui.switchMode('single')`.
+  - `static/js/app.js`:
+    - In `switchAppView('backtest')`, enforced single-instance lifecycle and ensured active mode is reapplied (`window.backtestUI.switchMode(window.backtestUI.activeMode || 'single')`).
+  - `tests/integration/test_backtest_tab_switcher_ui.py`:
+    - 6 comprehensive integration tests verifying CSS rules, unified 3-mode switching logic, event listener binding, controller delegation, and app lifecycle single-instance guard.
+- **Verification & Handoff Summary**:
+  - `pytest tests/integration/test_backtest_tab_switcher_ui.py tests/integration/test_portfolio_studio_ui_integration.py tests/integration/test_parameter_optimization_ui_integration.py -v` (21/21 passed).
+  - All 57 backtest engine & API tests passing with zero regressions.
+  - Resolved `🧺 Portfolio Basket` tab click override issue:
+    1. Identified that `BacktestOptimizationController.prototype.bindSubtabs` attached an event listener on `btn-mode-portfolio` calling `this.deactivateOptimizeTab()`, which hardcoded a switch back to `'single'`.
+    2. Removed the conflicting listeners on `btn-mode-portfolio` and `btn-mode-single` from `BacktestOptimizationController.prototype.bindSubtabs`.
+    3. Added `e.stopImmediatePropagation()` to `BacktestUI.prototype.bindEvents()` on mode switcher buttons to ensure centralized authority.
+    4. Verified with automated regression suite (21/21 tests passed).
+---
+
+### Bug Fix: NSE Stock Screener Full Universe Filtering & Per-Symbol Latest Candle Resolution (`nse-stock-screener-universe-filter`)
+- **Status**: STATUS: DONE
+- **Root Cause Analysis**:
+  1. *Global Target Date Filter Discarding Stocks*: `services/screener_service.py` executed `WHERE m.date = '{target_date}'`, where `target_date = get_latest_market_date()`. Because `NSE:RELIANCE-EQ` had a live candle inserted for `2026-10-15` while the remaining 99 stocks had candles up to `2026-10-09`, `WHERE m.date = '2026-10-15'` filtered out all 99 other stocks, resulting in only 1 stock appearing in scan results.
+  2. *Windows File Encoding Error*: `_load_templates()` and `_save_templates()` in `services/screener_service.py` opened `data/screener_templates.json` without explicit `encoding="utf-8"`. On Windows (cp1252/charmap default), Unicode characters (e.g. emojis in preset titles) raised `UnicodeDecodeError: 'charmap' codec can't decode byte 0x90`, causing templates to fail loading and silently dropping conditions.
+  3. *Universe Parameter Precedence Bug*: In `run_screener()`, `filter_params.universe` was overridden by `tmpl.get("universe")` (`"ALL"`), preventing user-selected universe filters (e.g. `NIFTY50`) from taking effect.
+- **Artifacts Modified & Produced**:
+  - `services/screener_service.py`:
+    - Replaced global `WHERE m.date = '{target_date}'` with per-symbol window partitioning: `ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY date DESC) AS rn` with `WHERE m.rn = 1 AND {cat_filter}`. Every symbol is now evaluated against its own latest available authentic candle.
+    - Switched symbol metadata join to `LEFT JOIN symbols s ON m.symbol = s.symbol` with `COALESCE` fallbacks for company name, sector, and category.
+    - Enhanced universe category filtering to properly recognize `NIFTY50` (`s.category = 'NIFTY50'`), `NIFTYNEXT50` (`s.category = 'NIFTYNEXT50'`), `NIFTY500` (`COALESCE(s.tier, 1) <= 3`), or `'ALL'`.
+    - Added explicit `encoding="utf-8"` and `ensure_ascii=False` to JSON file operations in `_load_templates` and `_save_templates`.
+    - Preserved `filter_params.universe` selected by user/client instead of unconditionally overwriting with template defaults.
+  - `data/screener_templates.json`:
+    - Added `"all_stocks"` ("🌐 All Stocks") preset with empty conditions (`[]`) at the top of the list, allowing users to scan and view the entire 100-stock universe with all computed technical indicators.
+  - `static/index.html`:
+    - Injected `#screener-universe-select` dropdown directly into the `.template-selector-bar` with options: `All Stocks [100]`, `NIFTY 50 [50]`, `NIFTY NEXT 50 [50]`, and `NIFTY 500 [100]`.
+  - `static/js/screener_ui.js`:
+    - Added `#screener-universe-select` DOM element caching and change listener to automatically re-trigger scans on universe change.
+    - Set default template to `'all_stocks'` and default universe to `'ALL'`.
+    - Updated rules tag in results table to display `'All Market Stocks'` when no custom conditions are applied.
+  - `tests/integration/test_screener_real_data_enforcement.py`:
+    - Updated candle date assertions to `>= "2026-10-09"` to accommodate per-symbol latest candle dates.
+    - Added `all_stocks` preset to `test_all_presets_execute_with_real_market_data`.
+    - Added `test_all_stocks_and_universe_filtering` verifying all 100 stocks return for `ALL` and exactly 50 stocks return for `NIFTY50`.
+
+---
+
+### Feature: NSE Stock Screener Zero Fake Data Guarantee & On-Demand Live Market Updates (`nse-stock-screener-zero-fake-data-live-sync`)
+- **Status**: STATUS: DONE
+- **Verification & Audit**:
+  - Full codebase audit across `services/screener_service.py`, `api/routers/screener.py`, `services/live_market_data_service.py`, `static/js/screener_ui.js`, and `static/index.html`.
+  - Confirmed 0 mock generators, 0 synthetic tickers, 0 simulated prices, and 0 fake fallbacks. All stock information strictly originates from verified DuckDB `candles_1d_adjusted` and `symbols` catalog or authentic Fyers API live quotes.
+  - If DuckDB lacks verified historical candles, the service raises an explicit `ValueError` returning HTTP 400 with a strict real data enforcement error message.
+- **Artifacts Modified & Produced**:
+  - `db/repositories/duckdb_candle_repo.py`:
+    - Added `upsert_1d()` utilizing DuckDB temporary staging and atomic anti-join/overwrite within the single-writer write batch lock.
+  - `services/live_market_data_service.py`:
+    - Implemented `sync_live_quotes(symbols)` to batch-query Fyers API quotes in compliant 50-symbol chunks and upsert authentic real-time LTP, High, Low, and Volume into `candles_1d_raw`.
+    - Handles `AuthenticationExpiredError` by returning clean status `AUTH_REQUIRED` without fabricating mock data.
+  - `services/screener_service.py`:
+    - Added `sync_live_universe(universe)` to resolve symbols for `ALL`, `NIFTY50`, `NIFTYNEXT50`, or `NIFTY500` and coordinate real-time Fyers synchronization.
+  - `api/routers/screener.py`:
+    - Added `POST /api/v1/screener/sync-live` with `SyncLiveRequest` model.
+    - Added `refresh_live: bool = False` parameter to `ScreenerFilterModel` to optionally trigger live sync before running scans.
+  - `static/index.html`:
+    - Added `🔄 Sync Live` button to `.template-selector-bar` in the Screener view.
+  - `static/js/screener_ui.js`:
+    - Added `syncLiveMarketData()` method and click listener for `#btn-sync-live-screener` with dynamic progress status and automatic re-scan.
+  - `tests/integration/test_screener_real_data_enforcement.py`:
+    - Added `test_screener_sync_live_endpoint` and `test_screener_run_with_refresh_live` verifying live sync and zero fake data guarantee.
+- **Verification & Handoff Summary**:
+  - All 11 screener tests passing: `pytest tests/integration/test_screener_real_data_enforcement.py tests/integration/test_custom_screener_templates.py tests/integration/test_screener_execution.py tests/unit/test_screener_filters.py -v` (11/11 passed in 9.44s).
+

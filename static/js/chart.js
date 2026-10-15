@@ -1,4 +1,4 @@
-let mainChart, volumeChart, oscillatorChart;
+let mainChart, volumeChart;
 let candleSeries, volumeSeries, vwapSeries, emaSeries;
 
 window.currentActiveSymbol = 'NSE:RELIANCE-EQ';
@@ -39,6 +39,7 @@ function createHistogramSeries(chart, options) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initBottomChartDock();
     initCharts();
     window.addEventListener('resize', handleResize);
     window.addEventListener('mode-changed', handleResize);
@@ -119,7 +120,11 @@ function initCharts() {
     window.emaSeries = emaSeries;
 
     // Volume pane
-    volumeChart = LightweightCharts.createChart(volContainer, chartOptions);
+    const volOptions = Object.assign({}, chartOptions, {
+        width: volContainer.clientWidth > 0 ? volContainer.clientWidth : (container.clientWidth || 800),
+        height: volContainer.clientHeight > 0 ? volContainer.clientHeight : 100,
+    });
+    volumeChart = LightweightCharts.createChart(volContainer, volOptions);
     window.volumeChart = volumeChart;
     volumeSeries = createHistogramSeries(volumeChart, {
         color: '#2962FF',
@@ -170,6 +175,9 @@ function initCharts() {
             if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
                 window.volumeProfileOverlay.requestRedraw();
             }
+            if (window.chartDrawingManager && typeof window.chartDrawingManager.requestRender === 'function') {
+                window.chartDrawingManager.requestRender();
+            }
             if (newRange.from < 20 && window.nextCandleCursor && !window.isLoadingMoreCandles) {
                 loadOlderCandles();
             }
@@ -177,18 +185,67 @@ function initCharts() {
     }
 }
 
+function initBottomChartDock() {
+    const dock = document.getElementById('bottom-chart-dock');
+    const toggleBtn = document.getElementById('btn-bottom-chart-toggle');
+    const header = document.getElementById('bottom-chart-header');
+    if (!dock) return;
+
+    let savedState = null;
+    try {
+        savedState = localStorage.getItem('trading_app_bottom_chart_state');
+    } catch (e) {}
+
+    // Default to closed (collapsed = true) unless explicitly saved as 'open'
+    const isCollapsed = (savedState !== 'open');
+    dock.classList.toggle('collapsed', isCollapsed);
+
+    function toggleBottomChart() {
+        const currentlyCollapsed = dock.classList.contains('collapsed');
+        const nextCollapsed = !currentlyCollapsed;
+        dock.classList.toggle('collapsed', nextCollapsed);
+        try {
+            localStorage.setItem('trading_app_bottom_chart_state', nextCollapsed ? 'closed' : 'open');
+        } catch (e) {}
+        handleResize();
+        requestAnimationFrame(handleResize);
+    }
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleBottomChart();
+        });
+    }
+
+    if (header) {
+        header.addEventListener('click', () => {
+            toggleBottomChart();
+        });
+    }
+}
+window.initBottomChartDock = initBottomChartDock;
+
 function handleResize() {
     if (mainChart) {
         const container = document.getElementById('chart-container');
-        if (container) {
+        if (container && container.clientWidth > 0 && container.clientHeight > 0) {
             mainChart.applyOptions({ width: container.clientWidth, height: container.clientHeight });
         }
     }
-    if (volumeChart && document.body.classList.contains('pro-mode-enabled')) {
+    const dock = document.getElementById('bottom-chart-dock');
+    const isBottomOpen = dock && !dock.classList.contains('collapsed');
+    if (volumeChart) {
         const volContainer = document.getElementById('volume-pane');
-        if (volContainer) {
+        if (volContainer && isBottomOpen && volContainer.clientWidth > 0 && volContainer.clientHeight > 0) {
             volumeChart.applyOptions({ width: volContainer.clientWidth, height: volContainer.clientHeight });
         }
+    }
+    if (window.activeStudiesManager && typeof window.activeStudiesManager.handleResize === 'function') {
+        window.activeStudiesManager.handleResize();
+    }
+    if (window.chartDrawingManager && typeof window.chartDrawingManager.handleResize === 'function') {
+        window.chartDrawingManager.handleResize();
     }
 }
 
@@ -419,6 +476,9 @@ function updateLegendValues(open, high, low, close, basePrice = null, updateTool
             proChange.className = `active-symbol-change badge-pill font-mono ${isUp ? 'positive' : 'negative'}`;
         }
     }
+    if (window.chartPaperTradeManager && typeof window.chartPaperTradeManager.updateLTP === 'function') {
+        window.chartPaperTradeManager.updateLTP(close);
+    }
 }
 
 window.allLoadedCandles = [];
@@ -500,7 +560,116 @@ async function loadOlderCandles() {
     }
 }
 
+window.chartLivePollTimer = null;
+
+function updateLiveStatusBadge(authStatus, isLive) {
+    const badge = document.getElementById('chart-live-status');
+    const textSpan = document.getElementById('live-status-text');
+    if (!badge || !textSpan) return;
+
+    if (authStatus === 'AUTH_REQUIRED') {
+        badge.className = 'chart-live-badge auth-needed';
+        textSpan.textContent = 'CONNECT FYERS';
+        badge.title = 'Fyers Broker Disconnected / Expired · Click to Authenticate';
+        badge.onclick = () => {
+            if (typeof window.openAuthModal === 'function') window.openAuthModal();
+            else {
+                const m = document.getElementById('auth-modal');
+                if (m) m.classList.remove('hidden');
+            }
+        };
+    } else if (isLive) {
+        badge.className = 'chart-live-badge live';
+        textSpan.textContent = 'LIVE 5s';
+        badge.title = 'Real-time Live Market Data Stream Active (5s Polling)';
+        badge.onclick = () => {
+            if (typeof window.openAuthModal === 'function') window.openAuthModal();
+        };
+    } else {
+        badge.className = 'chart-live-badge live';
+        textSpan.textContent = 'CACHED';
+        badge.title = 'Offline Historical DuckDB Cache · Click for Auth Status';
+        badge.onclick = () => {
+            if (typeof window.openAuthModal === 'function') window.openAuthModal();
+        };
+    }
+}
+
+function stopLiveCandlePolling() {
+    if (window.chartLivePollTimer) {
+        clearInterval(window.chartLivePollTimer);
+        window.chartLivePollTimer = null;
+    }
+}
+
+function startLiveCandlePolling(sym, tf) {
+    stopLiveCandlePolling();
+
+    window.chartLivePollTimer = setInterval(async () => {
+        if (document.hidden) return;
+        if (window.currentActiveSymbol !== sym || window.currentSymbolTimeframe !== tf) return;
+
+        try {
+            const resp = await fetch(`/api/v1/candles/live?symbol=${encodeURIComponent(sym)}&timeframe=${encodeURIComponent(tf)}`);
+            if (!resp.ok) return;
+            const resJson = await resp.json();
+            if (!resJson || !resJson.success || !resJson.data) return;
+
+            const liveData = resJson.data;
+            updateLiveStatusBadge(liveData.auth_status, liveData.is_live);
+
+            if (liveData.candle) {
+                const c = liveData.candle;
+                const t = c.time;
+                if (t && !isNaN(t)) {
+                    const updatedCandle = {
+                        time: t,
+                        open: Number(c.open),
+                        high: Number(c.high),
+                        low: Number(c.low),
+                        close: Number(c.close),
+                        volume: Number(c.volume || 0)
+                    };
+                    const updatedVolume = {
+                        time: t,
+                        value: Number(c.volume || 0),
+                        color: Number(c.close) >= Number(c.open) ? '#089981' : '#F23645'
+                    };
+
+                    if (candleSeries) candleSeries.update(updatedCandle);
+                    if (volumeSeries) volumeSeries.update(updatedVolume);
+
+                    if (window.allLoadedCandles && window.allLoadedCandles.length > 0) {
+                        const lastIdx = window.allLoadedCandles.length - 1;
+                        if (window.allLoadedCandles[lastIdx].time === t) {
+                            window.allLoadedCandles[lastIdx] = updatedCandle;
+                            if (window.allLoadedVolumes && window.allLoadedVolumes.length > 0) {
+                                window.allLoadedVolumes[window.allLoadedVolumes.length - 1] = updatedVolume;
+                            }
+                        } else if (t > window.allLoadedCandles[lastIdx].time) {
+                            window.allLoadedCandles.push(updatedCandle);
+                            if (window.allLoadedVolumes) window.allLoadedVolumes.push(updatedVolume);
+                        }
+                    }
+
+                    if (window.chartPaperTradeManager && typeof window.chartPaperTradeManager.updateLTP === 'function') {
+                        window.chartPaperTradeManager.updateLTP(updatedCandle.close);
+                    }
+                    updateActiveSymbolDisplay();
+                }
+            } else if (liveData.quote && liveData.quote.ltp) {
+                if (window.chartPaperTradeManager && typeof window.chartPaperTradeManager.updateLTP === 'function') {
+                    window.chartPaperTradeManager.updateLTP(liveData.quote.ltp);
+                }
+            }
+        } catch (err) {
+            console.debug("Live candle poll error:", err);
+        }
+    }, 5000);
+}
+
 async function fetchChartData(symbol, timeframe) {
+    stopLiveCandlePolling();
     window.currentActiveSymbol = symbol || window.currentActiveSymbol || 'NSE:RELIANCE-EQ';
     window.currentSymbolTimeframe = timeframe || window.currentSymbolTimeframe || '1D';
     const sym = window.currentActiveSymbol;
@@ -519,61 +688,125 @@ async function fetchChartData(symbol, timeframe) {
     }
     updateActiveSymbolDisplay();
 
+    // Show syncing badge state
+    const badge = document.getElementById('chart-live-status');
+    const textSpan = document.getElementById('live-status-text');
+    if (badge && textSpan) {
+        badge.className = 'chart-live-badge syncing';
+        textSpan.textContent = 'SYNCING...';
+    }
+
     try {
-        // Fetch up to 3000 candles initially for a rich view
-        const response = await fetch(`/api/v1/candles?symbol=${encodeURIComponent(sym)}&timeframe=${encodeURIComponent(tf)}&limit=3000`);
+        // Fetch up to 3000 candles initially with on-demand JIT sync from Fyers
+        const response = await fetch(`/api/v1/candles?symbol=${encodeURIComponent(sym)}&timeframe=${encodeURIComponent(tf)}&limit=3000&refresh_live=true`);
         if (response.ok) {
             const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data.candles) && data.data.candles.length > 0) {
-                const formattedCandles = [];
-                const formattedVolumes = [];
+            if (data.success && data.data) {
+                updateLiveStatusBadge(data.data.auth_status, data.data.is_live);
 
-                const sorted = data.data.candles.slice().sort((a, b) => {
-                    const ta = a.time || (a.timestamp ? Math.floor(new Date(a.timestamp).getTime() / 1000) : 0);
-                    const tb = b.time || (b.timestamp ? Math.floor(new Date(b.timestamp).getTime() / 1000) : 0);
-                    return ta - tb;
-                });
+                if (Array.isArray(data.data.candles) && data.data.candles.length > 0) {
+                    const formattedCandles = [];
+                    const formattedVolumes = [];
 
-                for (const c of sorted) {
-                    const t = c.time || (c.timestamp ? Math.floor(new Date(c.timestamp).getTime() / 1000) : 0);
-                    if (!t || isNaN(t)) continue;
-                    formattedCandles.push({
-                        time: t,
-                        open: Number(c.open),
-                        high: Number(c.high),
-                        low: Number(c.low),
-                        close: Number(c.close),
-                        volume: Number(c.volume || 0)
+                    const sorted = data.data.candles.slice().sort((a, b) => {
+                        const ta = a.time || (a.timestamp ? Math.floor(new Date(a.timestamp).getTime() / 1000) : 0);
+                        const tb = b.time || (b.timestamp ? Math.floor(new Date(b.timestamp).getTime() / 1000) : 0);
+                        return ta - tb;
                     });
-                    formattedVolumes.push({
-                        time: t,
-                        value: Number(c.volume || 0),
-                        color: Number(c.close) >= Number(c.open) ? '#089981' : '#F23645'
-                    });
-                }
 
-                if (formattedCandles.length > 0) {
-                    window.allLoadedCandles = formattedCandles;
-                    window.allLoadedVolumes = formattedVolumes;
-                    window.nextCandleCursor = data.data.next_cursor || null;
+                    for (const c of sorted) {
+                        const t = c.time || (c.timestamp ? Math.floor(new Date(c.timestamp).getTime() / 1000) : 0);
+                        if (!t || isNaN(t)) continue;
+                        formattedCandles.push({
+                            time: t,
+                            open: Number(c.open),
+                            high: Number(c.high),
+                            low: Number(c.low),
+                            close: Number(c.close),
+                            volume: Number(c.volume || 0)
+                        });
+                        formattedVolumes.push({
+                            time: t,
+                            value: Number(c.volume || 0),
+                            color: Number(c.close) >= Number(c.open) ? '#089981' : '#F23645'
+                        });
+                    }
 
-                    if (candleSeries) candleSeries.setData(formattedCandles);
-                    if (volumeSeries) volumeSeries.setData(formattedVolumes);
-                    if (mainChart) mainChart.timeScale().fitContent();
-                    if (volumeChart) volumeChart.timeScale().fitContent();
-                    updateOverlays();
-                    if (window.activeStudiesManager && typeof window.activeStudiesManager.recalculateAll === 'function') {
-                        window.activeStudiesManager.recalculateAll(formattedCandles);
+                    if (formattedCandles.length > 0) {
+                        window.allLoadedCandles = formattedCandles;
+                        window.allLoadedVolumes = formattedVolumes;
+                        window.nextCandleCursor = data.data.next_cursor || null;
+
+                        if (candleSeries) candleSeries.setData(formattedCandles);
+                        if (volumeSeries) volumeSeries.setData(formattedVolumes);
+                        if (mainChart) mainChart.timeScale().fitContent();
+                        if (volumeChart) volumeChart.timeScale().fitContent();
+                        updateOverlays();
+                        if (window.activeStudiesManager && typeof window.activeStudiesManager.recalculateAll === 'function') {
+                            window.activeStudiesManager.recalculateAll(formattedCandles);
+                        }
+                        if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
+                            window.volumeProfileOverlay.requestRedraw();
+                        }
+                        if (window.chartPatternManager && typeof window.chartPatternManager.rescan === 'function') {
+                            window.chartPatternManager.rescan();
+                        }
+                        if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
+                            window.chartOptionsOverlay.recalculateAll();
+                        }
+                        if (window.chartPaperTradeManager && typeof window.chartPaperTradeManager.onSymbolOrCandlesChanged === 'function') {
+                            window.chartPaperTradeManager.onSymbolOrCandlesChanged();
+                        }
+                        if (window.chartDrawingManager && typeof window.chartDrawingManager.onSymbolOrCandlesChanged === 'function') {
+                            window.chartDrawingManager.onSymbolOrCandlesChanged(sym);
+                        }
+                        updateActiveSymbolDisplay();
+                        handleResize();
+
+                        // Handle Auth Status Banners
+                        const isAuthRequired = (data.data.auth_status === 'AUTH_REQUIRED');
+                        const outdatedBanner = document.getElementById('chart-outdated-banner');
+                        const outdatedText = document.getElementById('outdated-banner-text');
+                        const emptyState = document.getElementById('chart-auth-empty-state');
+
+                        if (isAuthRequired) {
+                            if (emptyState) emptyState.classList.add('hidden');
+                            if (outdatedBanner && outdatedText) {
+                                const lastCandle = formattedCandles[formattedCandles.length - 1];
+                                const lastDate = new Date((lastCandle.time + 19800) * 1000).toISOString().slice(0, 10);
+                                outdatedText.textContent = `Market data may be outdated (Last trade in DB: ${lastDate}). Fyers broker session expired. Connect Fyers to catch up live trades.`;
+                                outdatedBanner.classList.remove('hidden');
+                            }
+                            // Do not run live background polling when auth is invalid
+                            stopLiveCandlePolling();
+                            return;
+                        }
+
+                        // Authenticated: hide banners and start live ticker polling
+                        if (outdatedBanner) outdatedBanner.classList.add('hidden');
+                        if (emptyState) emptyState.classList.add('hidden');
+                        startLiveCandlePolling(sym, tf);
+                        return;
                     }
-                    if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
-                        window.volumeProfileOverlay.requestRedraw();
+                } else {
+                    // Empty candles returned
+                    if (candleSeries) candleSeries.setData([]);
+                    if (volumeSeries) volumeSeries.setData([]);
+                    window.allLoadedCandles = [];
+                    window.allLoadedVolumes = [];
+
+                    const isAuthRequired = (data.data && data.data.auth_status === 'AUTH_REQUIRED');
+                    const emptyState = document.getElementById('chart-auth-empty-state');
+                    const outdatedBanner = document.getElementById('chart-outdated-banner');
+                    if (outdatedBanner) outdatedBanner.classList.add('hidden');
+
+                    if (isAuthRequired) {
+                        if (emptyState) emptyState.classList.remove('hidden');
+                        if (typeof window.openAuthModal === 'function') window.openAuthModal();
+                    } else {
+                        if (emptyState) emptyState.classList.add('hidden');
                     }
-                    if (window.chartPatternManager && typeof window.chartPatternManager.rescan === 'function') {
-                        window.chartPatternManager.rescan();
-                    }
-                    if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
-                        window.chartOptionsOverlay.recalculateAll();
-                    }
+
                     updateActiveSymbolDisplay();
                     handleResize();
                     return;
@@ -581,76 +814,29 @@ async function fetchChartData(symbol, timeframe) {
             }
         }
     } catch (e) {
-        console.warn("Candle API error, using demonstration sample data:", e);
+        console.warn("Candle API error:", e);
     }
 
-    // Fall back to sample demonstration candles if database has 0 historical candles for symbol
-    mockData(sym);
+    // In case of network error or empty response, clear and do not mock
+    if (candleSeries) candleSeries.setData([]);
+    if (volumeSeries) volumeSeries.setData([]);
+    updateActiveSymbolDisplay();
     handleResize();
 }
 
-function mockData(symbol) {
-    const data = [];
-    const volData = [];
-    let time = Math.floor(Date.now() / 1000) - (300 * 86400);
-
-    // Compute consistent base price based on symbol string hash
-    let price = 2500;
-    if (symbol) {
-        let hash = 0;
-        for (let i = 0; i < symbol.length; i++) hash = ((hash << 5) - hash) + symbol.charCodeAt(i);
-        price = Math.abs(hash % 3000) + 150;
-    }
-
-    for (let i = 0; i < 300; i++) {
-        time += 86400;
-        const change = (Math.random() - 0.48) * (price * 0.02);
-        const open = price;
-        const close = open + change;
-        const high = Math.max(open, close) + Math.random() * (price * 0.008);
-        const low = Math.min(open, close) - Math.random() * (price * 0.008);
-        const volume = Math.floor(Math.random() * 500000) + 20000;
-        price = close;
-        data.push({ 
-            time, 
-            open: Math.round(open * 100) / 100, 
-            high: Math.round(high * 100) / 100, 
-            low: Math.round(low * 100) / 100, 
-            close: Math.round(close * 100) / 100,
-            volume: volume
-        });
-        volData.push({ 
-            time, 
-            value: volume, 
-            color: close >= open ? '#089981' : '#F23645' 
-        });
-    }
-
-    if (candleSeries) candleSeries.setData(data);
-    if (volumeSeries) volumeSeries.setData(volData);
-    window.allLoadedCandles = data;
-    window.allLoadedVolumes = volData;
-    if (mainChart) mainChart.timeScale().fitContent();
-    if (volumeChart) volumeChart.timeScale().fitContent();
-    updateOverlays();
-    if (window.activeStudiesManager && typeof window.activeStudiesManager.recalculateAll === 'function') {
-        window.activeStudiesManager.recalculateAll(data);
-    }
-    if (window.volumeProfileOverlay && typeof window.volumeProfileOverlay.requestRedraw === 'function') {
-        window.volumeProfileOverlay.requestRedraw();
-    }
-    if (window.chartPatternManager && typeof window.chartPatternManager.rescan === 'function') {
-        window.chartPatternManager.rescan();
-    }
-    if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
-        window.chartOptionsOverlay.recalculateAll();
-    }
-    updateActiveSymbolDisplay();
-}
+// Auto-resume chart catch-up after user logs in or validates token in Auth Status popup
+window.addEventListener('fyersAuthSucceeded', () => {
+    console.log('[Chart] fyersAuthSucceeded received. Catching up live market data...');
+    fetchChartData(window.currentActiveSymbol, window.currentSymbolTimeframe);
+});
 
 window.fetchChartData = fetchChartData;
+window.startLiveCandlePolling = startLiveCandlePolling;
+window.stopLiveCandlePolling = stopLiveCandlePolling;
+window.updateLiveStatusBadge = updateLiveStatusBadge;
 window.updateOverlays = updateOverlays;
 window.updateActiveSymbolDisplay = updateActiveSymbolDisplay;
 window.resetLegendToLatest = resetLegendToLatest;
 window.calculateVWAP = calculateVWAP;
 window.calculateEMA = calculateEMA;
+

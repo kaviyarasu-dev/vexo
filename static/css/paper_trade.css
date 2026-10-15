@@ -1,0 +1,1072 @@
+/* ==========================================================================
+   Interactive Paper Trading Terminal & Chart Order Execution Styles
+   Modern Institutional Glassmorphic Design System
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Floating Chart Quick Trade Bar
+   -------------------------------------------------------------------------- */
+.chart-quick-trade-bar {
+    position: absolute;
+    top: 14px;
+    right: 80px;
+    z-index: 25;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 20, 31, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 4px 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.chart-quick-trade-bar:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Quick Buy / Sell Buttons */
+.quick-trade-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    color: #FFFFFF;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.quick-trade-btn:active {
+    transform: scale(0.97);
+}
+
+.quick-buy-btn {
+    background: linear-gradient(135deg, #089981 0%, #057a66 100%);
+    box-shadow: 0 2px 8px rgba(8, 153, 129, 0.35);
+}
+
+.quick-buy-btn:hover {
+    background: linear-gradient(135deg, #0ba88f 0%, #089981 100%);
+    box-shadow: 0 3px 12px rgba(8, 153, 129, 0.5);
+}
+
+.quick-sell-btn {
+    background: linear-gradient(135deg, #F23645 0%, #cc2635 100%);
+    box-shadow: 0 2px 8px rgba(242, 54, 69, 0.35);
+}
+
+.quick-sell-btn:hover {
+    background: linear-gradient(135deg, #ff4d5a 0%, #F23645 100%);
+    box-shadow: 0 3px 12px rgba(242, 54, 69, 0.5);
+}
+
+.btn-side-lbl {
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.btn-price-lbl {
+    font-size: 11px;
+    opacity: 0.95;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+
+/* Quantity Stepper Control */
+.quick-qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(22, 29, 44, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    height: 32px;
+}
+
+.qty-step-btn {
+    width: 26px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #A0AEC0;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.qty-step-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+}
+
+.qty-step-btn:active {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.qty-input {
+    width: 52px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: #F8FAFC;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    outline: none;
+    padding: 0;
+    -moz-appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Order Ticket Gear Button */
+.quick-settings-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: #94A3B8;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.quick-settings-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: rotate(30deg);
+}
+
+/* Floating Active Position Badge (In Quick Bar) */
+.quick-position-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    height: 28px;
+    border-radius: 5px;
+    background: rgba(41, 98, 255, 0.15);
+    border: 1px solid rgba(41, 98, 255, 0.35);
+    font-size: 11px;
+    color: #E2E8F0;
+}
+
+.quick-pos-side {
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.quick-pos-side.long {
+    background: rgba(8, 153, 129, 0.3);
+    color: #4ade80;
+}
+
+.quick-pos-side.short {
+    background: rgba(242, 54, 69, 0.3);
+    color: #f87171;
+}
+
+.quick-pos-pnl {
+    font-weight: 700;
+}
+
+.quick-pos-pnl.positive {
+    color: #4ade80;
+}
+
+.quick-pos-pnl.negative {
+    color: #f87171;
+}
+
+.quick-pos-close-btn {
+    background: rgba(242, 54, 69, 0.2);
+    border: 1px solid rgba(242, 54, 69, 0.4);
+    color: #fca5a5;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.quick-pos-close-btn:hover {
+    background: rgba(242, 54, 69, 0.6);
+    color: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   2. Advanced Order Ticket Modal Dialog
+   -------------------------------------------------------------------------- */
+.order-ticket-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.order-ticket-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.order-ticket-modal {
+    width: 440px;
+    max-width: 92vw;
+    background: #0E131F;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.96) translateY(8px);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.order-ticket-overlay.open .order-ticket-modal {
+    transform: scale(1) translateY(0);
+}
+
+/* Modal Header */
+.order-ticket-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.order-ticket-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.order-ticket-symbol {
+    font-size: 15px;
+    font-weight: 700;
+    color: #F8FAFC;
+    letter-spacing: 0.3px;
+}
+
+.order-ticket-ltp-badge {
+    font-size: 12px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #CBD5E1;
+}
+
+.order-ticket-close-btn {
+    background: transparent;
+    border: none;
+    color: #94A3B8;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.order-ticket-close-btn:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Modal Body */
+.order-ticket-body {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 75vh;
+    overflow-y: auto;
+}
+
+/* Segmented Buttons (Side & Mode) */
+.ticket-segmented-control {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 4px;
+}
+
+.ticket-segment-btn {
+    border: none;
+    background: transparent;
+    color: #94A3B8;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.ticket-segment-btn:hover {
+    color: #FFFFFF;
+}
+
+.ticket-segment-btn.active.buy-active {
+    background: #089981;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(8, 153, 129, 0.4);
+}
+
+.ticket-segment-btn.active.sell-active {
+    background: #F23645;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(242, 54, 69, 0.4);
+}
+
+.ticket-segment-btn.active.default-active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Form Groups */
+.ticket-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ticket-field-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94A3B8;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticket-input-wrap {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0 10px;
+    height: 38px;
+    transition: border-color 0.15s ease;
+}
+
+.ticket-input-wrap:focus-within {
+    border-color: #2962FF;
+    box-shadow: 0 0 0 1px #2962FF;
+}
+
+.ticket-currency-prefix {
+    color: #64748B;
+    font-size: 13px;
+    margin-right: 6px;
+}
+
+.ticket-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: #FFFFFF;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+}
+
+/* Quantity Quick Chips */
+.ticket-chips-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.ticket-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #CBD5E1;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ticket-chip:hover {
+    background: rgba(41, 98, 255, 0.25);
+    border-color: #2962FF;
+    color: #FFFFFF;
+}
+
+/* Risk Controls (SL / TP Toggles) */
+.ticket-risk-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ticket-risk-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    align-items: center;
+    gap: 12px;
+}
+
+.ticket-checkbox-lbl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #CBD5E1;
+    cursor: pointer;
+}
+
+.ticket-checkbox-lbl input[type="checkbox"] {
+    accent-color: #2962FF;
+    cursor: pointer;
+}
+
+/* Cost & Margin Calculation Summary Card */
+.ticket-calc-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.ticket-calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #94A3B8;
+}
+
+.ticket-calc-row.highlight {
+    color: #F8FAFC;
+    font-weight: 700;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.ticket-calc-row .val {
+    color: #F1F5F9;
+}
+
+/* Modal Footer Actions */
+.order-ticket-footer {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.ticket-cancel-btn {
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #94A3B8;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ticket-cancel-btn:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ticket-submit-btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: #FFFFFF;
+}
+
+.ticket-submit-btn.buy-mode {
+    background: linear-gradient(135deg, #089981 0%, #057a66 100%);
+    box-shadow: 0 2px 10px rgba(8, 153, 129, 0.4);
+}
+
+.ticket-submit-btn.buy-mode:hover {
+    background: linear-gradient(135deg, #0ba88f 0%, #089981 100%);
+}
+
+.ticket-submit-btn.sell-mode {
+    background: linear-gradient(135deg, #F23645 0%, #cc2635 100%);
+    box-shadow: 0 2px 10px rgba(242, 54, 69, 0.4);
+}
+
+.ticket-submit-btn.sell-mode:hover {
+    background: linear-gradient(135deg, #ff4d5a 0%, #F23645 100%);
+}
+
+/* --------------------------------------------------------------------------
+   3. Toast Notifications for Instant Orders
+   -------------------------------------------------------------------------- */
+.paper-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.paper-toast {
+    pointer-events: auto;
+    min-width: 280px;
+    max-width: 380px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #FFFFFF;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.paper-toast.success {
+    border-left: 4px solid #089981;
+}
+
+.paper-toast.error {
+    border-left: 4px solid #F23645;
+}
+
+.paper-toast-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.paper-toast-content {
+    flex: 1;
+}
+
+.paper-toast-title {
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.paper-toast-msg {
+    color: #94A3B8;
+    line-height: 1.3;
+}
+
+@keyframes toastSlideIn {
+    from {
+        transform: translateY(20px) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   4. Real-Time Positions & Orders Terminal Dock (Plan 03-001)
+   -------------------------------------------------------------------------- */
+.paper-trading-dock {
+    width: 100%;
+    background: #0D111D;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.paper-trading-dock.collapsed .paper-dock-body {
+    display: none;
+}
+
+.paper-trading-dock.collapsed .btn-dock-toggle {
+    transform: rotate(180deg);
+}
+
+/* Dock Header Bar */
+.paper-dock-header {
+    height: 38px;
+    min-height: 38px;
+    background: #111625;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+}
+
+.dock-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dock-title-icon {
+    font-size: 14px;
+}
+
+.dock-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #F8FAFC;
+    letter-spacing: 0.3px;
+    margin-right: 4px;
+}
+
+/* Dock Tabs */
+.dock-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.dock-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #94A3B8;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dock-tab:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dock-tab.active {
+    color: #FFFFFF;
+    background: rgba(41, 98, 255, 0.2);
+    border: 1px solid rgba(41, 98, 255, 0.4);
+}
+
+.dock-tab .badge-pill {
+    font-size: 10px;
+    padding: 1px 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: #CBD5E1;
+}
+
+.dock-tab.active .badge-pill {
+    background: #2962FF;
+    color: #FFFFFF;
+}
+
+/* Dock Header Right Metrics */
+.dock-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.account-metric-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.metric-lbl {
+    color: #94A3B8;
+}
+
+.metric-val {
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+.metric-val.positive {
+    color: #4ade80;
+}
+
+.metric-val.negative {
+    color: #f87171;
+}
+
+.btn-dock-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 26px;
+    padding: 0 9px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #CBD5E1;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-dock-action:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-dock-toggle {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #94A3B8;
+    font-size: 10px;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.15s ease;
+    border-radius: 4px;
+}
+
+.btn-dock-toggle:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* Dock Body & Tables */
+.paper-dock-body {
+    height: 220px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #0B0E17;
+}
+
+.dock-panel {
+    width: 100%;
+    min-height: 100%;
+}
+
+.dock-panel.hidden {
+    display: none;
+}
+
+.paper-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.paper-table thead th {
+    position: sticky;
+    top: 0;
+    background: #141926;
+    color: #8A98A8;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: left;
+    white-space: nowrap;
+    z-index: 2;
+}
+
+.paper-table th.text-right,
+.paper-table td.text-right {
+    text-align: right;
+}
+
+.paper-table th.text-center,
+.paper-table td.text-center {
+    text-align: center;
+}
+
+.paper-table tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.1s ease;
+}
+
+.paper-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.paper-table td {
+    padding: 7px 12px;
+    color: #E2E8F0;
+    white-space: nowrap;
+}
+
+/* Table Badges & Status */
+.pos-side-pill {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.pos-side-pill.long {
+    background: rgba(8, 153, 129, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(8, 153, 129, 0.4);
+}
+
+.pos-side-pill.short {
+    background: rgba(242, 54, 69, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(242, 54, 69, 0.4);
+}
+
+.pos-type-pill {
+    font-size: 10px;
+    color: #94A3B8;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.status-pill {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.status-pill.filled {
+    background: rgba(8, 153, 129, 0.15);
+    color: #4ade80;
+}
+
+.status-pill.active {
+    background: rgba(41, 98, 255, 0.15);
+    color: #93c5fd;
+}
+
+/* Action Buttons inside Table */
+.btn-table-action {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+}
+
+.btn-square-off {
+    background: rgba(242, 54, 69, 0.18);
+    border: 1px solid rgba(242, 54, 69, 0.4);
+    color: #fca5a5;
+}
+
+.btn-square-off:hover {
+    background: #F23645;
+    color: #FFFFFF;
+    border-color: #F23645;
+}
+
+.btn-edit-risk {
+    background: rgba(41, 98, 255, 0.15);
+    border: 1px solid rgba(41, 98, 255, 0.35);
+    color: #93c5fd;
+    margin-right: 4px;
+}
+
+.btn-edit-risk:hover {
+    background: #2962FF;
+    color: #FFFFFF;
+    border-color: #2962FF;
+}
+
+.dock-empty-state {
+    padding: 40px 16px;
+    text-align: center;
+    color: #64748B;
+    font-size: 12px;
+}
+
+.dock-empty-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
+    opacity: 0.7;
+}
+
+/* --------------------------------------------------------------------------
+   5. Position Risk Parameter Edit Modal
+   -------------------------------------------------------------------------- */
+.risk-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.risk-modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.risk-modal {
+    width: 360px;
+    max-width: 90vw;
+    background: #0E131F;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.risk-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.risk-modal-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+.risk-modal-close {
+    background: transparent;
+    border: none;
+    color: #94A3B8;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   5. Deploy Strategy to Paper Trading Button (Backtest Studio Integration)
+   -------------------------------------------------------------------------- */
+.btn-deploy-paper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 16px;
+    background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+    border: 1px solid rgba(129, 140, 248, 0.4);
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.35);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+    user-select: none;
+    letter-spacing: 0.3px;
+}
+
+.btn-deploy-paper:hover {
+    background: linear-gradient(135deg, #818CF8 0%, #6366F1 100%);
+    border-color: rgba(165, 180, 252, 0.6);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+}
+
+.btn-deploy-paper:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-deploy-paper:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}

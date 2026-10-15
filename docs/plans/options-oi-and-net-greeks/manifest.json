@@ -1,0 +1,41 @@
+{
+  "feature": "options-oi-and-net-greeks",
+  "version": "1.0.0",
+  "plans": [
+    {
+      "id": "01-001",
+      "name": "Options Open Interest (ΔOI) Calculation Engine, Support/Resistance & REST Router",
+      "repo": "trading-app",
+      "file": "01-oi-engine-and-api/001-oi-engine-and-api.md",
+      "depends_on": [],
+      "gate": true,
+      "verify_command": "pytest tests/unit/test_options_oi_engine.py tests/integration/test_options_oi_api.py -v",
+      "prompt": "Implement Plan 01-001: Options Open Interest (ΔOI) Calculation Engine, Support/Resistance & REST Router according to docs/plans/options-oi-and-net-greeks/01-oi-engine-and-api/001-oi-engine-and-api.md."
+    },
+    {
+      "id": "02-001",
+      "name": "Strategy Net Greeks Aggregator & Pre-Expiration Black-Scholes Payoff Engine",
+      "repo": "trading-app",
+      "file": "02-net-greeks-and-payoff/001-net-greeks-and-payoff.md",
+      "depends_on": [
+        "01-001"
+      ],
+      "gate": true,
+      "verify_command": "pytest tests/unit/test_options_strategy_greeks.py tests/integration/test_options_payoff_api.py -v",
+      "prompt": "Implement Plan 02-001: Strategy Net Greeks Aggregator & Pre-Expiration Black-Scholes Payoff Engine according to docs/plans/options-oi-and-net-greeks/02-net-greeks-and-payoff/001-net-greeks-and-payoff.md."
+    },
+    {
+      "id": "03-001",
+      "name": "Options Lab UI: ΔOI Bar Chart, Net Greeks Dashboard & Interactive Pre-Expiry Payoff Simulator",
+      "repo": "trading-app",
+      "file": "03-options-lab-ui/001-options-lab-ui.md",
+      "depends_on": [
+        "01-001",
+        "02-001"
+      ],
+      "gate": true,
+      "verify_command": "pytest tests/integration/test_options_lab_ui_integration.py -v",
+      "prompt": "Implement Plan 03-001: Options Lab UI: ΔOI Bar Chart, Net Greeks Dashboard & Interactive Pre-Expiry Payoff Simulator according to docs/plans/options-oi-and-net-greeks/03-options-lab-ui/001-options-lab-ui.md."
+    }
+  ]
+}

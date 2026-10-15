@@ -1,0 +1,41 @@
+{
+  "feature": "strategy-parameter-optimization",
+  "version": "1.0.0",
+  "plans": [
+    {
+      "id": "01-001",
+      "name": "Grid Search Engine, Plateau Stability Index (3x3 Neighborhood) & Walk-Forward Splitter",
+      "repo": "trading-app",
+      "file": "01-engine-and-stability/001-engine-and-stability.md",
+      "depends_on": [],
+      "gate": true,
+      "verify_command": "pytest tests/unit/test_parameter_optimization_engine.py -v",
+      "prompt": "Implement Plan 01-001: Grid Search Engine, Plateau Stability Index (3x3 Neighborhood) & Walk-Forward Splitter according to docs/plans/strategy-parameter-optimization/01-engine-and-stability/001-engine-and-stability.md."
+    },
+    {
+      "id": "02-001",
+      "name": "FastAPI Optimization Router, Strategy Ranges & Pydantic Contracts",
+      "repo": "trading-app",
+      "file": "02-api-and-presets/001-api-and-presets.md",
+      "depends_on": [
+        "01-001"
+      ],
+      "gate": true,
+      "verify_command": "pytest tests/integration/test_parameter_optimization_api.py -v",
+      "prompt": "Implement Plan 02-001: FastAPI Optimization Router, Strategy Ranges & Pydantic Contracts according to docs/plans/strategy-parameter-optimization/02-api-and-presets/001-api-and-presets.md."
+    },
+    {
+      "id": "03-001",
+      "name": "Optimization Studio UI: 2D Heatmap Grid, Metric Switcher & Walk-Forward HUD",
+      "repo": "trading-app",
+      "file": "03-heatmap-ui-and-walkforward/001-heatmap-ui-and-walkforward.md",
+      "depends_on": [
+        "01-001",
+        "02-001"
+      ],
+      "gate": true,
+      "verify_command": "pytest tests/integration/test_parameter_optimization_ui_integration.py -v",
+      "prompt": "Implement Plan 03-001: Optimization Studio UI: 2D Heatmap Grid, Metric Switcher & Walk-Forward HUD according to docs/plans/strategy-parameter-optimization/03-heatmap-ui-and-walkforward/001-heatmap-ui-and-walkforward.md."
+    }
+  ]
+}

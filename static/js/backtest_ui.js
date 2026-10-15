@@ -52,9 +52,83 @@ class BacktestUI {
         if (!this.container) return;
         this.renderStudio();
         this.bindEvents();
+        if (window.PortfolioBacktestController) {
+            this.portfolioController = new window.PortfolioBacktestController(this);
+        }
+        if (window.BacktestOptimizationController) {
+            this.optimizationController = new window.BacktestOptimizationController(this);
+        }
+        // Ensure Single Asset mode is active initially
+        this.switchMode('single');
         // Automatically run initial backtest and scan universe
         this.runBacktest();
         this.scanUniverse();
+    }
+
+    switchMode(mode) {
+        if (!mode) return;
+        this.activeMode = mode;
+
+        // 1. Update subtab button states
+        const switcher = document.getElementById('studio-mode-switcher') || document.getElementById('backtest-subtabs-nav');
+        if (switcher) {
+            switcher.querySelectorAll('.mode-toggle-btn, .backtest-subtab').forEach(btn => {
+                const btnMode = btn.dataset.mode || btn.dataset.subtab;
+                btn.classList.toggle('active', btnMode === mode);
+            });
+        }
+
+        // 2. Toggle Left Configurator Cards
+        const cardSingleAsset = document.getElementById('card-single-asset');
+        const cardSingleRisk = document.getElementById('card-single-risk');
+        const cardPortfolioUniverse = document.getElementById('card-portfolio-universe');
+        const cardPortfolioAllocation = document.getElementById('card-portfolio-allocation');
+
+        if (cardSingleAsset) cardSingleAsset.classList.toggle('hidden', mode === 'portfolio');
+        if (cardSingleRisk) cardSingleRisk.classList.toggle('hidden', mode === 'portfolio');
+        if (cardPortfolioUniverse) cardPortfolioUniverse.classList.toggle('hidden', mode !== 'portfolio');
+        if (cardPortfolioAllocation) cardPortfolioAllocation.classList.toggle('hidden', mode !== 'portfolio');
+
+        // 3. Toggle Right Dashboard Sections
+        const secCurrentMatches = document.getElementById('section-current-matches');
+        const secPastMatches = document.getElementById('section-past-matches');
+        const secCurrentView = document.getElementById('section-current-view');
+        const secPortfolioView = document.getElementById('section-portfolio-view');
+        const panelOptimize = document.getElementById('backtest-optimize-panel');
+
+        if (secCurrentMatches) secCurrentMatches.classList.toggle('hidden', mode !== 'single');
+        if (secPastMatches) secPastMatches.classList.toggle('hidden', mode !== 'single');
+        if (secCurrentView) secCurrentView.classList.toggle('hidden', mode !== 'single');
+        if (secPortfolioView) secPortfolioView.classList.toggle('hidden', mode !== 'portfolio');
+        if (panelOptimize) panelOptimize.classList.toggle('hidden', mode !== 'optimize');
+
+        // 4. Update Main Action Button Text
+        const runBtnText = document.querySelector('#btn-run-studio-backtest .btn-text');
+        if (runBtnText) {
+            runBtnText.textContent = mode === 'portfolio' ? 'Run Portfolio Basket Backtest' : 'Run Strategy Backtest';
+        }
+
+        // 5. Trigger mode-specific initializations or chart reflows
+        if (mode === 'single') {
+            if (typeof this.resizeCharts === 'function') {
+                requestAnimationFrame(() => this.resizeCharts());
+            }
+        } else if (mode === 'portfolio') {
+            if (this.portfolioController) {
+                this.portfolioController.activeMode = 'portfolio';
+                if (this.portfolioController.portfolioResult) {
+                    requestAnimationFrame(() => this.portfolioController.resizeCharts());
+                } else {
+                    this.portfolioController.runPortfolioBacktest();
+                }
+            }
+        } else if (mode === 'optimize') {
+            if (this.optimizationController) {
+                if (this.activeStrategy) {
+                    this.optimizationController.syncStrategy(this.activeStrategy);
+                }
+            }
+        }
     }
 
     renderStudio() {
@@ -70,7 +144,19 @@ class BacktestUI {
                         </div>
                         <p class="studio-subtitle">TradingView Strategy Tester & Zerodha Streak Quantitative Rule Engine with Indian Statutory Cost Model</p>
                     </div>
-                    <div class="header-right">
+                    <div class="header-center">
+                        <div class="subtabs-bar" id="backtest-subtabs-nav">
+                            <div class="studio-mode-switcher" id="studio-mode-switcher">
+                                <button type="button" class="mode-toggle-btn backtest-subtab active" id="btn-mode-single" data-mode="single" data-subtab="single">📊 Single Asset</button>
+                                <button type="button" class="mode-toggle-btn backtest-subtab" id="btn-mode-portfolio" data-mode="portfolio" data-subtab="portfolio">🧺 Portfolio Basket</button>
+                                <button type="button" class="mode-toggle-btn backtest-subtab" id="btn-backtest-tab-optimize" data-mode="optimize" data-subtab="optimize">⚡ Parameter Optimization &amp; Walk-Forward</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-right" style="display:flex; align-items:center; gap:10px;">
+                        <div class="data-source-badge font-mono" id="backtest-data-source-badge" title="Zero simulation: 100% verified real historical data" style="display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:rgba(16, 185, 129, 0.12); border:1px solid rgba(16, 185, 129, 0.3); border-radius:6px; font-size:11px; color:#10b981; font-weight:500;">
+                            <span style="font-size:10px;">🟢</span> Real Data (DuckDB)
+                        </div>
                         <div class="status-chip" id="studio-status-chip">
                             <span class="status-dot"></span>
                             <span id="studio-status-text">Engine Ready</span>
@@ -138,8 +224,8 @@ class BacktestUI {
                             </div>
                         </div>
 
-                        <!-- 3. Asset & Timeframe -->
-                        <div class="config-card">
+                        <!-- 3. Asset & Timeframe (Single Mode) -->
+                        <div class="config-card" id="card-single-asset">
                             <div class="config-card-header">
                                 <span class="step-num">3</span>
                                 <h3>Asset & Timeframe</h3>
@@ -192,8 +278,8 @@ class BacktestUI {
                             </div>
                         </div>
 
-                        <!-- 4. Risk & Position Sizing Rules -->
-                        <div class="config-card">
+                        <!-- 4. Risk & Position Sizing Rules (Single Mode) -->
+                        <div class="config-card" id="card-single-risk">
                             <div class="config-card-header">
                                 <span class="step-num">4</span>
                                 <h3>Risk & Sizing Rules</h3>
@@ -226,6 +312,130 @@ class BacktestUI {
                                 <div class="form-group">
                                     <label class="field-label" for="bt-size-val">Sizing Value</label>
                                     <input type="number" id="bt-size-val" class="studio-input font-mono" value="100" min="1">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3b. Portfolio Universe Selection Card (Portfolio Mode) -->
+                        <div class="config-card hidden" id="card-portfolio-universe">
+                            <div class="config-card-header">
+                                <span class="step-num">3</span>
+                                <h3>Select Universe Basket</h3>
+                            </div>
+                            <div class="form-group mb-2">
+                                <label class="field-label">Predefined Presets</label>
+                                <div class="universe-chips-group" id="portfolio-universe-chips">
+                                    <button type="button" class="universe-chip active" data-universe="NIFTY_50">
+                                        <span class="chip-name">NIFTY 50</span>
+                                        <span class="badge-count-pill">50</span>
+                                    </button>
+                                    <button type="button" class="universe-chip" data-universe="NIFTY_NEXT_50">
+                                        <span class="chip-name">NIFTY NEXT 50</span>
+                                        <span class="badge-count-pill">50</span>
+                                    </button>
+                                    <button type="button" class="universe-chip" data-universe="NIFTY_MIDCAP_150">
+                                        <span class="chip-name">NIFTY MIDCAP 150</span>
+                                        <span class="badge-count-pill">150</span>
+                                    </button>
+                                    <button type="button" class="universe-chip" data-universe="CUSTOM">
+                                        <span class="chip-name">Custom Basket</span>
+                                        <span class="badge-count-pill" id="portfolio-custom-count-badge">5</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-2 hidden" id="portfolio-custom-symbols-box">
+                                <label class="field-label" for="portfolio-custom-symbols-input">Custom Basket Symbols</label>
+                                <div class="custom-symbols-input-wrap">
+                                    <input type="text" id="portfolio-custom-symbols-input" class="studio-input font-mono" placeholder="Symbol e.g. NSE:TCS-EQ">
+                                    <button type="button" id="btn-add-custom-symbol" class="btn-subtle">Add</button>
+                                </div>
+                                <div class="custom-symbols-tag-list" id="portfolio-custom-tags"></div>
+                            </div>
+
+                            <div class="form-row-2 mb-2">
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-timeframe-select">Candle Timeframe</label>
+                                    <select id="portfolio-timeframe-select" class="studio-select">
+                                        <option value="1D" selected>1 Day (Daily)</option>
+                                        <option value="1h">1 Hour</option>
+                                        <option value="15m">15 Minutes</option>
+                                        <option value="5m">5 Minutes</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label">Date Preset</label>
+                                    <div class="pill-group" id="portfolio-date-presets">
+                                        <button type="button" class="pill-btn" data-preset="1Y">1Y</button>
+                                        <button type="button" class="pill-btn active" data-preset="3Y">3Y</button>
+                                        <button type="button" class="pill-btn" data-preset="5Y">5Y</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-start-date">Start Date</label>
+                                    <input type="date" id="portfolio-start-date" class="studio-input" value="2020-01-01">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-end-date">End Date</label>
+                                    <input type="date" id="portfolio-end-date" class="studio-input" value="2023-12-31">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4b. Portfolio Sizing, Contention & Risk Card (Portfolio Mode) -->
+                        <div class="config-card hidden" id="card-portfolio-allocation">
+                            <div class="config-card-header">
+                                <span class="step-num">4</span>
+                                <h3>Portfolio Sizing & Contention</h3>
+                            </div>
+                            <div class="form-row-2 mb-2">
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-max-positions">Max Concurrent Slots</label>
+                                    <input type="number" id="portfolio-max-positions" class="studio-input font-mono" value="10" min="1" max="50">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-sizing-model">Sizing Model</label>
+                                    <select id="portfolio-sizing-model" class="studio-select">
+                                        <option value="EQUAL_WEIGHT" selected>Equal Weight (1/N)</option>
+                                        <option value="INVERSE_ATR">Inverse ATR (Volatility Adj.)</option>
+                                        <option value="FIXED_AMOUNT">Fixed Rupee (₹ / Slot)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row-2 mb-2">
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-sizing-val" id="portfolio-sizing-val-label">Sizing Value (% per Slot)</label>
+                                    <input type="number" id="portfolio-sizing-val" class="studio-input font-mono" value="10" min="0" step="1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-ranking-metric">Contention Ranking</label>
+                                    <select id="portfolio-ranking-metric" class="studio-select">
+                                        <option value="AUTO" selected>Auto (Strategy Default)</option>
+                                        <option value="RSI_OVERSOLD">RSI Deepest Oversold</option>
+                                        <option value="ROC_MOMENTUM">Momentum ROC 10-day</option>
+                                        <option value="VOLUME_SURGE">Volume Surge Ratio</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row-2">
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-stop-loss">Stop Loss (%)</label>
+                                    <div class="input-with-unit">
+                                        <input type="number" id="portfolio-stop-loss" class="studio-input" value="3.0" step="0.5" min="0" max="50">
+                                        <span class="unit-tag">%</span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="field-label" for="portfolio-take-profit">Take Profit (%)</label>
+                                    <div class="input-with-unit">
+                                        <input type="number" id="portfolio-take-profit" class="studio-input" value="8.0" step="0.5" min="0" max="100">
+                                        <span class="unit-tag">%</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -281,6 +491,10 @@ class BacktestUI {
                             <button type="button" id="btn-run-studio-backtest" class="btn-run-backtest">
                                 <span class="btn-icon">🚀</span>
                                 <span class="btn-text">Run Strategy Backtest</span>
+                            </button>
+                            <button type="button" id="btn-deploy-paper-strategy-side" class="btn-deploy-paper mt-2">
+                                <span class="btn-icon">⚡</span>
+                                <span class="btn-text">Deploy Strategy to Paper Trading</span>
                             </button>
                         </div>
                     </aside>
@@ -419,9 +633,14 @@ class BacktestUI {
                                 <div class="meta-tag" id="meta-period-tag">Period: <strong>2020 - 2023</strong></div>
                                 <div class="meta-tag" id="meta-capital-tag">Capital: <strong>₹10,00,000</strong></div>
                             </div>
-                            <div class="results-pnl-badge" id="results-headline-pnl">
-                                <span class="pnl-title">Net Return:</span>
-                                <span class="pnl-val text-green font-mono" id="headline-net-pnl">+₹0.00 (+0.00%)</span>
+                            <div class="results-header-actions" style="display: flex; align-items: center; gap: 12px;">
+                                <button type="button" class="btn-deploy-paper" id="btn-deploy-paper-strategy">
+                                    ⚡ Deploy Strategy to Paper Trading
+                                </button>
+                                <div class="results-pnl-badge" id="results-headline-pnl">
+                                    <span class="pnl-title">Net Return:</span>
+                                    <span class="pnl-val text-green font-mono" id="headline-net-pnl">+₹0.00 (+0.00%)</span>
+                                </div>
                             </div>
                         </div>
 
@@ -663,6 +882,534 @@ class BacktestUI {
                         </div>
                     </section>
 
+                    <!-- 4. PORTFOLIO BASKET RESULTS SECTION -->
+                    <section class="studio-portfolio-view-section hidden" id="section-portfolio-view">
+                        <!-- Title Bar -->
+                        <div class="current-view-title-bar">
+                            <div class="view-title-left">
+                                <span class="section-header-icon">🧺</span>
+                                <div>
+                                    <h3 class="current-view-title">Portfolio Basket Backtest</h3>
+                                    <span class="current-view-subtitle">Consolidated Equity Curve, NIFTY 50 Alpha &amp; Asset Contribution Breakdown</span>
+                                </div>
+                            </div>
+                            <div class="current-view-stock-indicator">
+                                <span class="active-stock-tag" id="portfolio-active-universe-badge">NIFTY 50 (50 Stocks)</span>
+                            </div>
+                        </div>
+
+                        <!-- Alert / Error Banner container -->
+                        <div id="portfolio-alert-banner" class="portfolio-alert-box hidden">
+                            <span class="alert-icon">⚠️</span>
+                            <div class="alert-text-wrap">
+                                <span class="alert-title">Backtest Notice</span>
+                                <span class="alert-msg" id="portfolio-alert-msg"></span>
+                            </div>
+                            <button type="button" id="btn-portfolio-alert-retry" class="btn-alert-retry">Retry Backtest</button>
+                        </div>
+
+                        <!-- Results Header Bar -->
+                        <div class="results-header-bar">
+                            <div class="results-meta-tags">
+                                <div class="meta-tag" id="meta-portfolio-strategy-tag">Strategy: <strong>SMA Crossover</strong></div>
+                                <div class="meta-tag" id="meta-portfolio-universe-tag">Universe: <strong>NIFTY 50</strong></div>
+                                <div class="meta-tag" id="meta-portfolio-slots-tag">Slots: <strong>10 Max Open</strong></div>
+                                <div class="meta-tag" id="meta-portfolio-capital-tag">Capital: <strong>₹10,00,000</strong></div>
+                            </div>
+                            <div class="results-header-actions" style="display: flex; align-items: center; gap: 12px;">
+                                <div class="results-pnl-badge" id="portfolio-headline-pnl">
+                                    <span class="pnl-title">Basket Net Return:</span>
+                                    <span class="pnl-val text-green font-mono" id="portfolio-headline-net-pnl">+₹0.00 (+0.00%)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Portfolio Sub-Navigation Tabs -->
+                        <div class="results-subtabs" id="portfolio-subtabs">
+                            <button type="button" class="subtab-btn active" data-portfolio-subtab="overview">
+                                <span>📊</span> Overview &amp; Equity Curve
+                            </button>
+                            <button type="button" class="subtab-btn" data-portfolio-subtab="contributions">
+                                <span>🍰</span> Asset Contribution (<span id="portfolio-contrib-count">0</span>)
+                            </button>
+                            <button type="button" class="subtab-btn" data-portfolio-subtab="heatmap">
+                                <span>📅</span> Monthly Heatmap
+                            </button>
+                            <button type="button" class="subtab-btn" data-portfolio-subtab="trades">
+                                <span>📜</span> Consolidated Trades (<span id="portfolio-trades-count">0</span>)
+                            </button>
+                        </div>
+
+                        <!-- SUBTAB 1: Overview & Interactive Lightweight Charts -->
+                        <div class="subtab-content" id="portfolio-subtab-overview">
+                            <!-- 9 Portfolio Metric KPI Cards -->
+                            <div class="metrics-dashboard-grid portfolio-metrics-grid">
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Portfolio CAGR</span>
+                                        <span class="m-icon">🎯</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-cagr">--%</div>
+                                    <div class="m-sub" id="port-m-bm-cagr">Benchmark: --%</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Net Profit</span>
+                                        <span class="m-icon">💰</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-net-pnl">--</div>
+                                    <div class="m-sub" id="port-m-final-equity">Final Equity: --</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Max Drawdown</span>
+                                        <span class="m-icon">📉</span>
+                                    </div>
+                                    <div class="m-value font-mono text-red" id="port-m-max-dd">--%</div>
+                                    <div class="m-sub">Peak to Valley Decline</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Win Rate</span>
+                                        <span class="m-icon">🏆</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-win-rate">--%</div>
+                                    <div class="m-sub" id="port-m-win-loss-count">0 Wins / 0 Losses</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Profit Factor</span>
+                                        <span class="m-icon">⚖️</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-profit-factor">--</div>
+                                    <div class="m-sub">Gross Wins / Gross Losses</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Sharpe Ratio</span>
+                                        <span class="m-icon">📐</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-sharpe">--</div>
+                                    <div class="m-sub">Risk-Adjusted Return</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Sortino Ratio</span>
+                                        <span class="m-icon">🛡️</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-sortino">--</div>
+                                    <div class="m-sub">Downside Risk Ratio</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Cash Drag / Exposure</span>
+                                        <span class="m-icon">⏳</span>
+                                    </div>
+                                    <div class="m-value font-mono" id="port-m-exposure">--%</div>
+                                    <div class="m-sub">Avg Capital Deployed</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-top">
+                                        <span class="m-label">Taxes &amp; Fees</span>
+                                        <span class="m-icon">🏛️</span>
+                                    </div>
+                                    <div class="m-value font-mono text-amber" id="port-m-fees">₹0</div>
+                                    <div class="m-sub">STT, GST, Exchange &amp; Stamp</div>
+                                </div>
+                            </div>
+
+                            <!-- Lightweight Charts Suite -->
+                            <div class="charts-suite">
+                                <div class="chart-container-box">
+                                    <div class="chart-box-header">
+                                        <div class="chart-title-left">
+                                            <span class="chart-bullet bullet-portfolio-equity"></span>
+                                            <span class="chart-name">Portfolio Equity (Teal)</span>
+                                            <span class="chart-bullet bullet-benchmark ml-2"></span>
+                                            <span class="chart-name text-muted">NIFTY 50 Benchmark Buy &amp; Hold</span>
+                                        </div>
+                                        <div class="chart-live-legend font-mono" id="port-equity-chart-legend">
+                                            Portfolio: <span id="port-leg-equity-val" class="text-green font-bold">--</span> | 
+                                            Benchmark: <span id="port-leg-bm-val" class="text-blue">--</span>
+                                        </div>
+                                    </div>
+                                    <div id="portfolio-equity-chart" class="tv-chart-viewport" style="height: 320px;"></div>
+                                </div>
+
+                                <div class="chart-container-box mt-3">
+                                    <div class="chart-box-header">
+                                        <div class="chart-title-left">
+                                            <span class="chart-bullet bullet-drawdown"></span>
+                                            <span class="chart-name">Underwater Portfolio Drawdown (%)</span>
+                                        </div>
+                                        <div class="chart-live-legend font-mono" id="port-drawdown-chart-legend">
+                                            Drawdown: <span id="port-leg-dd-val" class="text-red font-bold">0.00%</span>
+                                        </div>
+                                    </div>
+                                    <div id="portfolio-drawdown-chart" class="tv-chart-viewport" style="height: 150px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUBTAB 2: Asset Contribution Breakdown Table -->
+                        <div class="subtab-content hidden" id="portfolio-subtab-contributions">
+                            <div class="summary-section-card">
+                                <div class="section-title-row">
+                                    <div class="title-with-icon">
+                                        <span>🍰</span>
+                                        <h4>Asset Contribution &amp; Alpha Breakdown</h4>
+                                    </div>
+                                    <div class="search-input-wrapper">
+                                        <input type="text" id="input-search-contributions" class="table-search-input" placeholder="Search basket symbol...">
+                                    </div>
+                                </div>
+                                <div class="table-container">
+                                    <table class="quant-table asset-contribution-table" id="table-asset-contributions">
+                                        <thead>
+                                            <tr>
+                                                <th class="th-sortable-contrib" data-contrib-sort="symbol">Symbol <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable-contrib text-center" data-contrib-sort="trade_count">Trades <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable-contrib text-center" data-contrib-sort="win_rate">Win Rate % <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable-contrib text-right" data-contrib-sort="net_pnl">Net P&amp;L (₹) <span class="sort-arrow">↕</span></th>
+                                                <th class="th-sortable-contrib text-right" data-contrib-sort="alpha_contribution_pct">Alpha Contribution % <span class="sort-arrow">↕</span></th>
+                                                <th style="min-width: 140px;">Visual Impact</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-asset-contributions">
+                                            <tr>
+                                                <td colspan="6" class="text-center p-4 text-muted">Run portfolio backtest to view asset contribution breakdown.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUBTAB 3: Monthly Returns Heatmap -->
+                        <div class="subtab-content hidden" id="portfolio-subtab-heatmap">
+                            <div class="summary-section-card">
+                                <div class="section-title-row">
+                                    <div class="title-with-icon">
+                                        <span>📅</span>
+                                        <h4>Monthly &amp; Yearly Returns Matrix (Portfolio Heatmap)</h4>
+                                    </div>
+                                    <div class="heatmap-legend">
+                                        <span class="legend-chip chip-gain-high">&gt; +5%</span>
+                                        <span class="legend-chip chip-gain-low">0 to +5%</span>
+                                        <span class="legend-chip chip-loss-low">-5% to 0</span>
+                                        <span class="legend-chip chip-loss-high">&lt; -5%</span>
+                                    </div>
+                                </div>
+                                <div class="heatmap-table-wrapper" id="portfolio-monthly-heatmap-container">
+                                    <div class="p-4 text-center text-muted">Calculating monthly returns matrix...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SUBTAB 4: Consolidated Chronological Trades Ledger -->
+                        <div class="subtab-content hidden" id="portfolio-subtab-trades">
+                            <div class="trades-toolbar">
+                                <div class="filter-pills" id="portfolio-trades-filter-pills">
+                                    <button type="button" class="filter-pill active" data-port-filter="ALL">All Trades (<span id="port-pill-all-count">0</span>)</button>
+                                    <button type="button" class="filter-pill" data-port-filter="WIN">Winning Only (<span id="port-pill-win-count">0</span>)</button>
+                                    <button type="button" class="filter-pill" data-port-filter="LOSS">Losing Only (<span id="port-pill-loss-count">0</span>)</button>
+                                </div>
+                                <div class="search-input-wrapper">
+                                    <input type="text" id="input-search-portfolio-trades" class="table-search-input" placeholder="Search by symbol...">
+                                </div>
+                                <button type="button" id="btn-export-portfolio-trades-csv" class="btn-export-csv">
+                                    <span>📥</span> Export Basket Trades CSV
+                                </button>
+                            </div>
+
+                            <div class="trades-table-scroll">
+                                <table class="trades-data-table" id="portfolio-trades-data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Symbol</th>
+                                            <th>Entry Date</th>
+                                            <th>Exit Date</th>
+                                            <th>Side</th>
+                                            <th>Entry Price</th>
+                                            <th>Exit Price</th>
+                                            <th>Qty</th>
+                                            <th>Gross PnL</th>
+                                            <th>Taxes &amp; Fees</th>
+                                            <th>Net PnL (₹)</th>
+                                            <th>Return %</th>
+                                            <th>Exit Reason</th>
+                                            <th>Held</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="portfolio-trades-table-body">
+                                        <tr>
+                                            <td colspan="14" class="text-center p-4 text-muted">No basket trades recorded yet. Run a portfolio backtest to populate ledger.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 5. STRATEGY PARAMETER OPTIMIZATION & WALK-FORWARD SECTION -->
+                    <section class="studio-optimize-view-section hidden" id="backtest-optimize-panel">
+                        <!-- Title Bar -->
+                        <div class="current-view-title-bar">
+                            <div class="view-title-left">
+                                <span class="section-header-icon">⚡</span>
+                                <div>
+                                    <h3 class="current-view-title">Strategy Parameter Optimization &amp; Walk-Forward Studio</h3>
+                                    <span class="current-view-subtitle">2D Cartesian Grid Search with 3x3 Neighborhood Stability Analysis &amp; Overfitting Prevention</span>
+                                </div>
+                            </div>
+                            <div class="current-view-stock-indicator">
+                                <span class="active-stock-tag" id="opt-active-strategy-badge">Strategy: SMA Crossover</span>
+                            </div>
+                        </div>
+
+                        <!-- Alert / Status Banner -->
+                        <div id="opt-alert-banner" class="portfolio-alert-box hidden">
+                            <span class="alert-icon">⚠️</span>
+                            <div class="alert-text-wrap">
+                                <span class="alert-title" id="opt-alert-title">Optimization Notice</span>
+                                <span class="alert-msg" id="opt-alert-msg"></span>
+                            </div>
+                        </div>
+
+                        <!-- Control Configuration Bar Card -->
+                        <div class="opt-control-card mb-4">
+                            <div class="opt-control-header">
+                                <div class="title-with-icon">
+                                    <span>⚙️</span>
+                                    <h4>Search Space &amp; Walk-Forward Partitioning</h4>
+                                </div>
+                                <div class="opt-presets-bar">
+                                    <span class="text-xs text-muted">Presets:</span>
+                                    <button type="button" class="opt-preset-chip active" data-strategy-preset="SMA_CROSS">SMA Cross</button>
+                                    <button type="button" class="opt-preset-chip" data-strategy-preset="RSI_REVERSION">RSI Reversal</button>
+                                    <button type="button" class="opt-preset-chip" data-strategy-preset="BOLLINGER_BANDS">Bollinger Bands</button>
+                                    <button type="button" class="opt-preset-chip" data-strategy-preset="SUPERTREND">Supertrend</button>
+                                    <button type="button" class="opt-preset-chip" data-strategy-preset="MACD">MACD</button>
+                                </div>
+                            </div>
+
+                            <div class="opt-control-grid mt-3">
+                                <!-- Target Strategy & Symbol -->
+                                <div class="opt-input-group">
+                                    <label for="opt-strategy-select">Target Strategy</label>
+                                    <select id="opt-strategy-select" class="opt-select">
+                                        <option value="SMA_CROSS" selected>SMA Crossover</option>
+                                        <option value="RSI_REVERSION">RSI Mean Reversion</option>
+                                        <option value="BOLLINGER_BANDS">Bollinger Bands Reversal</option>
+                                        <option value="SUPERTREND">Supertrend Volatility</option>
+                                        <option value="MACD">MACD Momentum</option>
+                                    </select>
+                                </div>
+                                <div class="opt-input-group">
+                                    <label for="opt-symbol-input">Trading Symbol</label>
+                                    <input type="text" id="opt-symbol-input" class="opt-input font-mono" value="NSE:RELIANCE-EQ" />
+                                </div>
+                                <div class="opt-input-group">
+                                    <label for="opt-start-date">Start Date</label>
+                                    <input type="date" id="opt-start-date" class="opt-input font-mono" value="2020-01-01" />
+                                </div>
+                                <div class="opt-input-group">
+                                    <label for="opt-end-date">End Date</label>
+                                    <input type="date" id="opt-end-date" class="opt-input font-mono" value="2023-12-31" />
+                                </div>
+                                <div class="opt-input-group">
+                                    <label for="opt-target-metric">Optimization Target</label>
+                                    <select id="opt-target-metric" class="opt-select">
+                                        <option value="sharpe_ratio" selected>Sharpe Ratio (Risk-Adjusted)</option>
+                                        <option value="net_pnl">Net Realized P&amp;L (₹)</option>
+                                        <option value="max_drawdown_pct">Lowest Max Drawdown (%)</option>
+                                        <option value="win_rate">Win Rate (%)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 2D Parameter Grid Definition -->
+                            <div class="opt-params-grid mt-3">
+                                <!-- Param 1 -->
+                                <div class="opt-param-box">
+                                    <div class="opt-param-title">
+                                        <span>Parameter 1 (X-Axis):</span>
+                                        <strong id="opt-param1-name" class="font-mono text-accent">short_window</strong>
+                                    </div>
+                                    <div class="opt-range-inputs">
+                                        <div class="opt-range-col">
+                                            <label>Min</label>
+                                            <input type="number" id="opt-param1-min" class="opt-range-input font-mono" value="5" step="any" />
+                                        </div>
+                                        <div class="opt-range-col">
+                                            <label>Max</label>
+                                            <input type="number" id="opt-param1-max" class="opt-range-input font-mono" value="30" step="any" />
+                                        </div>
+                                        <div class="opt-range-col">
+                                            <label>Step</label>
+                                            <input type="number" id="opt-param1-step" class="opt-range-input font-mono" value="5" step="any" min="0.001" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Param 2 -->
+                                <div class="opt-param-box">
+                                    <div class="opt-param-title">
+                                        <span>Parameter 2 (Y-Axis):</span>
+                                        <strong id="opt-param2-name" class="font-mono text-cyan">long_window</strong>
+                                    </div>
+                                    <div class="opt-range-inputs">
+                                        <div class="opt-range-col">
+                                            <label>Min</label>
+                                            <input type="number" id="opt-param2-min" class="opt-range-input font-mono" value="30" step="any" />
+                                        </div>
+                                        <div class="opt-range-col">
+                                            <label>Max</label>
+                                            <input type="number" id="opt-param2-max" class="opt-range-input font-mono" value="100" step="any" />
+                                        </div>
+                                        <div class="opt-range-col">
+                                            <label>Step</label>
+                                            <input type="number" id="opt-param2-step" class="opt-range-input font-mono" value="10" step="any" min="0.001" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Walk-Forward & Launch Row -->
+                            <div class="opt-launch-row mt-3">
+                                <div class="opt-split-control">
+                                    <div class="opt-split-label-row">
+                                        <label for="opt-split-slider">Walk-Forward In-Sample Split:</label>
+                                        <strong id="opt-split-val" class="font-mono text-accent">70% IS / 30% OOS</strong>
+                                    </div>
+                                    <input type="range" id="opt-split-slider" min="50" max="90" step="5" value="70" class="payoff-range-slider" />
+                                </div>
+                                <div class="opt-summary-actions">
+                                    <div class="opt-combinations-chip" id="opt-combinations-badge">
+                                        Combinations: <strong id="opt-comb-count">48</strong> / 400 Max
+                                    </div>
+                                    <button type="button" id="btn-run-optimization" class="btn-primary opt-run-btn">
+                                        <span class="btn-spinner hidden" id="opt-btn-spinner"></span>
+                                        <span class="btn-text">⚡ Run 2D Grid Optimization</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Diagnostics & Stability Row -->
+                        <div class="opt-results-top-grid mb-4">
+                            <!-- 3x3 Stability HUD Card -->
+                            <div class="opt-hud-card" id="opt-stability-hud">
+                                <div class="opt-hud-header">
+                                    <div class="title-with-icon">
+                                        <span>🏔️</span>
+                                        <h4>Plateau Stability Index (3x3 Neighborhood)</h4>
+                                    </div>
+                                    <span class="badge-pill badge-robust" id="opt-stability-badge">ROBUST PLATEAU</span>
+                                </div>
+                                <div class="opt-stability-stats mt-3">
+                                    <div class="opt-stat-item">
+                                        <span class="stat-label">Neighborhood Retention</span>
+                                        <span class="stat-val font-mono text-green" id="opt-stability-score">85.4%</span>
+                                    </div>
+                                    <div class="opt-stat-item">
+                                        <span class="stat-label">Max Cliff Drop</span>
+                                        <span class="stat-val font-mono text-muted" id="opt-cliff-drop">-14.2%</span>
+                                    </div>
+                                    <div class="opt-stat-item">
+                                        <span class="stat-label">Top Optimal Parameter Setting</span>
+                                        <span class="stat-val font-mono text-accent" id="opt-optimal-params-summary">short_window: 15 | long_window: 40</span>
+                                    </div>
+                                </div>
+                                <p class="opt-stability-desc text-muted text-xs mt-2" id="opt-stability-desc">
+                                    The 8 adjacent parameter configurations retain high profitability, confirming real alpha rather than an isolated curve-fitted spike.
+                                </p>
+                            </div>
+
+                            <!-- Walk-Forward Validation Card -->
+                            <div class="opt-hud-card" id="opt-walk-forward-card">
+                                <div class="opt-hud-header">
+                                    <div class="title-with-icon">
+                                        <span>⏳</span>
+                                        <h4>Walk-Forward Efficiency (Zero Lookahead)</h4>
+                                    </div>
+                                    <span class="badge-pill badge-wfe" id="opt-wfe-badge">WFE: 0.68</span>
+                                </div>
+                                <div class="table-card mt-3">
+                                    <table class="data-table" id="opt-walk-forward-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Segment</th>
+                                                <th>Split Date</th>
+                                                <th class="text-right">Net Realized P&amp;L</th>
+                                                <th class="text-right">Sharpe Ratio</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="badge-tag badge-trend">In-Sample (IS 70%)</span></td>
+                                                <td id="opt-is-split-date" class="font-mono text-muted">2023-01-01 to 2023-05-15</td>
+                                                <td id="opt-is-net-pnl" class="text-right font-mono text-green">+₹45,200.00</td>
+                                                <td id="opt-is-sharpe" class="text-right font-mono">1.82</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge-tag badge-volatility">Out-of-Sample (OOS 30%)</span></td>
+                                                <td id="opt-oos-split-date" class="font-mono text-muted">2023-05-16 to 2023-06-30</td>
+                                                <td id="opt-oos-net-pnl" class="text-right font-mono text-green">+₹30,800.00</td>
+                                                <td id="opt-oos-sharpe" class="text-right font-mono">1.54</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="opt-deploy-action mt-3">
+                                    <button type="button" id="btn-apply-optimal-params" class="btn-primary btn-apply-optimal">
+                                        <span>⚡ Apply Optimal Parameters to Backtest</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2D Heatmap Card -->
+                        <div class="opt-heatmap-card mb-4" id="opt-heatmap-card">
+                            <div class="opt-heatmap-header">
+                                <div class="title-with-icon">
+                                    <span>🔥</span>
+                                    <div>
+                                        <h4>2D Parameter Sensitivity Heatmap Matrix</h4>
+                                        <span class="text-muted text-xs">Colors map performance across parameter grid. Hover over cells to inspect exact metrics.</span>
+                                    </div>
+                                </div>
+
+                                <div class="opt-heatmap-actions">
+                                    <!-- Metric Switcher -->
+                                    <div class="opt-metric-switcher" id="opt-metric-switcher">
+                                        <button type="button" class="opt-metric-btn active" data-metric="sharpe_ratio" id="btn-metric-sharpe">Sharpe Ratio</button>
+                                        <button type="button" class="opt-metric-btn" data-metric="net_pnl" id="btn-metric-pnl">Net P&amp;L (₹)</button>
+                                        <button type="button" class="opt-metric-btn" data-metric="max_drawdown_pct" id="btn-metric-drawdown">Max Drawdown %</button>
+                                        <button type="button" class="opt-metric-btn" data-metric="win_rate" id="btn-metric-winrate">Win Rate %</button>
+                                    </div>
+                                    <span class="opt-execution-time-badge font-mono" id="opt-execution-time">Execution: 0 ms</span>
+                                </div>
+                            </div>
+
+                            <!-- Heatmap Visual Canvas & Tooltip Container -->
+                            <div class="opt-heatmap-canvas-wrap mt-3" id="opt-heatmap-container">
+                                <svg id="opt-heatmap-svg" class="opt-heatmap-svg"></svg>
+                                <div id="opt-heatmap-tooltip" class="opt-heatmap-tooltip hidden"></div>
+                            </div>
+
+                            <!-- Continuous Color Gradient Legend -->
+                            <div class="opt-heatmap-legend-row mt-3">
+                                <span class="legend-label" id="opt-legend-min">Min (-100%)</span>
+                                <div class="opt-gradient-bar"></div>
+                                <span class="legend-label" id="opt-legend-mid">Median (0%)</span>
+                                <div class="opt-gradient-bar-upper"></div>
+                                <span class="legend-label" id="opt-legend-max">Max (+100%)</span>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Footer: Audit & Disclaimer -->
                         <div class="backtest-footer-audit">
                             <div class="audit-badge">
@@ -762,6 +1509,25 @@ class BacktestUI {
     }
 
     bindEvents() {
+        // 0. Subtabs Bar Mode Switcher (Single Asset, Portfolio Basket, Parameter Optimization)
+        const switcher = this.container.querySelector('#studio-mode-switcher') || this.container.querySelector('#backtest-subtabs-nav');
+        if (switcher) {
+            switcher.querySelectorAll('.mode-toggle-btn, .backtest-subtab').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof e.stopImmediatePropagation === 'function') {
+                        e.stopImmediatePropagation();
+                    }
+                    const targetBtn = e.currentTarget;
+                    const mode = targetBtn.dataset.mode || targetBtn.dataset.subtab;
+                    if (mode) {
+                        this.switchMode(mode);
+                    }
+                };
+            });
+        }
+
         // 1. Strategy Card Clicks
         const strategyCards = this.container.querySelectorAll('.strategy-card');
         strategyCards.forEach(card => {
@@ -892,8 +1658,26 @@ class BacktestUI {
         const runBtn = document.getElementById('btn-run-studio-backtest');
         if (runBtn) {
             runBtn.addEventListener('click', () => {
-                this.runBacktest();
-                this.scanUniverse();
+                if (this.portfolioController && this.portfolioController.activeMode === 'portfolio') {
+                    this.portfolioController.runPortfolioBacktest();
+                } else {
+                    this.runBacktest();
+                    this.scanUniverse();
+                }
+            });
+        }
+
+        // 10b. Deploy Strategy to Paper Trading Buttons
+        const deployBtn = document.getElementById('btn-deploy-paper-strategy');
+        if (deployBtn) {
+            deployBtn.addEventListener('click', () => {
+                this.deployToPaperTrading();
+            });
+        }
+        const deploySideBtn = document.getElementById('btn-deploy-paper-strategy-side');
+        if (deploySideBtn) {
+            deploySideBtn.addEventListener('click', () => {
+                this.deployToPaperTrading();
             });
         }
 
@@ -1034,17 +1818,78 @@ class BacktestUI {
         };
     }
 
+    async deployToPaperTrading() {
+        const data = this.gatherFormData();
+        const payload = {
+            strategy_name: data.strategy,
+            symbol: data.symbol,
+            timeframe: data.timeframe || '1D',
+            parameters: data.parameters || {},
+            trade_type: data.trade_type || 'DELIVERY',
+            allocated_capital: parseFloat(data.initial_capital) || 100000.0
+        };
+
+        const btns = [
+            document.getElementById('btn-deploy-paper-strategy'),
+            document.getElementById('btn-deploy-paper-strategy-side')
+        ].filter(Boolean);
+
+        btns.forEach(b => {
+            b.disabled = true;
+            b.dataset.origHtml = b.innerHTML;
+            b.innerHTML = '⏳ Deploying...';
+        });
+
+        try {
+            const res = await fetch('/api/v1/paper-trading/deploy-strategy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const resData = await res.json();
+            if (res.ok && resData.success) {
+                // Toast notification
+                if (window.chartPaperTradeManager && typeof window.chartPaperTradeManager.showToast === 'function') {
+                    window.chartPaperTradeManager.showToast(
+                        'Strategy Deployed! 🤖',
+                        `${payload.strategy_name} deployed on ${payload.symbol} (₹${payload.allocated_capital.toLocaleString('en-IN')})`,
+                        'success'
+                    );
+                }
+
+                // Switch terminal dock to Auto Strategies tab and expand if dock exists
+                if (window.paperTerminalDock) {
+                    if (window.paperTerminalDock.isCollapsed) {
+                        window.paperTerminalDock.toggleCollapse();
+                    }
+                    window.paperTerminalDock.switchTab('strategies');
+                    await window.paperTerminalDock.refreshAll();
+                }
+            } else {
+                alert(`Deployment Failed: ${resData.detail || 'Could not deploy strategy'}`);
+            }
+        } catch (e) {
+            alert(`Deployment Error: ${e.message}`);
+        } finally {
+            btns.forEach(b => {
+                b.disabled = false;
+                if (b.dataset.origHtml) b.innerHTML = b.dataset.origHtml;
+            });
+        }
+    }
+
     async runBacktest() {
         const payload = this.gatherFormData();
         const statusText = document.getElementById('studio-status-text');
         const statusChip = document.getElementById('studio-status-chip');
         const runBtn = document.getElementById('btn-run-studio-backtest');
 
-        if (statusText) statusText.textContent = 'Simulating...';
+        if (statusText) statusText.textContent = 'Backtesting...';
         if (statusChip) statusChip.classList.add('running');
         if (runBtn) {
             runBtn.disabled = true;
-            runBtn.innerHTML = '<span class="spinner-inline">⏳</span> Simulating Strategy...';
+            runBtn.innerHTML = '<span class="spinner-inline">⏳</span> Backtesting Real Data...';
         }
 
         try {
@@ -1952,7 +2797,8 @@ class BacktestUI {
 
 // Auto-initialize when container is present
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('backtest-workspace-container')) {
+    if (document.getElementById('backtest-workspace-container') && !window.backtestInitialized) {
         window.backtestUI = new BacktestUI('backtest-workspace-container');
+        window.backtestInitialized = true;
     }
 });

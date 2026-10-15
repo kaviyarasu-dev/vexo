@@ -297,12 +297,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.optionsInitialized = true;
                 }
             }
+            if (window.optionsAnalyticsController && typeof window.optionsAnalyticsController.init === 'function') {
+                if (!window.optionsAnalyticsInitialized) {
+                    window.optionsAnalyticsController.init();
+                    window.optionsAnalyticsInitialized = true;
+                }
+            }
         } else if (viewName === 'backtest') {
             if (!window.backtestInitialized && typeof BacktestUI === 'function') {
                 window.backtestUI = new BacktestUI('backtest-workspace-container');
                 window.backtestInitialized = true;
-            } else if (window.backtestUI && typeof window.backtestUI.resizeCharts === 'function') {
-                setTimeout(() => window.backtestUI.resizeCharts(), 60);
+            } else if (window.backtestUI) {
+                const mode = window.backtestUI.activeMode || 'single';
+                window.backtestUI.switchMode(mode);
             }
         } else if (viewName === 'journal') {
             if (window.journalUI && typeof window.journalUI.refresh === 'function') {

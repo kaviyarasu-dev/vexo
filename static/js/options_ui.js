@@ -54,24 +54,11 @@ class OptionsUI {
             });
         }
 
-        // Subtabs: Matrix vs Payoff
+        // Subtabs: Matrix, Open Interest, Strategy Lab
         document.querySelectorAll('.options-subtab').forEach(tab => {
             tab.addEventListener('click', (e) => {
-                document.querySelectorAll('.options-subtab').forEach(t => t.classList.remove('active'));
-                e.currentTarget.classList.add('active');
                 const target = e.currentTarget.dataset.subtab;
-                this.activeSubtab = target;
-
-                const matrixPanel = document.getElementById('options-matrix-panel');
-                const payoffPanel = document.getElementById('options-payoff-panel');
-                if (target === 'matrix') {
-                    matrixPanel?.classList.remove('hidden');
-                    payoffPanel?.classList.add('hidden');
-                } else {
-                    matrixPanel?.classList.add('hidden');
-                    payoffPanel?.classList.remove('hidden');
-                    this.renderPayoffSimulator();
-                }
+                this.switchOptionsTab(target);
             });
         });
 
@@ -93,6 +80,53 @@ class OptionsUI {
                 this.applyStrategyPreset(preset);
             });
         });
+
+        // Window resize listener to keep charts responsive
+        window.addEventListener('resize', () => {
+            if (this.activeSubtab === 'payoff') {
+                clearTimeout(this._resizeTimer);
+                this._resizeTimer = setTimeout(() => {
+                    this.renderMaxPainChart();
+                    this.calculateAndDrawPayoff();
+                }, 150);
+            }
+        });
+    }
+
+    switchOptionsTab(target) {
+        if (!target) return;
+        this.activeSubtab = target;
+        document.querySelectorAll('.options-subtab').forEach(t => {
+            t.classList.toggle('active', t.dataset.subtab === target);
+        });
+
+        const matrixPanel = document.getElementById('options-matrix-panel');
+        const oiPanel = document.getElementById('options-oi-panel');
+        const payoffPanel = document.getElementById('options-payoff-panel');
+
+        if (matrixPanel) matrixPanel.classList.toggle('hidden', target !== 'matrix');
+        if (oiPanel) oiPanel.classList.toggle('hidden', target !== 'open_interest');
+        if (payoffPanel) payoffPanel.classList.toggle('hidden', target !== 'payoff');
+
+        if (target === 'matrix') {
+            // Active strike matrix
+        } else if (target === 'open_interest') {
+            if (window.optionsAnalyticsController) {
+                window.optionsAnalyticsController.activeTab = 'open_interest';
+                if (window.optionsAnalyticsController.oiData) {
+                    window.optionsAnalyticsController.renderOIDualBarChart();
+                } else {
+                    window.optionsAnalyticsController.loadOpenInterest(this.activeSymbol);
+                }
+            }
+        } else if (target === 'payoff') {
+            this.renderPayoffSimulator();
+            this.renderMaxPainChart();
+            if (window.optionsAnalyticsController) {
+                window.optionsAnalyticsController.activeTab = 'payoff';
+                window.optionsAnalyticsController.updateStrategyGreeksAndPayoff();
+            }
+        }
     }
 
     clearAllLegs() {
@@ -101,6 +135,9 @@ class OptionsUI {
         this.renderLegsTable();
         this.updateStrategyLegsBadge();
         this.calculateAndDrawPayoff();
+        if (window.optionsAnalyticsController) {
+            window.optionsAnalyticsController.updateStrategyGreeksAndPayoff();
+        }
         this.showToast('Cleared all legs from Strategy Simulator.');
     }
 
@@ -114,34 +151,76 @@ class OptionsUI {
                 fetch(`/api/v1/options/maxpain?symbol=${encodeURIComponent(symbol)}`).then(r => r.json())
             ]);
 
-            if (chainRes.success && chainRes.data) {
+            if (chainRes && chainRes.success && chainRes.data && chainRes.data.matrix && chainRes.data.matrix.length > 0) {
                 this.matrix = chainRes.data.matrix || [];
                 this.currentSpot = chainRes.data.spot || 25000;
                 this.expiryDate = chainRes.data.expiry_date || '';
-                this.renderDedicatedMetrics(chainRes.data, maxPainRes.data);
+                this.renderDedicatedMetrics(chainRes.data, maxPainRes ? maxPainRes.data : null);
                 this.renderStrikeMatrix();
+            } else {
+                this.matrix = [];
+                const errDetail = (chainRes && chainRes.detail) || (chainRes && chainRes.error && chainRes.error.message) || "Live real option chain unavailable. Please authenticate Fyers or choose an active F&O symbol.";
+                this.renderStrikeMatrix(errDetail);
+                this.renderDedicatedMetricsEmpty();
+                this.showToast(errDetail, 'error');
             }
 
-            if (maxPainRes.success && maxPainRes.data) {
+            if (maxPainRes && maxPainRes.success && maxPainRes.data) {
                 this.maxPainData = maxPainRes.data;
                 this.renderMaxPainChart();
+            } else {
+                this.maxPainData = null;
+                const container = document.getElementById('options-maxpain-chart');
+                if (container) {
+                    container.innerHTML = '<div class="text-center p-8 text-muted">⚠️ Real options data unavailable for Max Pain chart.</div>';
+                }
             }
 
             // Sync strategy legs to the current symbol's spot and strike step
-            if (!this.hasCustomLegs) {
+            if (!this.hasCustomLegs && this.matrix.length > 0) {
                 if (isNewSymbol || this.strategyLegs.length === 0) {
                     this.applyStrategyPreset('bull_call');
                 }
-            } else {
+            } else if (this.strategyLegs.length > 0) {
                 this.calculateAndDrawPayoff();
             }
 
             this.updateStrategyLegsBadge();
+
+            if (window.optionsAnalyticsController) {
+                window.optionsAnalyticsController.activeSymbol = symbol;
+                window.optionsAnalyticsController.currentSpot = this.currentSpot;
+                window.optionsAnalyticsController.loadOpenInterest(symbol);
+                window.optionsAnalyticsController.updateStrategyGreeksAndPayoff();
+            }
         } catch (e) {
             console.error("Failed to fetch options data:", e);
+            this.matrix = [];
+            this.renderStrikeMatrix("Failed to load real options data. Please verify your connection.");
+            this.renderDedicatedMetricsEmpty();
+            if (window.optionsAnalyticsController) {
+                window.optionsAnalyticsController.renderEmptyState();
+                window.optionsAnalyticsController.renderNetGreeksHUD({
+                    net_delta: 0, net_gamma: 0, net_theta: 0, net_vega: 0,
+                    delta_inr: 0, theta_inr: 0, vega_inr: 0, total_cost_inr: 0
+                });
+            }
         } finally {
             if (statusEl) statusEl.classList.add('hidden');
         }
+    }
+
+    renderDedicatedMetricsEmpty() {
+        const spotEl = document.getElementById('options-spot-val');
+        const pcrEl = document.getElementById('options-pcr-val');
+        const atmIvEl = document.getElementById('options-atm-iv-val');
+        const expiryEl = document.getElementById('options-expiry-val');
+        const maxPainEl = document.getElementById('options-maxpain-val');
+        if (spotEl) spotEl.textContent = '—';
+        if (pcrEl) pcrEl.textContent = '—';
+        if (atmIvEl) atmIvEl.textContent = '—';
+        if (expiryEl) expiryEl.textContent = '—';
+        if (maxPainEl) maxPainEl.textContent = '—';
     }
 
     renderDedicatedMetrics(chainData, maxPainData) {
@@ -190,13 +269,14 @@ class OptionsUI {
         }
     }
 
-    renderStrikeMatrix() {
+    renderStrikeMatrix(customMsg = null) {
         const tbody = document.querySelector('#options-matrix-table tbody');
         if (!tbody) return;
 
         tbody.innerHTML = '';
         if (this.matrix.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="19" class="text-center p-4">No options data available for this symbol.</td></tr>`;
+            const msg = customMsg || `No verified real options data available for ${this.activeSymbol}. Please authenticate Fyers.`;
+            tbody.innerHTML = `<tr><td colspan="19" class="text-center p-6 text-warning" style="color: #f59e0b;">⚠️ ${msg}</td></tr>`;
             return;
         }
 
@@ -499,65 +579,231 @@ class OptionsUI {
         const container = document.getElementById('maxpain-chart-container');
         if (!container || !this.maxPainData) return;
 
-        const strikes = this.maxPainData.strikes || [];
         const payouts = this.maxPainData.payout_curve || [];
         const mpStrike = this.maxPainData.max_pain_strike;
 
         if (payouts.length === 0) return;
 
-        // Find min and max payout for normalization
+        // Determine range window: if payouts > 30 and mode is 'focused', slice around Max Pain
+        if (this.maxPainRangeMode === undefined) {
+            this.maxPainRangeMode = payouts.length > 30 ? 'focused' : 'all';
+        }
+
+        const isLongChain = payouts.length > 30;
+        let displayPayouts = payouts;
+        const mpIndexInAll = payouts.findIndex(p => p.strike === mpStrike);
+
+        if (isLongChain && this.maxPainRangeMode === 'focused') {
+            const centerIdx = mpIndexInAll !== -1 ? mpIndexInAll : Math.floor(payouts.length / 2);
+            const windowRadius = 15; // ±15 strikes around Max Pain (~31 strikes)
+            const start = Math.max(0, centerIdx - windowRadius);
+            const end = Math.min(payouts.length, centerIdx + windowRadius + 1);
+            displayPayouts = payouts.slice(start, end);
+        }
+
+        // Find min and max payout for normalization in the active display set
         let minPayout = Infinity;
         let maxPayout = -Infinity;
-        payouts.forEach(p => {
+        displayPayouts.forEach(p => {
             if (p.payout < minPayout) minPayout = p.payout;
             if (p.payout > maxPayout) maxPayout = p.payout;
         });
 
         const width = container.clientWidth || 800;
-        const height = 180;
-        const padding = { top: 20, right: 30, bottom: 35, left: 60 };
+        const height = 210;
+        const padding = { top: 32, right: 35, bottom: 44, left: 60 };
 
-        const chartW = width - padding.left - padding.right;
-        const chartH = height - padding.top - padding.bottom;
+        const chartW = Math.max(200, width - padding.left - padding.right);
+        const chartH = Math.max(80, height - padding.top - padding.bottom);
 
-        // Build SVG
+        // Calculate slot width and proportional bar width
+        const slotWidth = chartW / displayPayouts.length;
+        const barWidth = Math.max(3, Math.min(26, slotWidth * 0.72));
+
+        // Collision-free X-axis label calculation
+        const minLabelSpacing = 68; // Minimum horizontal distance between label centers (px)
+        const maxAllowedTicks = Math.max(4, Math.floor(chartW / minLabelSpacing));
+        const tickStep = Math.max(1, Math.ceil(displayPayouts.length / maxAllowedTicks));
+        const mpDisplayIdx = displayPayouts.findIndex(p => p.strike === mpStrike);
+
+        const labelIndices = new Set();
+        // 1. Always prioritize Max Pain strike label
+        if (mpDisplayIdx !== -1) {
+            labelIndices.add(mpDisplayIdx);
+        }
+
+        // 2. Add regular interval ticks while suppressing ticks close to Max Pain
+        for (let i = 0; i < displayPayouts.length; i += tickStep) {
+            if (mpDisplayIdx !== -1 && Math.abs(i - mpDisplayIdx) < Math.max(1, Math.floor(tickStep * 0.65))) {
+                continue; // Suppress near Max Pain to guarantee zero overlap
+            }
+            labelIndices.add(i);
+        }
+
+        // 3. Include boundary strikes if not conflicting
+        if (mpDisplayIdx > 1) {
+            const hasCloseTick = Array.from(labelIndices).some(idx => idx > 0 && idx * slotWidth < minLabelSpacing);
+            if (!hasCloseTick) labelIndices.add(0);
+        }
+        const lastIdx = displayPayouts.length - 1;
+        if (lastIdx - mpDisplayIdx > 1) {
+            const hasCloseTick = Array.from(labelIndices).some(idx => idx < lastIdx && (lastIdx - idx) * slotWidth < minLabelSpacing);
+            if (!hasCloseTick) labelIndices.add(lastIdx);
+        }
+
+        // Build SVG elements
         let barsHtml = '';
-        const barWidth = Math.max(6, Math.floor(chartW / payouts.length) - 4);
+        const minBarHeight = 12; // Guarantees the Max Pain minimum bar is clearly visible
 
-        payouts.forEach((pt, idx) => {
-            const x = padding.left + idx * (chartW / payouts.length) + 2;
-            const normHeight = maxPayout > minPayout ? ((pt.payout - minPayout) / (maxPayout - minPayout)) * chartH : 20;
+        displayPayouts.forEach((pt, idx) => {
+            const x = padding.left + idx * slotWidth + (slotWidth - barWidth) / 2;
+            const normHeight = maxPayout > minPayout 
+                ? minBarHeight + ((pt.payout - minPayout) / (maxPayout - minPayout)) * (chartH - minBarHeight) 
+                : minBarHeight;
             const y = padding.top + (chartH - normHeight);
             const isMp = (pt.strike === mpStrike);
+            const shouldLabel = labelIndices.has(idx);
 
+            // Bar Element
             barsHtml += `
                 <rect x="${x}" y="${y}" width="${barWidth}" height="${normHeight}" 
-                      fill="${isMp ? '#089981' : '#2A2E39'}" rx="2" 
+                      fill="${isMp ? '#10b981' : '#334155'}" rx="3" 
                       class="maxpain-bar ${isMp ? 'active-mp-bar' : ''}" 
-                      title="Strike ₹${pt.strike} | Total Payout: ₹${Number(pt.payout).toLocaleString()}">
+                      data-strike="${pt.strike}" 
+                      data-payout="${pt.payout}" 
+                      data-ismp="${isMp}"
+                      title="Strike ₹${pt.strike.toLocaleString()} | Cumulative Loss: ₹${Math.round(pt.payout).toLocaleString()}">
                 </rect>
-                ${(idx % 3 === 0 || isMp) ? `
-                    <text x="${x + barWidth / 2}" y="${height - 10}" 
-                          fill="${isMp ? '#089981' : '#787B86'}" font-size="10" 
-                          text-anchor="middle" font-weight="${isMp ? 'bold' : 'normal'}">
-                        ${pt.strike}
-                    </text>
-                ` : ''}
             `;
+
+            // Max Pain Top Indicator and Guideline
+            if (isMp) {
+                const centerX = x + barWidth / 2;
+                barsHtml += `
+                    <!-- Max Pain Vertical Guideline -->
+                    <line x1="${centerX}" y1="${padding.top}" x2="${centerX}" y2="${y}" 
+                          stroke="#10b981" stroke-dasharray="2,2" stroke-width="1.5" opacity="0.65"></line>
+                    <!-- Max Pain Top Badge -->
+                    <g transform="translate(${centerX}, ${padding.top - 12})">
+                        <rect x="-42" y="-12" width="84" height="18" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"></rect>
+                        <text x="0" y="1" fill="#ecfdf5" font-size="10" font-weight="700" text-anchor="middle">🎯 Max Pain</text>
+                    </g>
+                `;
+            }
+
+            // X-Axis Strike Label
+            if (shouldLabel) {
+                const centerX = x + barWidth / 2;
+                if (isMp) {
+                    barsHtml += `
+                        <g transform="translate(${centerX}, ${height - padding.bottom + 8})">
+                            <rect x="-30" y="0" width="60" height="18" rx="4" fill="rgba(16, 185, 129, 0.2)" stroke="#10b981" stroke-width="1"></rect>
+                            <text x="0" y="13" fill="#10b981" font-size="10" font-weight="700" text-anchor="middle">
+                                ₹${pt.strike.toLocaleString()}
+                            </text>
+                        </g>
+                    `;
+                } else {
+                    barsHtml += `
+                        <text x="${centerX}" y="${height - padding.bottom + 20}" 
+                              fill="#94a3b8" font-size="10" font-family="monospace"
+                              text-anchor="middle" font-weight="500">
+                            ${pt.strike.toLocaleString()}
+                        </text>
+                    `;
+                }
+            }
         });
+
+        // Spot Price Marker (if within displayed strike range)
+        let spotMarkerHtml = '';
+        if (this.currentSpot && displayPayouts.length > 0) {
+            const minStrike = displayPayouts[0].strike;
+            const maxStrike = displayPayouts[displayPayouts.length - 1].strike;
+            if (this.currentSpot >= minStrike && this.currentSpot <= maxStrike) {
+                const spotX = padding.left + ((this.currentSpot - minStrike) / (maxStrike - minStrike)) * chartW;
+                spotMarkerHtml = `
+                    <line x1="${spotX}" y1="${padding.top}" x2="${spotX}" y2="${height - padding.bottom}" 
+                          stroke="#f59e0b" stroke-dasharray="3,3" stroke-width="1.5" opacity="0.85"></line>
+                    <text x="${spotX}" y="${padding.top - 8}" fill="#f59e0b" font-size="10" font-weight="700" text-anchor="middle">
+                        Spot: ₹${Number(this.currentSpot).toLocaleString()}
+                    </text>
+                `;
+            }
+        }
+
+        // Format payout helper
+        const formatPayout = (val) => {
+            if (val >= 1e7) return `₹${(val / 1e7).toFixed(2)} Cr`;
+            if (val >= 1e5) return `₹${(val / 1e5).toFixed(2)} L`;
+            return `₹${Math.round(val).toLocaleString()}`;
+        };
+
+        const mpPoint = displayPayouts.find(p => p.strike === mpStrike) || payouts.find(p => p.strike === mpStrike);
+        const defaultPayoutStr = mpPoint ? formatPayout(mpPoint.payout) : '0';
 
         container.innerHTML = `
             <div class="maxpain-header">
-                <div>
-                    <strong>Option Expiration Max Pain: ₹${Number(mpStrike).toLocaleString()}</strong>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <strong>Option Expiration Max Pain: <span class="text-emerald font-mono">₹${Number(mpStrike).toLocaleString()}</span></strong>
                     <span class="badge-accent">Minimum Seller Payout Strike</span>
+                    <span id="maxpain-hover-info" class="text-xs text-muted font-mono" style="margin-left: 8px;">
+                        Lowest Payout: <strong class="text-emerald">${defaultPayoutStr}</strong>
+                    </span>
                 </div>
-                <div class="text-muted text-sm">Underlying Spot: ₹${Number(this.currentSpot).toLocaleString()}</div>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="text-muted text-sm font-mono">Spot: <strong class="text-amber">₹${Number(this.currentSpot).toLocaleString()}</strong></div>
+                    ${isLongChain ? `
+                        <div class="maxpain-range-toggle">
+                            <button type="button" class="btn-xs ${this.maxPainRangeMode === 'focused' ? 'active' : ''}" id="btn-mp-range-focused" title="Show ±15 strikes around Max Pain">Focused (ATM ±15)</button>
+                            <button type="button" class="btn-xs ${this.maxPainRangeMode === 'all' ? 'active' : ''}" id="btn-mp-range-all" title="Show all ${payouts.length} strikes">All (${payouts.length} Strikes)</button>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
             <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: ${height}px; overflow: visible;">
                 ${barsHtml}
+                ${spotMarkerHtml}
             </svg>
         `;
+
+        // Wire range toggle buttons
+        if (isLongChain) {
+            const btnFocused = container.querySelector('#btn-mp-range-focused');
+            const btnAll = container.querySelector('#btn-mp-range-all');
+            if (btnFocused) {
+                btnFocused.addEventListener('click', () => {
+                    this.maxPainRangeMode = 'focused';
+                    this.renderMaxPainChart();
+                });
+            }
+            if (btnAll) {
+                btnAll.addEventListener('click', () => {
+                    this.maxPainRangeMode = 'all';
+                    this.renderMaxPainChart();
+                });
+            }
+        }
+
+        // Wire hover events for dynamic feedback
+        const hoverInfo = container.querySelector('#maxpain-hover-info');
+        container.querySelectorAll('.maxpain-bar').forEach(bar => {
+            bar.addEventListener('mouseenter', (e) => {
+                const strike = Number(e.currentTarget.dataset.strike);
+                const payout = Number(e.currentTarget.dataset.payout);
+                const isMp = e.currentTarget.dataset.ismp === 'true';
+                if (hoverInfo) {
+                    const diffSpot = this.currentSpot ? (strike - this.currentSpot) : 0;
+                    const diffText = (diffSpot >= 0 ? '+' : '') + diffSpot.toFixed(1) + ' pts';
+                    hoverInfo.innerHTML = `Strike: <strong class="${isMp ? 'text-emerald' : 'text-primary'}">₹${strike.toLocaleString()}</strong> | Payout: <strong>${formatPayout(payout)}</strong> (${diffText}) ${isMp ? '🎯 Max Pain' : ''}`;
+                }
+            });
+            bar.addEventListener('mouseleave', () => {
+                if (hoverInfo) {
+                    hoverInfo.innerHTML = `Lowest Payout: <strong class="text-emerald">${defaultPayoutStr}</strong>`;
+                }
+            });
+        });
     }
 
     renderPayoffSimulator() {
@@ -641,15 +887,37 @@ class OptionsUI {
     }
 
     addStrategyLeg() {
-        const step = this.currentSpot > 10000 ? 100 : (this.currentSpot > 2000 ? 50 : 20);
+        if (!this.matrix || this.matrix.length === 0) {
+            this.showToast("Cannot add leg: Real option chain not loaded.", "error");
+            return;
+        }
+
+        let step = 50;
+        if (this.matrix.length >= 2) {
+            step = Math.abs(this.matrix[1].strike_price - this.matrix[0].strike_price) || 50;
+        }
         const atm = Math.round(this.currentSpot / step) * step;
+
+        let closest = null;
+        let minDiff = Infinity;
+        for (const row of this.matrix) {
+            const diff = Math.abs(row.strike_price - atm);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = row;
+            }
+        }
+        const atmStrike = closest ? closest.strike_price : atm;
+        const atmLtp = (closest && closest.call && closest.call.ltp > 0) ? closest.call.ltp : 10.0;
+        const atmIv = (closest && closest.call && closest.call.iv > 0) ? closest.call.iv : 15.0;
 
         this.hasCustomLegs = true;
         this.strategyLegs.push({
-            strike: atm,
+            strike: atmStrike,
             option_type: 'CE',
             position: 'LONG',
-            premium: Math.round(this.currentSpot * 0.01),
+            premium: atmLtp,
+            iv: atmIv,
             quantity: 1,
             isNew: true
         });
@@ -660,41 +928,76 @@ class OptionsUI {
     }
 
     applyStrategyPreset(preset) {
+        if (!this.matrix || this.matrix.length === 0) {
+            this.showToast("Cannot apply preset: Real option chain not loaded.", "error");
+            return;
+        }
+
         const spot = this.currentSpot;
-        const step = spot > 10000 ? 100 : (spot > 2000 ? 50 : 20);
+        let step = 50;
+        if (this.matrix.length >= 2) {
+            step = Math.abs(this.matrix[1].strike_price - this.matrix[0].strike_price) || 50;
+        }
         const atm = Math.round(spot / step) * step;
-        const estAtmPremium = Math.max(10, Math.round(spot * 0.008));
-        const estOtmPremium = Math.max(5, Math.round(estAtmPremium * 0.4));
+
+        const findLeg = (targetStrike, optType) => {
+            let closest = null;
+            let minDiff = Infinity;
+            for (const row of this.matrix) {
+                const diff = Math.abs(row.strike_price - targetStrike);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = row;
+                }
+            }
+            if (!closest) return { strike: targetStrike, premium: 10.0, iv: 15.0 };
+            const opt = optType === 'CE' ? closest.call : closest.put;
+            const prem = (opt && opt.ltp > 0) ? opt.ltp : 10.0;
+            const iv = (opt && opt.iv > 0) ? opt.iv : 15.0;
+            return { strike: closest.strike_price, premium: prem, iv: iv };
+        };
 
         if (preset === 'long_call') {
+            const l = findLeg(atm, 'CE');
             this.strategyLegs = [
-                { strike: atm, option_type: 'CE', position: 'LONG', premium: estAtmPremium, quantity: 1 }
+                { strike: l.strike, option_type: 'CE', position: 'LONG', premium: l.premium, quantity: 1, iv: l.iv }
             ];
         } else if (preset === 'long_put') {
+            const l = findLeg(atm, 'PE');
             this.strategyLegs = [
-                { strike: atm, option_type: 'PE', position: 'LONG', premium: estAtmPremium, quantity: 1 }
+                { strike: l.strike, option_type: 'PE', position: 'LONG', premium: l.premium, quantity: 1, iv: l.iv }
             ];
         } else if (preset === 'bull_call') {
+            const l1 = findLeg(atm, 'CE');
+            const l2 = findLeg(atm + step * 2, 'CE');
             this.strategyLegs = [
-                { strike: atm, option_type: 'CE', position: 'LONG', premium: estAtmPremium, quantity: 1 },
-                { strike: atm + step * 2, option_type: 'CE', position: 'SHORT', premium: estOtmPremium, quantity: 1 }
+                { strike: l1.strike, option_type: 'CE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv },
+                { strike: l2.strike, option_type: 'CE', position: 'SHORT', premium: l2.premium, quantity: 1, iv: l2.iv }
             ];
         } else if (preset === 'bear_put') {
+            const l1 = findLeg(atm, 'PE');
+            const l2 = findLeg(atm - step * 2, 'PE');
             this.strategyLegs = [
-                { strike: atm, option_type: 'PE', position: 'LONG', premium: estAtmPremium, quantity: 1 },
-                { strike: atm - step * 2, option_type: 'PE', position: 'SHORT', premium: estOtmPremium, quantity: 1 }
+                { strike: l1.strike, option_type: 'PE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv },
+                { strike: l2.strike, option_type: 'PE', position: 'SHORT', premium: l2.premium, quantity: 1, iv: l2.iv }
             ];
         } else if (preset === 'straddle') {
+            const l1 = findLeg(atm, 'CE');
+            const l2 = findLeg(atm, 'PE');
             this.strategyLegs = [
-                { strike: atm, option_type: 'CE', position: 'LONG', premium: estAtmPremium, quantity: 1 },
-                { strike: atm, option_type: 'PE', position: 'LONG', premium: estAtmPremium, quantity: 1 }
+                { strike: l1.strike, option_type: 'CE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv },
+                { strike: l2.strike, option_type: 'PE', position: 'LONG', premium: l2.premium, quantity: 1, iv: l2.iv }
             ];
         } else if (preset === 'iron_condor') {
+            const cShort = findLeg(atm + step, 'CE');
+            const cLong = findLeg(atm + step * 3, 'CE');
+            const pShort = findLeg(atm - step, 'PE');
+            const pLong = findLeg(atm - step * 3, 'PE');
             this.strategyLegs = [
-                { strike: atm + step, option_type: 'CE', position: 'SHORT', premium: Math.round(estAtmPremium * 0.6), quantity: 1 },
-                { strike: atm + step * 3, option_type: 'CE', position: 'LONG', premium: Math.round(estAtmPremium * 0.25), quantity: 1 },
-                { strike: atm - step, option_type: 'PE', position: 'SHORT', premium: Math.round(estAtmPremium * 0.6), quantity: 1 },
-                { strike: atm - step * 3, option_type: 'PE', position: 'LONG', premium: Math.round(estAtmPremium * 0.25), quantity: 1 }
+                { strike: cShort.strike, option_type: 'CE', position: 'SHORT', premium: cShort.premium, quantity: 1, iv: cShort.iv },
+                { strike: cLong.strike, option_type: 'CE', position: 'LONG', premium: cLong.premium, quantity: 1, iv: cLong.iv },
+                { strike: pShort.strike, option_type: 'PE', position: 'SHORT', premium: pShort.premium, quantity: 1, iv: pShort.iv },
+                { strike: pLong.strike, option_type: 'PE', position: 'LONG', premium: pLong.premium, quantity: 1, iv: pLong.iv }
             ];
         }
 
@@ -721,6 +1024,9 @@ class OptionsUI {
             if (simProfitEl) simProfitEl.textContent = '₹0';
             if (simLossEl) simLossEl.textContent = '₹0';
             if (breakevenEl) breakevenEl.textContent = '--';
+            if (window.optionsAnalyticsController) {
+                window.optionsAnalyticsController.updateStrategyGreeksAndPayoff();
+            }
             return;
         }
 
@@ -779,6 +1085,10 @@ class OptionsUI {
             }
         } catch (e) {
             console.error("Payoff calculation failed:", e);
+        } finally {
+            if (window.optionsAnalyticsController) {
+                window.optionsAnalyticsController.updateStrategyGreeksAndPayoff();
+            }
         }
     }
 
@@ -854,3 +1164,4 @@ class OptionsUI {
 
 window.OptionsUI = OptionsUI;
 window.optionsController = new OptionsUI();
+window.optionsUI = window.optionsController;

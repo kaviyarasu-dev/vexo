@@ -79,8 +79,29 @@ class ResamplingService(IResamplingService):
                 
             df['is_zero_volume'] = False
 
+        if df.empty and target_timeframe in ("1D", "1W"):
+            d_table = "candles_1d_adjusted" if adjusted else "candles_1d_raw"
+            d_query = f"""
+                SELECT CAST(date AS TIMESTAMP) + INTERVAL '3 HOURS 45 MINUTES' AS timestamp,
+                       open, high, low, close, volume,
+                       CAST(0 AS BOOLEAN) AS is_zero_volume
+                FROM {d_table}
+                WHERE symbol = ?
+                  AND date >= CAST(? AS DATE)
+                  AND date <= CAST(? AS DATE)
+                ORDER BY date ASC
+            """
+            cursor = self.db.get_read_cursor()
+            try:
+                df = cursor.execute(d_query, [symbol, start_utc_str, end_utc_str]).df()
+            except Exception:
+                pass
+            finally:
+                cursor.close()
+
         if df.empty:
             return pd.DataFrame(columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'is_zero_volume'])
+
             
         # Ensure timestamp is UTC localized so we can manipulate it properly
         df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize('UTC')

@@ -249,25 +249,23 @@ class AuthService(IAuthService):
 
     def set_access_token(self, access_token: str, expires_in_hours: Optional[float] = None) -> Dict[str, Any]:
         """Directly persists an active access token to vault and computes expiry."""
+        clean_token = access_token.strip()
+        if clean_token.startswith(f"{self.settings.FYERS_APP_ID}:"):
+            clean_token = clean_token[len(f"{self.settings.FYERS_APP_ID}:"):].strip()
+        elif ":" in clean_token:
+            prefix = clean_token.split(":", 1)[0]
+            if prefix.endswith("-100") or prefix.endswith("-200") or len(prefix) <= 20:
+                clean_token = clean_token.split(":", 1)[1].strip()
+
         now_utc = datetime.now(timezone.utc)
         if expires_in_hours:
             access_expires_at = now_utc + timedelta(hours=expires_in_hours)
         else:
             access_expires_at = self.calculate_access_token_expiry(now_utc)
 
-        self.vault.set_secret(KEY_ACCESS_TOKEN, access_token.strip())
+        self.vault.set_secret(KEY_ACCESS_TOKEN, clean_token)
         self.vault.set_secret(KEY_ACCESS_EXPIRES_AT, access_expires_at.isoformat())
         logger.info("Access token updated successfully in secure vault.")
-        return self.get_token_status()
-
-    def simulate_token_refresh(self, hours: float = 8.0) -> Dict[str, Any]:
-        """Extends token expiry for developer/offline testing."""
-        now_utc = datetime.now(timezone.utc)
-        new_expiry = now_utc + timedelta(hours=hours)
-        current_token = self.vault.get_secret(KEY_ACCESS_TOKEN) or "mock_fyers_access_token_dev"
-        self.vault.set_secret(KEY_ACCESS_TOKEN, current_token)
-        self.vault.set_secret(KEY_ACCESS_EXPIRES_AT, new_expiry.isoformat())
-        logger.info(f"Simulated access token refresh for {hours} hours.")
         return self.get_token_status()
 
     def get_valid_token(self) -> str:

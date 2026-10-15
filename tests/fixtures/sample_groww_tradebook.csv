@@ -1,0 +1,5 @@
+Stock Name,Symbol,Type,Quantity,Price,Execution Date & Time,Order ID
+Reliance Industries Ltd,RELIANCE,BUY,100,2500.0,08-10-2026 09:35:00,GW1001
+Reliance Industries Ltd,RELIANCE,SELL,100,2540.0,08-10-2026 13:45:00,GW1002
+State Bank of India,SBIN,BUY,200,800.0,09-10-2026 10:15:00,GW1003
+State Bank of India,SBIN,SELL,200,815.0,09-10-2026 15:10:00,GW1004

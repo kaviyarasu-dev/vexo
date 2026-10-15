@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+import pandas as pd
 
 from db.connection import DuckDBConnectionManager
 from services.backtest.cost_model import IndianEquityCostModel
@@ -494,6 +495,15 @@ class PaperTradingService:
             ))
         return positions
 
+    def get_position(self, symbol: str) -> Optional[PositionResponse]:
+        """Returns active position details for a specific symbol or None."""
+        clean_symbol = symbol.strip().upper()
+        positions = self.get_positions_with_mtm()
+        for p in positions:
+            if p.symbol == clean_symbol:
+                return p
+        return None
+
     def get_account_summary(self, quotes_map: Optional[Dict[str, float]] = None) -> AccountResponse:
         """Computes virtual balance, utilized margin, and total portfolio valuation."""
         cursor = self.db.get_read_cursor()
@@ -611,23 +621,43 @@ class PaperTradingService:
         allocated_capital: float = 100000.0
     ) -> AutoStrategyResponse:
         """Registers a backtested quantitative strategy for forward-testing execution."""
-        strategy_id = str(uuid.uuid4())
+        clean_symbol = symbol.strip().upper()
         params = parameters or {}
         now = datetime.now()
 
-        def _insert(conn):
-            conn.execute("""
-                INSERT INTO paper_auto_strategies 
-                (strategy_id, strategy_name, symbol, timeframe, parameters, trade_type, allocated_capital, status, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP)
-            """, [strategy_id, strategy_name, symbol.strip().upper(), timeframe, json.dumps(params), trade_type, allocated_capital])
+        # Check if already deployed for same symbol
+        cursor = self.db.get_read_cursor()
+        try:
+            existing = cursor.execute(
+                "SELECT strategy_id FROM paper_auto_strategies WHERE symbol = ?",
+                [clean_symbol]
+            ).fetchone()
+        finally:
+            cursor.close()
 
-        self.db.execute_write_batch(_insert)
+        if existing:
+            strategy_id = existing[0]
+            def _update(conn):
+                conn.execute("""
+                    UPDATE paper_auto_strategies 
+                    SET strategy_name = ?, timeframe = ?, parameters = ?, trade_type = ?, allocated_capital = ?, status = 'ACTIVE'
+                    WHERE strategy_id = ?
+                """, [strategy_name, timeframe, json.dumps(params), trade_type, allocated_capital, strategy_id])
+            self.db.execute_write_batch(_update)
+        else:
+            strategy_id = str(uuid.uuid4())
+            def _insert(conn):
+                conn.execute("""
+                    INSERT INTO paper_auto_strategies 
+                    (strategy_id, strategy_name, symbol, timeframe, parameters, trade_type, allocated_capital, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', CURRENT_TIMESTAMP)
+                """, [strategy_id, strategy_name, clean_symbol, timeframe, json.dumps(params), trade_type, allocated_capital])
+            self.db.execute_write_batch(_insert)
 
         return AutoStrategyResponse(
             strategy_id=strategy_id,
             strategy_name=strategy_name,
-            symbol=symbol.strip().upper(),
+            symbol=clean_symbol,
             timeframe=timeframe,
             parameters=params,
             trade_type=trade_type,
@@ -636,15 +666,23 @@ class PaperTradingService:
             created_at=now.isoformat()
         )
 
-    def list_auto_strategies(self) -> List[AutoStrategyResponse]:
-        """Lists active deployed strategies."""
+    def list_auto_strategies(self, status: Optional[str] = None) -> List[AutoStrategyResponse]:
+        """Lists deployed forward-testing strategies."""
         cursor = self.db.get_read_cursor()
         try:
-            rows = cursor.execute("""
-                SELECT strategy_id, strategy_name, symbol, timeframe, parameters, trade_type, allocated_capital, status, created_at
-                FROM paper_auto_strategies
-                ORDER BY created_at DESC
-            """).fetchall()
+            if status:
+                rows = cursor.execute("""
+                    SELECT strategy_id, strategy_name, symbol, timeframe, parameters, trade_type, allocated_capital, status, created_at
+                    FROM paper_auto_strategies
+                    WHERE status = ?
+                    ORDER BY created_at DESC
+                """, [status.upper()]).fetchall()
+            else:
+                rows = cursor.execute("""
+                    SELECT strategy_id, strategy_name, symbol, timeframe, parameters, trade_type, allocated_capital, status, created_at
+                    FROM paper_auto_strategies
+                    ORDER BY created_at DESC
+                """).fetchall()
         finally:
             cursor.close()
 
@@ -668,9 +706,129 @@ class PaperTradingService:
             ))
         return strategies
 
+    def stop_auto_strategy(self, strategy_id: str) -> bool:
+        """Stops an automated strategy, changing its status to STOPPED."""
+        def _stop(conn):
+            conn.execute("UPDATE paper_auto_strategies SET status = 'STOPPED' WHERE strategy_id = ?", [strategy_id])
+        self.db.execute_write_batch(_stop)
+        return True
+
     def delete_auto_strategy(self, strategy_id: str) -> bool:
         """Stops and removes an automated strategy from forward testing."""
         def _del(conn):
             conn.execute("DELETE FROM paper_auto_strategies WHERE strategy_id = ?", [strategy_id])
         self.db.execute_write_batch(_del)
         return True
+
+    def evaluate_auto_strategies_on_candle(
+        self,
+        candle_df: pd.DataFrame,
+        symbol: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Evaluates active forward strategies against latest candle data and triggers simulated executions."""
+        from services.backtest_service import compute_indicators
+
+        # Query only ACTIVE strategies
+        cursor = self.db.get_read_cursor()
+        try:
+            rows = cursor.execute("""
+                SELECT strategy_id, strategy_name, symbol, timeframe, parameters, trade_type, allocated_capital
+                FROM paper_auto_strategies
+                WHERE status = 'ACTIVE'
+            """).fetchall()
+        finally:
+            cursor.close()
+
+        if not rows or candle_df is None or candle_df.empty:
+            return []
+
+        executions = []
+
+        for r in rows:
+            strat_id = r[0]
+            strat_name = r[1]
+            strat_symbol = r[2]
+            strat_timeframe = r[3]
+            try:
+                strat_params = json.loads(r[4]) if isinstance(r[4], str) else (r[4] or {})
+            except Exception:
+                strat_params = {}
+            strat_trade_type = r[5]
+            strat_capital = float(r[6])
+
+            # Filter candle_df for this symbol
+            if "symbol" in candle_df.columns:
+                sym_df = candle_df[candle_df["symbol"].astype(str).str.upper() == strat_symbol.upper()].copy()
+            elif symbol and symbol.strip().upper() == strat_symbol.upper():
+                sym_df = candle_df.copy()
+            elif len(rows) == 1:
+                sym_df = candle_df.copy()
+            else:
+                continue
+
+            if len(sym_df) < 5:
+                continue
+
+            # Sort chronological if date exists
+            if "date" in sym_df.columns:
+                sym_df = sym_df.sort_values("date").reset_index(drop=True)
+
+            try:
+                df_ind = compute_indicators(sym_df, strat_name, strat_params)
+            except Exception as e:
+                logger.warning(f"Error computing indicators for strategy {strat_id} ({strat_name}): {e}")
+                continue
+
+            if df_ind.empty:
+                continue
+
+            last_bar = df_ind.iloc[-1]
+            curr_price = float(last_bar.get("close", 0.0))
+            if curr_price <= 0:
+                continue
+
+            is_buy = bool(last_bar.get("signal_buy", False))
+            is_sell = bool(last_bar.get("signal_sell", False))
+
+            pos = self.get_position(strat_symbol)
+
+            if is_buy:
+                # Enter if no current position
+                if not pos or pos.quantity <= 0:
+                    qty = int(strat_capital / curr_price)
+                    if qty > 0:
+                        order = self.place_order(
+                            symbol=strat_symbol,
+                            side="BUY",
+                            quantity=qty,
+                            order_type="MARKET",
+                            trade_type=strat_trade_type,
+                            current_price=curr_price
+                        )
+                        executions.append({
+                            "strategy_id": strat_id,
+                            "strategy_name": strat_name,
+                            "symbol": strat_symbol,
+                            "action": "BUY",
+                            "quantity": qty,
+                            "price": curr_price,
+                            "order_id": order.order_id
+                        })
+            elif is_sell:
+                # Exit if open position exists
+                if pos and pos.quantity > 0:
+                    order = self.close_position(
+                        symbol=strat_symbol,
+                        exit_price=curr_price
+                    )
+                    executions.append({
+                        "strategy_id": strat_id,
+                        "strategy_name": strat_name,
+                        "symbol": strat_symbol,
+                        "action": "SELL",
+                        "quantity": pos.quantity,
+                        "price": curr_price,
+                        "order_id": order.order_id
+                    })
+
+        return executions

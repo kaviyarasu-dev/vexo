@@ -211,6 +211,36 @@ SCHEMA_TABLES_DDL = {
             status VARCHAR NOT NULL DEFAULT 'ACTIVE',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+    """,
+    "chart_drawings": """
+        CREATE TABLE IF NOT EXISTS chart_drawings (
+            drawing_id VARCHAR PRIMARY KEY,
+            symbol VARCHAR NOT NULL,
+            tool_type VARCHAR NOT NULL,
+            points JSON NOT NULL,
+            style JSON NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """,
+    "option_chain_snapshots": """
+        CREATE TABLE IF NOT EXISTS option_chain_snapshots (
+            snapshot_date DATE NOT NULL,
+            underlying_symbol VARCHAR NOT NULL,
+            expiry_date DATE NOT NULL,
+            strike_price DOUBLE NOT NULL,
+            option_type VARCHAR NOT NULL,
+            ltp DOUBLE,
+            oi BIGINT,
+            volume BIGINT,
+            iv DOUBLE,
+            delta DOUBLE,
+            gamma DOUBLE,
+            theta DOUBLE,
+            vega DOUBLE,
+            captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (snapshot_date, underlying_symbol, expiry_date, strike_price, option_type)
+        );
     """
 }
 

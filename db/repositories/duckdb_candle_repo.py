@@ -153,6 +153,57 @@ class DuckDBCandleRepo(ICandleReader, ICandleWriter):
 
         return self.db.execute_write_batch(_do_insert)
 
+    def upsert_1d(self, candles: Union[List[dict], pa.Table, pd.DataFrame]) -> int:
+        """Upsert daily raw candles (e.g. updating forming/live session candles) via staging."""
+        if not candles:
+            return 0
+        if isinstance(candles, list):
+            arrow_table = pa.Table.from_pylist(candles)
+        elif isinstance(candles, pd.DataFrame):
+            arrow_table = pa.Table.from_pandas(candles)
+        else:
+            arrow_table = candles
+
+        def _do_upsert(conn: duckdb.DuckDBPyConnection) -> int:
+            conn.register("_arrow_upsert_1d", arrow_table)
+            try:
+                conn.execute("""
+                    CREATE TEMP TABLE _staging_upsert_1d AS
+                    SELECT 
+                        CAST(symbol AS VARCHAR) AS symbol,
+                        CAST(date AS DATE) AS date,
+                        CAST(open AS DOUBLE) AS open,
+                        CAST(high AS DOUBLE) AS high,
+                        CAST(low AS DOUBLE) AS low,
+                        CAST(close AS DOUBLE) AS close,
+                        CAST(volume AS BIGINT) AS volume
+                    FROM _arrow_upsert_1d
+                    ORDER BY symbol, date;
+                """)
+
+                conn.execute("""
+                    DELETE FROM candles_1d_raw
+                    WHERE EXISTS (
+                        SELECT 1 FROM _staging_upsert_1d s
+                        WHERE candles_1d_raw.symbol = s.symbol AND candles_1d_raw.date = s.date
+                    );
+                """)
+
+                conn.execute("""
+                    INSERT INTO candles_1d_raw (symbol, date, open, high, low, close, volume)
+                    SELECT symbol, date, open, high, low, close, volume FROM _staging_upsert_1d;
+                """)
+
+                res = conn.execute("SELECT count(*) FROM _staging_upsert_1d;").fetchone()
+                count = res[0] if res else 0
+
+                conn.execute("DROP TABLE IF EXISTS _staging_upsert_1d;")
+                return count
+            finally:
+                conn.unregister("_arrow_upsert_1d")
+
+        return self.db.execute_write_batch(_do_upsert)
+
     def stage_and_merge_1m(self, staging_table: str) -> int:
         """Merge records from an existing temporary staging table into candles_1m_raw."""
         def _do_merge(conn: duckdb.DuckDBPyConnection) -> int:

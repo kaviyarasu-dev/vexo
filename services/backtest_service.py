@@ -1,8 +1,11 @@
+import logging
 import pandas as pd
 import numpy as np
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 import math
+
+logger = logging.getLogger(__name__)
 
 from core.interfaces import IBacktestEngine, BacktestConfig, BacktestResult
 from services.backtest.engine import Engine, Strategy, Broker
@@ -317,6 +320,78 @@ class BacktestService(IBacktestEngine):
     def __init__(self, db_conn):
         self.db = db_conn
 
+    @staticmethod
+    def load_candles(db_conn, symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Fetch verified real historical candle data from DuckDB with JIT auto-sync from Fyers API.
+
+        Strict Institutional Rule:
+        - Absolutely ZERO fake, synthetic, or simulated candles allowed.
+        - Checks DuckDB adjusted and raw tables first.
+        - If missing or insufficient (< 15 bars), attempts JIT auto-sync of real candles from Fyers API into DuckDB.
+        - If Fyers is offline/unauthenticated and DB has fewer than 15 real bars, raises ValueError.
+        """
+        if not db_conn:
+            raise ValueError(
+                f"Database connection unavailable. Cannot load real market data for '{symbol}'."
+            )
+
+        def _query_duckdb():
+            cursor = db_conn.get_read_cursor()
+            try:
+                # 1. Query adjusted candles first
+                rows = cursor.execute("""
+                    SELECT date, open, high, low, close, volume 
+                    FROM candles_1d_adjusted 
+                    WHERE symbol = ? AND date >= CAST(? AS DATE) AND date <= CAST(? AS DATE)
+                    ORDER BY date ASC
+                """, [symbol, start_date, end_date]).fetchall()
+                
+                # 2. Query raw candles if adjusted has insufficient rows
+                if not rows or len(rows) < 15:
+                    rows = cursor.execute("""
+                        SELECT date, open, high, low, close, volume 
+                        FROM candles_1d_raw 
+                        WHERE symbol = ? AND date >= CAST(? AS DATE) AND date <= CAST(? AS DATE)
+                        ORDER BY date ASC
+                    """, [symbol, start_date, end_date]).fetchall()
+                    
+                if rows and len(rows) >= 15:
+                    df_out = pd.DataFrame(rows, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                    df_out['timestamp'] = pd.to_datetime(df_out['timestamp'])
+                    return df_out
+                return None
+            except Exception:
+                return None
+            finally:
+                cursor.close()
+
+        # Step 1: Check DuckDB cache
+        df = _query_duckdb()
+        if df is not None and len(df) >= 15:
+            return df
+
+        # Step 2: Auto-fetch real historical candles from Fyers API into DuckDB
+        try:
+            from services.live_market_data_service import LiveMarketDataService
+            s_date = datetime.strptime(start_date.split("T")[0], "%Y-%m-%d").date()
+            e_date = datetime.strptime(end_date.split("T")[0], "%Y-%m-%d").date()
+            live_service = LiveMarketDataService(db=db_conn)
+            inserted = live_service.ensure_symbol_history(symbol, "1D", s_date, e_date)
+            if inserted > 0:
+                logger.info("Auto-fetched %d real candles for %s (%s to %s) into DuckDB.", inserted, symbol, start_date, end_date)
+                df = _query_duckdb()
+                if df is not None and len(df) >= 15:
+                    return df
+        except Exception as exc:
+            logger.warning("Fyers JIT history fetch skipped or failed for %s: %s", symbol, exc)
+
+        # Step 3: Zero synthetic fallback. Reject with clear, informative message
+        count = len(df) if df is not None else 0
+        raise ValueError(
+            f"No verified real historical data available in DuckDB for '{symbol}' between {start_date} and {end_date} (found {count} bars, minimum 15 required). "
+            f"Fyers auto-sync is offline or unauthenticated. Please authenticate Fyers in the topbar or download data via Downloads."
+        )
+
     def run_backtest(self, config: dict | BacktestConfig) -> dict | BacktestResult:
         if isinstance(config, dict):
             config_obj = BacktestConfig(
@@ -338,59 +413,8 @@ class BacktestService(IBacktestEngine):
             config_obj = config
 
         # 1. Fetch Candle Data: Non-blocking read from DuckDB with fallback
-        df = None
-        if self.db:
-            try:
-                cursor = self.db.get_read_cursor()
-                # Query adjusted candles first
-                rows = cursor.execute("""
-                    SELECT date, open, high, low, close, volume 
-                    FROM candles_1d_adjusted 
-                    WHERE symbol = ? AND date >= CAST(? AS DATE) AND date <= CAST(? AS DATE)
-                    ORDER BY date ASC
-                """, [config_obj.symbol, config_obj.start_date, config_obj.end_date]).fetchall()
-                
-                if not rows or len(rows) < 15:
-                    # Query raw candles
-                    rows = cursor.execute("""
-                        SELECT date, open, high, low, close, volume 
-                        FROM candles_1d_raw 
-                        WHERE symbol = ? AND date >= CAST(? AS DATE) AND date <= CAST(? AS DATE)
-                        ORDER BY date ASC
-                    """, [config_obj.symbol, config_obj.start_date, config_obj.end_date]).fetchall()
-                    
-                cursor.close()
-                if rows and len(rows) >= 15:
-                    df = pd.DataFrame(rows, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-                    df['timestamp'] = pd.to_datetime(df['timestamp'])
-            except Exception:
-                df = None
+        df = BacktestService.load_candles(self.db, config_obj.symbol, config_obj.start_date, config_obj.end_date)
 
-        # Fallback to realistic synthetic trending candle data if DB has insufficient rows
-        if df is None or len(df) < 15:
-            date_range = pd.date_range(start=config_obj.start_date, end=config_obj.end_date, freq='B')
-            length = len(date_range)
-            np.random.seed(42)
-            # Simulated realistic price path (Geometric Brownian Motion)
-            dt = 1.0 / 252.0
-            mu = 0.12   # 12% annual drift
-            sigma = 0.22 # 22% annual volatility
-            returns = np.random.normal((mu - 0.5 * sigma**2) * dt, sigma * np.sqrt(dt), length)
-            price_series = 2000.0 * np.exp(np.cumsum(returns))
-            
-            opens = price_series * (1 + np.random.normal(0, 0.003, length))
-            highs = np.maximum(opens, price_series) * (1 + np.abs(np.random.normal(0, 0.008, length)))
-            lows = np.minimum(opens, price_series) * (1 - np.abs(np.random.normal(0, 0.008, length)))
-            volumes = np.random.randint(500000, 3000000, length)
-            
-            df = pd.DataFrame({
-                'timestamp': date_range,
-                'open': [round(x, 2) for x in opens],
-                'high': [round(x, 2) for x in highs],
-                'low': [round(x, 2) for x in lows],
-                'close': [round(x, 2) for x in price_series],
-                'volume': volumes
-            })
 
         # 2. Precompute Technical Indicators & Signals
         params = config_obj.parameters or {}
@@ -595,6 +619,26 @@ class BacktestService(IBacktestEngine):
                         """
                         raw_rows = cursor.execute(q, [start_date, end_date]).fetchall()
 
+                    if not raw_rows:
+                        if symbols and len(symbols) > 0:
+                            placeholders = ",".join(["?"] * len(symbols))
+                            q_raw = f"""
+                                SELECT symbol, date, open, high, low, close, volume 
+                                FROM candles_1d_raw 
+                                WHERE symbol IN ({placeholders}) 
+                                  AND date >= CAST(? AS DATE) AND date <= CAST(? AS DATE)
+                                ORDER BY symbol, date ASC
+                            """
+                            raw_rows = cursor.execute(q_raw, list(symbols) + [start_date, end_date]).fetchall()
+                        else:
+                            q_raw = """
+                                SELECT symbol, date, open, high, low, close, volume 
+                                FROM candles_1d_raw 
+                                WHERE date >= CAST(? AS DATE) AND date <= CAST(? AS DATE)
+                                ORDER BY symbol, date ASC
+                            """
+                            raw_rows = cursor.execute(q_raw, [start_date, end_date]).fetchall()
+
                     if raw_rows and len(raw_rows) > 0:
                         df_candles = pd.DataFrame(raw_rows, columns=['symbol', 'timestamp', 'open', 'high', 'low', 'close', 'volume'])
                         df_candles['timestamp'] = pd.to_datetime(df_candles['timestamp'])
@@ -603,7 +647,7 @@ class BacktestService(IBacktestEngine):
             except Exception as e:
                 df_candles = None
 
-        # Build symbol groups dictionary
+        # Build symbol groups dictionary (requiring minimum 15 real bars per stock)
         symbol_groups: Dict[str, pd.DataFrame] = {}
         if df_candles is not None and not df_candles.empty:
             for sym, group in df_candles.groupby('symbol'):
@@ -612,46 +656,16 @@ class BacktestService(IBacktestEngine):
                     if len(symbol_groups) >= max_symbols:
                         break
 
-        # Fallback to realistic synthetic symbols if no database records were loaded
+        # Zero synthetic fallback: if no verified real records exist, return clean empty result
         if not symbol_groups:
-            default_symbols = [
-                ("NSE:RELIANCE-EQ", "Reliance Industries Ltd"),
-                ("NSE:TCS-EQ", "Tata Consultancy Services"),
-                ("NSE:INFY-EQ", "Infosys Limited"),
-                ("NSE:HDFCBANK-EQ", "HDFC Bank Limited"),
-                ("NSE:ICICIBANK-EQ", "ICICI Bank Limited"),
-                ("NSE:SBIN-EQ", "State Bank of India"),
-                ("NSE:BHARTIARTL-EQ", "Bharti Airtel Limited"),
-                ("NSE:ITC-EQ", "ITC Limited"),
-                ("NSE:KOTAKBANK-EQ", "Kotak Mahindra Bank"),
-                ("NSE:LT-EQ", "Larsen & Toubro Ltd")
-            ]
-            date_range = pd.date_range(start=start_date, end=end_date, freq='B')
-            length = len(date_range)
-            dt = 1.0 / 252.0
-            
-            for idx, (sym, name) in enumerate(default_symbols):
-                symbol_names[sym] = name
-                np.random.seed(42 + idx * 7)
-                mu = 0.10 + (idx * 0.02)
-                sigma = 0.18 + (idx * 0.01)
-                returns = np.random.normal((mu - 0.5 * sigma**2) * dt, sigma * np.sqrt(dt), length)
-                base_price = 1000.0 + (idx * 250.0)
-                price_series = base_price * np.exp(np.cumsum(returns))
-                opens = price_series * (1 + np.random.normal(0, 0.003, length))
-                highs = np.maximum(opens, price_series) * (1 + np.abs(np.random.normal(0, 0.008, length)))
-                lows = np.minimum(opens, price_series) * (1 - np.abs(np.random.normal(0, 0.008, length)))
-                volumes = np.random.randint(500000, 3000000, length)
-                
-                df_sim = pd.DataFrame({
-                    'timestamp': date_range,
-                    'open': [round(x, 2) for x in opens],
-                    'high': [round(x, 2) for x in highs],
-                    'low': [round(x, 2) for x in lows],
-                    'close': [round(x, 2) for x in price_series],
-                    'volume': volumes
-                })
-                symbol_groups[sym] = df_sim
+            return {
+                "strategy": strategy_name,
+                "total_scanned": 0,
+                "current_matches": [],
+                "past_matches": [],
+                "data_source": "DuckDB Real Market Data",
+                "message": "No symbols in the selected universe have verified real historical data in DuckDB for the requested date range."
+            }
 
         current_matches: List[Dict[str, Any]] = []
         past_matches: List[Dict[str, Any]] = []
