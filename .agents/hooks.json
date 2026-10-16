@@ -1,0 +1,10 @@
+{
+  "hooks": [
+    {
+      "id": "security-scan-pre-tool",
+      "events": ["PreToolCall"],
+      "command": "python .agents/scripts/scan_secrets.py",
+      "description": "Scans for hardcoded API keys before executing any file write or command."
+    }
+  ]
+}

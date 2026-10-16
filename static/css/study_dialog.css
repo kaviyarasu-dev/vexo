@@ -1,0 +1,1125 @@
+/* ==========================================================================
+   TradingView-Grade "Indicators, metrics, and strategies" Modal Styles
+   ========================================================================== */
+
+.tv-study-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tv-study-modal-backdrop.open {
+    display: flex;
+    opacity: 1;
+}
+
+.tv-study-modal {
+    position: relative;
+    width: 940px;
+    max-width: 95vw;
+    height: 640px;
+    max-height: 90vh;
+    background: #131722;
+    border: 1px solid #2A2E39;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #D1D4DC;
+    font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', Roboto, Ubuntu, sans-serif;
+    animation: tvModalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tvModalPop {
+    from {
+        transform: scale(0.96);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Modal Header */
+.tv-study-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px 20px;
+    border-bottom: 1px solid #2A2E39;
+    background: #131722;
+}
+
+.tv-study-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #F0F3FA;
+    letter-spacing: -0.2px;
+}
+
+.tv-study-close-btn {
+    background: transparent;
+    border: none;
+    color: #787B86;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    transition: color 0.15s, background-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tv-study-close-btn:hover {
+    color: #F0F3FA;
+    background: #2A2E39;
+}
+
+/* Search Bar Area */
+.tv-study-search-wrap {
+    padding: 12px 20px;
+    border-bottom: 1px solid #2A2E39;
+    background: #131722;
+}
+
+.tv-study-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: #1E222D;
+    border: 1px solid #2A2E39;
+    border-radius: 8px;
+    padding: 8px 12px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tv-study-search-box:focus-within {
+    border-color: #2962FF;
+    box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.25);
+}
+
+.tv-study-search-icon {
+    color: #787B86;
+    font-size: 15px;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+}
+
+.tv-study-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #F0F3FA;
+    font-size: 14px;
+    outline: none;
+    padding: 0;
+}
+
+.tv-study-search-input::placeholder {
+    color: #787B86;
+}
+
+.tv-study-search-clear {
+    background: transparent;
+    border: none;
+    color: #787B86;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: none;
+}
+
+.tv-study-search-clear:hover {
+    color: #F0F3FA;
+    background: #2A2E39;
+}
+
+/* Modal Body Layout */
+.tv-study-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Left Sidebar Navigation */
+.tv-study-sidebar {
+    width: 210px;
+    min-width: 210px;
+    border-right: 1px solid #2A2E39;
+    background: #131722;
+    padding: 12px 8px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tv-study-sidebar-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #787B86;
+    letter-spacing: 0.8px;
+    padding: 10px 12px 4px 12px;
+}
+
+.tv-study-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #B2B5BE;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.tv-study-nav-item .nav-icon {
+    font-size: 15px;
+    width: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+}
+
+.tv-study-nav-item:hover {
+    color: #F0F3FA;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.tv-study-nav-item.active {
+    color: #FFFFFF;
+    background: #2A2E39;
+    font-weight: 600;
+}
+
+.tv-study-nav-item.active .nav-icon {
+    opacity: 1;
+}
+
+/* Main Content Panel */
+.tv-study-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #131722;
+    overflow: hidden;
+}
+
+/* Sub-Category Pills (Indicators, Strategies, Profiles, Patterns, Options) */
+.tv-study-pills-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(42, 46, 57, 0.6);
+    overflow-x: auto;
+    background: #131722;
+}
+
+.tv-study-pill-btn {
+    border: none;
+    background: #1E222D;
+    color: #B2B5BE;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+
+.tv-study-pill-btn:hover {
+    color: #F0F3FA;
+    background: #2A2E39;
+}
+
+.tv-study-pill-btn.active {
+    background: #000000;
+    color: #FFFFFF;
+    font-weight: 600;
+    box-shadow: 0 0 0 1px #2A2E39;
+}
+
+/* Table Header */
+.tv-study-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #787B86;
+    letter-spacing: 0.6px;
+    border-bottom: 1px solid rgba(42, 46, 57, 0.6);
+    background: #131722;
+}
+
+/* Study List Scroll Area */
+.tv-study-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 12px;
+}
+
+.tv-study-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.tv-study-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    margin: 2px 0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.tv-study-row:hover {
+    background: #1E222D;
+}
+
+.tv-study-row.selected {
+    background: #2A2E39;
+}
+
+.tv-study-row-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.tv-study-star-btn {
+    background: transparent;
+    border: none;
+    color: #50535E;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: color 0.15s, transform 0.15s;
+}
+
+.tv-study-star-btn:hover {
+    color: #F5AC00;
+    transform: scale(1.15);
+}
+
+.tv-study-star-btn.starred {
+    color: #F5AC00;
+}
+
+.tv-study-item-name {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #D1D4DC;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tv-study-row:hover .tv-study-item-name {
+    color: #F0F3FA;
+}
+
+.tv-study-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.06);
+    color: #787B86;
+}
+
+.tv-study-row-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tv-study-apply-btn {
+    background: #2962FF;
+    color: #FFFFFF;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background-color 0.15s;
+}
+
+.tv-study-row:hover .tv-study-apply-btn,
+.tv-study-row.selected .tv-study-apply-btn {
+    opacity: 1;
+}
+
+.tv-study-apply-btn:hover {
+    background: #1E53E5;
+}
+
+.tv-study-info-btn {
+    background: transparent;
+    border: none;
+    color: #787B86;
+    font-size: 14px;
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.tv-study-info-btn:hover {
+    color: #D1D4DC;
+    background: #2A2E39;
+}
+
+/* Detail Card at Bottom of Modal */
+.tv-study-detail-bar {
+    padding: 12px 20px;
+    background: #181C27;
+    border-top: 1px solid #2A2E39;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-size: 12.5px;
+}
+
+.tv-study-detail-text {
+    flex: 1;
+    color: #9297A5;
+    line-height: 1.4;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.tv-study-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tv-study-primary-btn {
+    background: #2962FF;
+    color: #FFFFFF;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.tv-study-primary-btn:hover {
+    background: #1E53E5;
+}
+
+/* Empty Search State */
+.tv-study-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 240px;
+    color: #787B86;
+    text-align: center;
+    gap: 8px;
+}
+
+.tv-study-empty-icon {
+    font-size: 32px;
+    opacity: 0.6;
+}
+
+.tv-study-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #B2B5BE;
+}
+
+/* Toolbar Trigger Button */
+.tv-studies-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1E222D;
+    color: #D1D4DC;
+    border: 1px solid #2A2E39;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tv-studies-btn .fx-icon {
+    font-family: 'Times New Roman', Times, serif;
+    font-style: italic;
+    font-weight: bold;
+    font-size: 14px;
+    color: #2962FF;
+}
+
+.tv-studies-btn:hover {
+    background: #2A2E39;
+    color: #FFFFFF;
+    border-color: #363A45;
+}
+
+/* ==========================================================================
+   Dynamic Stacked Sub-Panes & Indicator HUD Legends
+   ========================================================================== */
+
+.chart-subpanes-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.chart-subpane-wrapper {
+    position: relative;
+    width: 100%;
+    height: 130px;
+    border-top: 1px solid #2A2E39;
+    background: #0B0E14;
+    overflow: hidden;
+}
+
+.subpane-chart-mount {
+    width: 100%;
+    height: 100%;
+}
+
+.subpane-legend-hud {
+    position: absolute;
+    top: 6px;
+    left: 12px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11.5px;
+    color: #D1D4DC;
+    background: rgba(19, 23, 34, 0.75);
+    backdrop-filter: blur(4px);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(42, 46, 57, 0.6);
+}
+
+.subpane-hud-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.subpane-hud-title {
+    font-weight: 600;
+    color: #F0F3FA;
+}
+
+.subpane-hud-val {
+    color: #2962FF;
+    font-weight: 500;
+}
+
+.subpane-hud-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.subpane-hud-btn,
+.study-tag-btn {
+    pointer-events: auto !important;
+    background: transparent;
+    border: none;
+    color: #787B86;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.15s, color 0.15s, transform 0.1s;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.subpane-hud-btn:hover,
+.study-tag-btn:hover {
+    color: #F0F3FA;
+    background: #2A2E39;
+    transform: scale(1.1);
+}
+
+.study-tag-btn:active {
+    transform: scale(0.95);
+}
+
+.subpane-hud-btn.hidden-study,
+.study-tag-btn.hidden-study {
+    opacity: 0.45;
+}
+
+/* Main Chart Legend Study Tags */
+.chart-legend-study-tags {
+    pointer-events: auto !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.study-legend-tag {
+    pointer-events: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(24, 28, 39, 0.85);
+    border: 1px solid #2A2E39;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    color: #D1D4DC;
+    user-select: none;
+}
+
+.study-legend-tag:hover {
+    border-color: #363A45;
+    background: rgba(28, 32, 45, 0.95);
+}
+
+.study-tag-val {
+    color: #2962FF;
+    font-weight: 500;
+}
+
+.study-tag-controls {
+    pointer-events: auto !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+/* Settings Modal */
+.study-settings-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(3px);
+    z-index: 1300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.study-settings-card {
+    width: 360px;
+    background: #181C27;
+    border: 1px solid #2A2E39;
+    border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    color: #D1D4DC;
+    animation: tvModalPop 0.18s ease-out;
+}
+
+.study-settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #2A2E39;
+    background: #131722;
+}
+
+.study-settings-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #F0F3FA;
+}
+
+.study-settings-close-btn {
+    background: transparent;
+    border: none;
+    color: #787B86;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.study-settings-close-btn:hover {
+    color: #F0F3FA;
+    background: #2A2E39;
+}
+
+.study-settings-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 380px;
+    overflow-y: auto;
+}
+
+.settings-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.settings-field-label {
+    font-size: 12.5px;
+    color: #B2B5BE;
+    font-weight: 500;
+}
+
+.settings-field-row input.form-control {
+    width: 100px;
+    background: #1E222D;
+    border: 1px solid #2A2E39;
+    color: #F0F3FA;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: 13px;
+    text-align: right;
+}
+
+.settings-field-row input.form-control-color {
+    width: 36px;
+    height: 30px;
+    border: 1px solid #2A2E39;
+    border-radius: 6px;
+    background: #1E222D;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.study-settings-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid #2A2E39;
+    background: #131722;
+}
+
+/* ========================================================================= */
+/* Study Modal Create Button, Delete Action, and Custom Script Styling       */
+/* ========================================================================= */
+
+.tv-study-pills-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    flex: 1;
+}
+
+.tv-study-create-btn {
+    background: #2962FF;
+    color: #FFFFFF;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 12px;
+    transition: background-color 0.15s, transform 0.1s, box-shadow 0.15s;
+    white-space: nowrap;
+    pointer-events: auto !important;
+}
+
+.tv-study-create-btn:hover {
+    background: #1E4BD8;
+    box-shadow: 0 0 10px rgba(41, 98, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.tv-study-create-btn:active {
+    transform: translateY(0);
+}
+
+.tv-study-delete-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #787B86;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    pointer-events: auto !important;
+    line-height: 1;
+}
+
+.tv-study-delete-btn:hover {
+    color: #FF5252;
+    background: rgba(255, 82, 82, 0.15);
+    border-color: rgba(255, 82, 82, 0.35);
+    transform: scale(1.15);
+}
+
+.tv-study-badge.custom-badge {
+    background: rgba(0, 230, 118, 0.14);
+    color: #00E676;
+    border: 1px solid rgba(0, 230, 118, 0.3);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Create New Study Dialog Modal Overlay (Fixed Viewport Clamped) */
+.tv-study-create-dialog-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    overflow-y: auto;
+    padding: 24px 16px;
+    box-sizing: border-box;
+    animation: tvFadeIn 0.15s ease-out;
+}
+
+.tv-study-create-dialog-backdrop.open {
+    display: flex !important;
+}
+
+@keyframes tvFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.tv-study-create-dialog {
+    background: #1E222D;
+    border: 1px solid #2A2E39;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    width: 520px;
+    max-width: 95vw;
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+    color: #D1D4DC;
+    font-family: inherit;
+    box-sizing: border-box;
+    margin: auto;
+    overflow: hidden; /* Header and Footer stay fixed; Body scrolls smoothly */
+}
+
+/* Header */
+.tv-study-create-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 22px;
+    background: #181C27;
+    border-bottom: 1px solid #2A2E39;
+    flex-shrink: 0;
+}
+
+.tv-study-create-title-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tv-study-create-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: -0.2px;
+}
+
+.tv-modal-category-badge {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(41, 98, 255, 0.15);
+    color: #2962FF;
+    border: 1px solid rgba(41, 98, 255, 0.35);
+}
+
+/* Form Container */
+.tv-study-create-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    margin: 0;
+}
+
+/* Scrollable Form Body */
+.tv-study-create-body {
+    padding: 20px 22px;
+    overflow-y: auto;
+    max-height: calc(85vh - 130px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    flex: 1;
+    box-sizing: border-box;
+}
+
+/* Smooth custom scrollbar for create dialog */
+.tv-study-create-body::-webkit-scrollbar {
+    width: 6px;
+}
+.tv-study-create-body::-webkit-scrollbar-track {
+    background: #131722;
+}
+.tv-study-create-body::-webkit-scrollbar-thumb {
+    background: #2A2E39;
+    border-radius: 3px;
+}
+.tv-study-create-body::-webkit-scrollbar-thumb:hover {
+    background: #363A45;
+}
+
+/* Form Groups and Symmetrical Rows */
+.tv-study-create-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+}
+
+.tv-study-create-form .form-row {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tv-study-create-form .form-group.half {
+    flex: 1;
+    min-width: 0;
+}
+
+.tv-study-create-form label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #B2B5BE;
+    line-height: 1.2;
+}
+
+/* Form Input Controls with consistent 38px height */
+.tv-study-create-form .tv-input-text,
+.tv-study-create-form .tv-input-select {
+    height: 38px;
+    background: #131722;
+    border: 1px solid #2A2E39;
+    border-radius: 6px;
+    padding: 0 12px;
+    color: #FFFFFF;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.tv-study-create-form .tv-input-textarea {
+    background: #131722;
+    border: 1px solid #2A2E39;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #FFFFFF;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    font-family: inherit;
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+    min-height: 56px;
+}
+
+/* TradingView-grade Custom Selectbox (Appearance None + Neutral Arrow) */
+.tv-study-create-form .tv-input-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23787B86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+}
+
+/* Neutral Hover Reset on Selectbox: No jump, no color shift, no outline distortion */
+.tv-study-create-form .tv-input-select:hover {
+    border-color: #363A45;
+    background-color: #131722;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.tv-study-create-form .tv-input-text:focus,
+.tv-study-create-form .tv-input-select:focus,
+.tv-study-create-form .tv-input-textarea:focus {
+    border-color: #2962FF !important;
+    box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.25) !important;
+    outline: none !important;
+}
+
+/* Symmetrical Color Picker Widget */
+.tv-color-picker-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #131722;
+    border: 1px solid #2A2E39;
+    border-radius: 6px;
+    padding: 4px 10px;
+    height: 38px;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.tv-input-color-swatch {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+}
+
+.tv-color-hex-text {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    color: #D1D4DC;
+    font-weight: 500;
+}
+
+/* Radio Group Alignment */
+.tv-radio-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 38px;
+    box-sizing: border-box;
+}
+
+.tv-radio-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 12.5px;
+    color: #D1D4DC;
+    user-select: none;
+}
+
+.tv-radio-label input[type="radio"] {
+    accent-color: #2962FF;
+    cursor: pointer;
+}
+
+/* Fixed Footer Actions */
+.tv-study-create-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 22px;
+    background: #181C27;
+    border-top: 1px solid #2A2E39;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.tv-study-actions-btns {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tv-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12.5px;
+    color: #D1D4DC;
+    user-select: none;
+}
+
+.tv-checkbox-label input[type="checkbox"] {
+    accent-color: #2962FF;
+    cursor: pointer;
+}
+
+

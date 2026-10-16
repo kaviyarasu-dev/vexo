@@ -1,0 +1,111 @@
+{
+  "templates": [
+    {
+      "id": "all_stocks",
+      "name": "🌐 All Stocks",
+      "persona": "both",
+      "description": "Full market scan of all listed NSE stocks with live technical metrics and 1-day performance.",
+      "conditions": []
+    },
+    {
+      "id": "volume_surge",
+      "name": "Volume Surge Alert",
+      "persona": "both",
+      "description": "Stocks experiencing trading volume more than 2 standard deviations above their 20-day average.",
+      "conditions": [
+        {
+          "field": "volume_zscore_20",
+          "operator": ">=",
+          "value": 2.0
+        },
+        {
+          "field": "turnover_today",
+          "operator": ">=",
+          "value": 100000000
+        }
+      ]
+    },
+    {
+      "id": "52_week_high",
+      "name": "52-Week High Breakout",
+      "persona": "both",
+      "description": "High-momentum leaders trading within 5% of their 52-week peak.",
+      "conditions": [
+        {
+          "field": "dist_from_52w_high_pct",
+          "operator": "<=",
+          "value": 5.0
+        },
+        {
+          "field": "tier",
+          "operator": "<=",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "rsi_oversold",
+      "name": "RSI Oversold Bounce Candidates",
+      "persona": "both",
+      "description": "Quality Nifty 500 stocks with Daily RSI under 30 indicating potential mean-reversion opportunity.",
+      "conditions": [
+        {
+          "field": "rsi_14",
+          "operator": "<=",
+          "value": 30.0
+        },
+        {
+          "field": "tier",
+          "operator": "<=",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "rsi_momentum",
+      "name": "RSI Momentum Leaders",
+      "persona": "both",
+      "description": "Strong trend leaders with Daily RSI >= 60 and positive volume expansion.",
+      "conditions": [
+        {
+          "field": "rsi_14",
+          "operator": ">=",
+          "value": 60.0
+        },
+        {
+          "field": "volume_zscore_20",
+          "operator": ">=",
+          "value": 0.5
+        },
+        {
+          "field": "tier",
+          "operator": "<=",
+          "value": 3
+        }
+      ]
+    },
+    {
+      "id": "sma_support",
+      "name": "20-Day SMA Pullback Support",
+      "persona": "both",
+      "description": "Quality stocks testing their 20-day SMA support (within 2%).",
+      "conditions": [
+        {
+          "field": "dist_from_sma_20_pct",
+          "operator": ">=",
+          "value": -2.0
+        },
+        {
+          "field": "dist_from_sma_20_pct",
+          "operator": "<=",
+          "value": 2.0
+        },
+        {
+          "field": "tier",
+          "operator": "<=",
+          "value": 3
+        }
+      ]
+    }
+  ]
+}

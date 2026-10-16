@@ -1,0 +1,9 @@
+.env
+*.log
+data/.vault.enc
+data/.vault.salt
+data/*.duckdb*
+market_data.duckdb
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -1,0 +1,14 @@
+{
+  "sebi_disclaimer": "DISCLAIMER: This application is a self-directed quantitative data analysis and backtesting tool for educational and research purposes only. It does NOT constitute investment advice, financial advisory, or a recommendation to buy or sell any securities under SEBI regulations. \n\nAll indicators, backtest results, and screener outputs are purely mathematical computations based on historical data. Historical performance is NOT indicative of future returns. Algorithmic trading and equity investments are subject to substantial market risk, including the loss of principal capital. \n\nUsers are solely responsible for their independent investment decisions and should consult a SEBI-registered financial advisor before committing capital to financial markets.",
+  "short_disclaimer": "DISCLAIMER: For educational and research purposes only. Does not constitute investment advice under SEBI regulations.",
+  "fyers_license": "License: Personal Non-Commercial Use Only. Redistribution or commercial resale is prohibited under Fyers API Terms of Service.",
+  "survivorship_bias_warning": "WARNING: This backtest is subject to survivorship bias. Historical analysis may exclude delisted or merged securities. Results may not be indicative of future performance.",
+  "order_execution_notice": "Order execution is strictly out of scope. Automated order routing is disabled in compliance with SEBI retail algorithmic trading regulations.",
+  "export_metadata": {
+    "source": "Fyers API",
+    "license": "Personal Non-Commercial",
+    "license_detail": "License: Personal Non-Commercial Use Only. Redistribution or commercial resale is prohibited under Fyers API Terms of Service.",
+    "disclaimer": "DISCLAIMER: For educational and research purposes only. Does not constitute investment advice under SEBI regulations.",
+    "survivorship_disclosure": "Data and calculations are based on historical data and subject to survivorship and lookahead considerations."
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "s": "ok",
+  "code": 200,
+  "message": "",
+  "data": {
+    "fy_id": "XY12345",
+    "name": "Quant Trader",
+    "image": null,
+    "display_name": "Quant Trader",
+    "email_id": "trader@example.com",
+    "pan": "ABCDE1234F",
+    "mobile_number": "9876543210"
+  }
+}

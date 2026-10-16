@@ -1,0 +1,78 @@
+{
+  "candles_1m": [
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "timestamp": "2024-01-10T03:45:00",
+      "open": 2580.0,
+      "high": 2585.5,
+      "low": 2578.0,
+      "close": 2584.0,
+      "volume": 12500
+    },
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "timestamp": "2024-01-10T03:46:00",
+      "open": 2584.0,
+      "high": 2588.0,
+      "low": 2582.5,
+      "close": 2586.5,
+      "volume": 9800
+    },
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "timestamp": "2024-01-10T03:47:00",
+      "open": 2586.5,
+      "high": 2590.0,
+      "low": 2585.0,
+      "close": 2589.0,
+      "volume": 14200
+    },
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "timestamp": "2024-01-10T03:48:00",
+      "open": 2589.0,
+      "high": 2591.0,
+      "low": 2587.0,
+      "close": 2588.0,
+      "volume": 8100
+    },
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "timestamp": "2024-01-10T03:49:00",
+      "open": 2588.0,
+      "high": 2592.5,
+      "low": 2587.5,
+      "close": 2591.5,
+      "volume": 11300
+    }
+  ],
+  "candles_1d": [
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "date": "2024-01-08",
+      "open": 2560.0,
+      "high": 2590.0,
+      "low": 2555.0,
+      "close": 2585.0,
+      "volume": 3200000
+    },
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "date": "2024-01-09",
+      "open": 2585.0,
+      "high": 2605.0,
+      "low": 2575.0,
+      "close": 2595.0,
+      "volume": 4100000
+    },
+    {
+      "symbol": "NSE:RELIANCE-EQ",
+      "date": "2024-01-10",
+      "open": 2595.0,
+      "high": 2615.0,
+      "low": 2590.0,
+      "close": 2610.0,
+      "volume": 3800000
+    }
+  ]
+}

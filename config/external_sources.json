@@ -1,0 +1,5 @@
+{
+    "udiff_bhavcopy_base_url": "https://nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_{}_F_0000.csv.zip",
+    "delivery_data_base_url": "https://nsearchives.nseindia.com/products/content/sec_bhavdata_full_{}.csv",
+    "fii_dii_base_url": "https://www.nseindia.com/api/fiidiiTradeReact"
+}

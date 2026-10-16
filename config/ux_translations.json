@@ -1,0 +1,32 @@
+{
+  "vwap": {
+    "pro_label": "Session VWAP",
+    "plain_label": "Intraday Average Price",
+    "beginner_summary": "The average price weighted by trade volume today. Prices above this line indicate buyers are currently in control.",
+    "risk_tip": "Buying far above the average price increases your risk of buying at the top."
+  },
+  "rsi": {
+    "pro_label": "RSI (14)",
+    "plain_label": "Momentum Meter (Speed of Price Moves)",
+    "beginner_summary": "Measures how fast a stock is rising or falling on a scale of 0 to 100. Over 70 indicates potentially overheated; under 30 indicates heavily sold.",
+    "risk_tip": "Oversold does not guarantee an immediate bounce. In strong downtrends, prices can stay oversold for weeks."
+  },
+  "bollinger_bands": {
+    "pro_label": "Bollinger Bands (20, 2)",
+    "plain_label": "Normal Price Range Tunnel",
+    "beginner_summary": "An envelope showing where prices trade 95% of the time. Prices touching the outer bands are at statistical extremes.",
+    "risk_tip": "When bands contract tightly, an explosive price breakout in either direction is usually imminent."
+  },
+  "macd": {
+    "pro_label": "MACD (12, 26, 9)",
+    "plain_label": "Trend Reversal Detector",
+    "beginner_summary": "Shows the relationship between two moving averages of prices to spot trend changes.",
+    "risk_tip": "Can be unreliable in choppy, sideways markets, causing false signals."
+  },
+  "atr": {
+    "pro_label": "ATR (14)",
+    "plain_label": "Daily Price Swing Size",
+    "beginner_summary": "Measures how much the stock price typically moves in a day, helping set stop losses.",
+    "risk_tip": "High ATR means high volatility and larger potential losses if trades go against you."
+  }
+}

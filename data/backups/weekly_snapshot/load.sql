@@ -1,0 +1,9 @@
+COPY adjustment_factors FROM 'data/backups/weekly_snapshot/adjustment_factors.parquet' (FORMAT 'parquet');
+COPY candles_1d_raw FROM 'data/backups/weekly_snapshot/candles__d_raw.parquet' (FORMAT 'parquet');
+COPY candles_1m_raw FROM 'data/backups/weekly_snapshot/candles__m_raw.parquet' (FORMAT 'parquet');
+COPY corporate_actions FROM 'data/backups/weekly_snapshot/corporate_actions.parquet' (FORMAT 'parquet');
+COPY download_checkpoints FROM 'data/backups/weekly_snapshot/download_checkpoints.parquet' (FORMAT 'parquet');
+COPY job_logs FROM 'data/backups/weekly_snapshot/job_logs.parquet' (FORMAT 'parquet');
+COPY market_holidays FROM 'data/backups/weekly_snapshot/market_holidays.parquet' (FORMAT 'parquet');
+COPY schema_version FROM 'data/backups/weekly_snapshot/schema_version.parquet' (FORMAT 'parquet');
+COPY symbols FROM 'data/backups/weekly_snapshot/symbols.parquet' (FORMAT 'parquet');

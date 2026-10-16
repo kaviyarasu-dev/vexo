@@ -1,0 +1,392 @@
+/* static/css/education.css: Beginner Learning Layer, Glossary Popovers & Guided Tutorial */
+
+/* ==========================================================================
+   1. Contextual Glossary Tooltip Popover (Simple Mode Only)
+   ========================================================================== */
+
+/* Term trigger styling in Simple Mode */
+body:not(.pro-mode-enabled) [data-glossary],
+html.mode-simple [data-glossary] {
+    cursor: help;
+    text-decoration: underline dotted var(--accent-ema, #2962FF);
+    text-underline-offset: 3px;
+    transition: color 0.15s ease;
+}
+
+body:not(.pro-mode-enabled) [data-glossary]:hover,
+html.mode-simple [data-glossary]:hover {
+    color: #fff;
+}
+
+/* Ensure no special trigger in Pro mode */
+body.pro-mode-enabled:not(.mode-simple) [data-glossary],
+html.mode-pro [data-glossary] {
+    cursor: default;
+    text-decoration: none;
+}
+
+/* Glassmorphic Glossary Popover Card */
+.glossary-popover {
+    position: fixed;
+    z-index: 2500;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    background: rgba(21, 25, 36, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border-color, #2A2E39);
+    border-radius: 8px;
+    padding: 14px 16px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.25);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-primary, #D1D4DC);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: auto;
+    user-select: text;
+}
+
+.glossary-popover.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.glossary-popover.hidden {
+    display: none !important;
+}
+
+/* Header */
+.glossary-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glossary-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.glossary-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.glossary-plain-label {
+    font-size: 11px;
+    color: var(--accent-ema, #2962FF);
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.glossary-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #787B86);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.glossary-close-btn:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Sections */
+.glossary-definition {
+    color: var(--text-primary, #D1D4DC);
+    margin-bottom: 10px;
+    font-size: 12.5px;
+}
+
+.glossary-section {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.glossary-analogy-box {
+    background: rgba(41, 98, 255, 0.08);
+    border-left: 3px solid var(--accent-ema, #2962FF);
+    margin-bottom: 8px;
+}
+
+.glossary-analogy-box .section-title {
+    font-weight: 600;
+    color: #70A1FF;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.glossary-caution-box {
+    background: rgba(245, 172, 0, 0.08);
+    border-left: 3px solid var(--accent-vwap, #F5AC00);
+}
+
+.glossary-caution-box .section-title {
+    font-weight: 600;
+    color: #F5AC00;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Arrow indicator */
+.glossary-arrow {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: rgba(21, 25, 36, 0.94);
+    border: 1px solid var(--border-color, #2A2E39);
+    transform: rotate(45deg);
+    pointer-events: none;
+}
+
+.glossary-arrow-top {
+    top: -6px;
+    border-bottom: none;
+    border-right: none;
+}
+
+.glossary-arrow-bottom {
+    bottom: -6px;
+    border-top: none;
+    border-left: none;
+}
+
+
+/* ==========================================================================
+   2. Guided First-Scan Interactive Tutorial
+   ========================================================================== */
+
+.tutorial-overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 3000;
+    pointer-events: auto;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.tutorial-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(11, 14, 20, 0.75);
+    z-index: 3001;
+    pointer-events: auto;
+}
+
+/* Dynamic Spotlight Cutout */
+.tutorial-spotlight {
+    position: fixed;
+    z-index: 3002;
+    border-radius: 6px;
+    box-shadow: 0 0 0 9999px rgba(11, 14, 20, 0.78), 0 0 20px rgba(41, 98, 255, 0.6);
+    border: 2px solid var(--accent-ema, #2962FF);
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Spotlight Card Modal */
+.tutorial-card {
+    position: fixed;
+    z-index: 3003;
+    width: 400px;
+    max-width: calc(100vw - 40px);
+    background: rgba(21, 25, 36, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color, #2A2E39);
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+    color: var(--text-primary, #D1D4DC);
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    pointer-events: auto;
+}
+
+.tutorial-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.tutorial-step-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-ema, #2962FF);
+    background: rgba(41, 98, 255, 0.12);
+    border: 1px solid rgba(41, 98, 255, 0.25);
+    padding: 3px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.tutorial-close-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary, #787B86);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    line-height: 1;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tutorial-close-btn:hover {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.35);
+    transform: rotate(90deg);
+}
+
+.tutorial-close-btn:active {
+    transform: rotate(90deg) scale(0.92);
+}
+
+.tutorial-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin: 0 0 10px 0;
+}
+
+.tutorial-body {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--text-primary, #D1D4DC);
+    margin: 0 0 18px 0;
+}
+
+.tutorial-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.tutorial-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+}
+
+.tutorial-dot.active {
+    width: 20px;
+    border-radius: 4px;
+    background: var(--accent-ema, #2962FF);
+}
+
+.tutorial-dot.completed {
+    background: var(--accent-bullish, #089981);
+}
+
+.tutorial-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tutorial-skip-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #787B86);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 7px 12px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.tutorial-skip-btn:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.06);
+    text-decoration: none;
+}
+
+.tutorial-nav-group {
+    display: flex;
+    gap: 8px;
+}
+
+.tutorial-btn-prev {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color, #2A2E39);
+    color: var(--text-primary, #D1D4DC);
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tutorial-btn-prev:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+}
+
+.tutorial-btn-prev:active {
+    transform: scale(0.98);
+}
+
+.tutorial-btn-next {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #FFFFFF;
+    padding: 7px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(37, 99, 235, 0.35);
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tutorial-btn-next:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    box-shadow: 0 5px 16px rgba(37, 99, 235, 0.5);
+    transform: translateY(-1px);
+}
+
+.tutorial-btn-next:active {
+    transform: scale(0.98);
+}

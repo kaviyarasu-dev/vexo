@@ -1,0 +1,263 @@
+/* ==========================================================================
+   Interactive Chart Drawing Tools Suite Styles
+   TradingView Institutional Standard - Left Static Toolbar
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Left Vertical Static Drawing Toolbar (TradingView Institutional Standard)
+   -------------------------------------------------------------------------- */
+.chart-drawing-toolbar {
+    position: static;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 100%;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface, #151924);
+    border-right: 1px solid var(--border-color, #2A2E39);
+    border-top: none;
+    border-bottom: none;
+    border-left: none;
+    border-radius: 0;
+    padding: 8px 0 6px 0;
+    box-shadow: none;
+    user-select: none;
+    box-sizing: border-box;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.chart-drawing-toolbar .toolbar-top-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+}
+
+.chart-drawing-toolbar .toolbar-bottom-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    margin-top: auto;
+    padding-bottom: 2px;
+}
+
+.drawing-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-secondary, #94A3B8);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    box-sizing: border-box;
+}
+
+.drawing-tool-btn:hover {
+    color: var(--text-primary, #F8FAFC);
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.05);
+}
+
+.drawing-tool-btn:active {
+    transform: scale(0.96);
+}
+
+.drawing-tool-btn.active {
+    background: rgba(41, 98, 255, 0.2);
+    border-color: #2962FF;
+    color: #82B1FF;
+    box-shadow: 0 0 10px rgba(41, 98, 255, 0.4);
+}
+
+.drawing-tool-btn#btn-toggle-magnet.active {
+    background: rgba(6, 182, 212, 0.2);
+    border-color: #06B6D4;
+    color: #22D3EE;
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.drawing-tool-btn.btn-trash:hover {
+    color: #F87171;
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.toolbar-divider {
+    width: 24px;
+    height: 1px;
+    background: var(--border-color, rgba(255, 255, 255, 0.12));
+    margin: 4px 0;
+}
+
+/* Tool icon font & layout */
+.tool-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    line-height: 1;
+}
+
+/* --------------------------------------------------------------------------
+   2. SVG Drawing Canvas Overlay
+   -------------------------------------------------------------------------- */
+.chart-drawings-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 12;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.chart-drawings-svg.drawing-active {
+    pointer-events: all;
+    cursor: crosshair;
+}
+
+/* Magnet Snap Indicator */
+.magnet-snap-indicator {
+    pointer-events: none;
+    fill: #06B6D4;
+    stroke: #FFFFFF;
+    stroke-width: 1.5;
+    animation: magnetPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes magnetPulse {
+    0%, 100% { r: 4px; opacity: 1; }
+    50% { r: 6px; opacity: 0.7; }
+}
+
+/* Drawing Lines and Shapes */
+.drawing-group {
+    pointer-events: visiblePainted;
+    cursor: pointer;
+}
+
+.drawing-element {
+    pointer-events: stroke;
+    transition: stroke-width 0.15s ease;
+}
+
+.drawing-element:hover {
+    stroke-width: 3.5px !important;
+    cursor: pointer;
+}
+
+.drawing-element.selected {
+    filter: drop-shadow(0 0 6px rgba(41, 98, 255, 0.7));
+}
+
+/* Drag Handles */
+.drawing-handle {
+    pointer-events: all;
+    fill: #FFFFFF;
+    stroke: #2962FF;
+    stroke-width: 2;
+    cursor: grab;
+    transition: transform 0.15s ease;
+}
+
+.drawing-handle:hover {
+    transform: scale(1.3);
+    cursor: grabbing;
+    stroke: #82B1FF;
+}
+
+/* Fibonacci Shaded Bands */
+.fib-band {
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.fib-band.golden-pocket {
+    filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.25));
+}
+
+/* Drawing Floating Micro-Toolbar */
+.drawing-micro-toolbar {
+    position: absolute;
+    z-index: 35;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(14, 19, 31, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    padding: 4px 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.75), 0 0 1px rgba(255, 255, 255, 0.15);
+    transform: translate(-50%, -100%);
+    margin-top: -12px;
+    user-select: none;
+    pointer-events: all;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.micro-colors {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.micro-color-pill {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.micro-color-pill:hover {
+    transform: scale(1.25);
+    border-color: #FFFFFF;
+}
+
+.micro-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 2px;
+}
+
+.micro-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94A3B8;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+    transition: all 0.15s ease;
+}
+
+.micro-btn:hover {
+    color: #F8FAFC;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.micro-btn.micro-delete-btn:hover {
+    color: #F87171;
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.35);
+}
