@@ -120,8 +120,8 @@
         navigateToBacktest() {
             const strategyId = this.currentStrategy || 'strat_sma_cross';
             const inputs = this.currentInputs || {};
-            const symbol = this.currentSymbol || window.activeSymbol || 'NSE:RELIANCE-EQ';
-            const timeframe = this.currentTimeframe || window.activeTimeframe || '1D';
+            const symbol = this.currentSymbol || window.currentActiveSymbol || window.activeSymbol || 'NSE:RELIANCE-EQ';
+            const timeframe = this.currentTimeframe || window.currentSymbolTimeframe || window.activeTimeframe || '1D';
 
             console.log(`[StrategyTester] Deep Dive into Backtest Lab: strategy=${strategyId}, symbol=${symbol}, tf=${timeframe}`, inputs);
 
@@ -153,8 +153,8 @@
             console.log(`[StrategyTester] Running strategy: ${strategyId}`, customInputs);
             this.currentStrategy = strategyId;
             this.currentInputs = customInputs;
-            this.currentSymbol = window.activeSymbol || 'NSE:RELIANCE-EQ';
-            this.currentTimeframe = window.activeTimeframe || '1D';
+            this.currentSymbol = window.currentActiveSymbol || window.activeSymbol || 'NSE:RELIANCE-EQ';
+            this.currentTimeframe = window.currentSymbolTimeframe || window.activeTimeframe || '1D';
 
             // Strategy mapping to backtest service names
             const strategyMap = {
@@ -208,11 +208,12 @@
                     this.renderChartTradeMarkers(json.data.trades || []);
                 } else {
                     console.warn('[StrategyTester] Backtest response failed:', json);
-                    this.renderFallbackTrades();
+                    const errMsg = (json && (json.detail || json.message)) || 'No strategy trades generated.';
+                    this.renderEmptyOrError(errMsg);
                 }
             } catch (err) {
                 console.error('[StrategyTester] Execution error:', err);
-                this.renderFallbackTrades();
+                this.renderEmptyOrError('Execution error occurred while running backtest.');
             }
         }
 
@@ -288,50 +289,25 @@
             }
         }
 
-        renderFallbackTrades() {
-            // Synthesize visual signals on loaded candles for interactive responsiveness
-            const candles = window.allLoadedCandles || [];
-            if (candles.length < 20) return;
-
+        renderEmptyOrError(message) {
+            // Strictly zero synthetic data: Clear markers and show authentic error/empty state
             this.currentMarkers = [];
-            const step = Math.floor(candles.length / 6);
-
-            for (let i = step; i < candles.length - 2; i += step) {
-                const buyCandle = candles[i];
-                const sellCandle = candles[i + Math.floor(step / 2)];
-
-                this.currentMarkers.push({
-                    time: buyCandle.time,
-                    position: 'belowBar',
-                    color: '#089981',
-                    shape: 'arrowUp',
-                    text: 'BUY',
-                    id: `buy_${buyCandle.time}`
-                });
-
-                if (sellCandle) {
-                    this.currentMarkers.push({
-                        time: sellCandle.time,
-                        position: 'aboveBar',
-                        color: '#F23645',
-                        shape: 'arrowDown',
-                        text: 'SELL',
-                        id: `sell_${sellCandle.time}`
-                    });
-                }
-            }
-
             if (window.candleSeries) {
-                window.candleSeries.setMarkers(this.currentMarkers);
+                window.candleSeries.setMarkers([]);
+            }
+            if (window.chartPatternManager && typeof window.chartPatternManager.updateChartMarkers === 'function') {
+                window.chartPatternManager.updateChartMarkers();
             }
 
             if (this.dockEl) {
-                this.dockEl.querySelector('#kpi-net-profit').textContent = '+₹148,250';
-                this.dockEl.querySelector('#kpi-win-rate').textContent = '62.5%';
-                this.dockEl.querySelector('#kpi-profit-factor').textContent = '1.85';
-                this.dockEl.querySelector('#kpi-max-dd').textContent = '-8.4%';
-                this.dockEl.querySelector('#kpi-total-trades').textContent = '12';
-                this.dockEl.querySelector('#strategy-dock-status').textContent = '● Signal markers displayed on chart';
+                const netPnlEl = this.dockEl.querySelector('#kpi-net-profit');
+                netPnlEl.textContent = '₹0';
+                netPnlEl.style.color = '#787B86';
+                this.dockEl.querySelector('#kpi-win-rate').textContent = '0.0%';
+                this.dockEl.querySelector('#kpi-profit-factor').textContent = '0.00';
+                this.dockEl.querySelector('#kpi-max-dd').textContent = '0.0%';
+                this.dockEl.querySelector('#kpi-total-trades').textContent = '0';
+                this.dockEl.querySelector('#strategy-dock-status').textContent = `⚠️ ${message || 'No backtest trades generated'}`;
             }
         }
 

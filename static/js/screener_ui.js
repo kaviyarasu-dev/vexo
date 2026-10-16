@@ -35,9 +35,39 @@ class ScreenerUI {
         await this.loadTemplates();
         this.renderTemplateButtons();
         this.bindEvents();
+        this.loadUniverseCounts();
         // Run scan on initial template (defaults to all_stocks)
         const initial = this.currentTemplate || (this.templates[0] ? this.templates[0].id : 'all_stocks');
         this.runScan(initial);
+    }
+
+    async loadUniverseCounts() {
+        try {
+            const res = await fetch('/api/v1/backtest/portfolio/universes');
+            const json = await res.json();
+            if (json.success && Array.isArray(json.universes)) {
+                const uMap = {};
+                json.universes.forEach(u => {
+                    uMap[u.id] = u.constituent_count;
+                });
+                
+                const updateSelect = (selectId) => {
+                    const sel = document.getElementById(selectId);
+                    if (!sel) return;
+                    Array.from(sel.options).forEach(opt => {
+                        const count = uMap[opt.value];
+                        if (count !== undefined && count > 0) {
+                            const baseLabel = opt.text.split('(')[0].trim();
+                            opt.text = `${baseLabel} (${count.toLocaleString()})`;
+                        }
+                    });
+                };
+                updateSelect('screener-universe-select');
+                updateSelect('template-universe-select');
+            }
+        } catch (e) {
+            console.warn('[ScreenerUI] Could not load dynamic universe counts:', e);
+        }
     }
 
     async loadTemplates() {

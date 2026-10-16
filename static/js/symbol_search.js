@@ -8,25 +8,38 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentResults = [];
     let selectedIndex = -1;
     let debounceTimer = null;
+    let popularSymbols = [];
 
-    const DEFAULT_POPULAR_SYMBOLS = [
-        { symbol: 'NSE:RELIANCE-EQ', name: 'RELIANCE INDUSTRIES LTD', category: 'NIFTY50' },
-        { symbol: 'NSE:TCS-EQ', name: 'TATA CONSULTANCY SERVICES', category: 'NIFTY50' },
-        { symbol: 'NSE:HDFCBANK-EQ', name: 'HDFC BANK LIMITED', category: 'NIFTY50' },
-        { symbol: 'NSE:INFY-EQ', name: 'INFOSYS LIMITED', category: 'NIFTY50' },
-        { symbol: 'NSE:ICICIBANK-EQ', name: 'ICICI BANK LIMITED', category: 'NIFTY50' },
-        { symbol: 'NSE:TATAMOTORS-EQ', name: 'TATA MOTORS LIMITED', category: 'NIFTY50' }
-    ];
+    async function loadPopularSymbols() {
+        try {
+            const res = await fetch('/api/v1/symbols/popular?limit=10');
+            if (res.ok) {
+                const json = await res.json();
+                if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                    popularSymbols = json.data;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('[SymbolSearch] Could not load popular symbols from DB:', e);
+        }
+    }
 
-    function openSearch() {
+    // Pre-load authentic popular symbols from DuckDB
+    loadPopularSymbols();
+
+    async function openSearch() {
         if (!searchModal) return;
         searchModal.classList.remove('hidden');
         if (searchInput) {
             searchInput.value = '';
             searchInput.focus();
         }
-        // Show popular suggestions immediately on open
-        currentResults = DEFAULT_POPULAR_SYMBOLS;
+        if (!popularSymbols || popularSymbols.length === 0) {
+            await loadPopularSymbols();
+        }
+        // Show authentic popular suggestions from DB on open
+        currentResults = popularSymbols;
         selectedIndex = -1;
         renderResults(currentResults);
     }
@@ -73,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(debounceTimer);
 
         if (!query) {
-            currentResults = DEFAULT_POPULAR_SYMBOLS;
+            currentResults = popularSymbols;
             selectedIndex = -1;
             renderResults(currentResults);
             return;
