@@ -1,0 +1,271 @@
+{
+  "feature": "platform-automation-and-backlog",
+  "defaults": {
+    "max_attempts": 3,
+    "max_turns": 60,
+    "timeout_min": 45,
+    "idle_min": 15,
+    "model": "sonnet"
+  },
+  "full_gates_every": 5,
+  "env": {},
+  "isolate": [],
+  "setup": [],
+  "gates_each": [],
+  "full_gates": [],
+  "permissions": {
+    "deny": []
+  },
+  "final_review": true,
+  "plans": [
+    {
+      "id": "001",
+      "file": "001-daily-scheduler-sync.md",
+      "repos": ["trading-app"],
+      "depends_on": [],
+      "est_turns": 35,
+      "allowed_paths": [
+        "trading-app/services/scheduler_service.py",
+        "trading-app/services/incremental_sync_service.py",
+        "trading-app/services/trading_calendar.py",
+        "trading-app/tests/unit/test_scheduler_timing.py",
+        "trading-app/tests/integration/test_missed_run_catchup.py"
+      ],
+      "allow_extra": [],
+      "verify": [
+        ".venv/Scripts/pytest.exe tests/unit/test_scheduler_timing.py tests/integration/test_missed_run_catchup.py"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Verify scheduler cron configuration and timezone alignment",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/unit/test_scheduler_timing.py"
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Validate pre-flight authentication probe",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"from services.scheduler_service import SchedulerService; print('OK')\""
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Verify missed-run catchup logic",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/integration/test_missed_run_catchup.py"
+          ]
+        },
+        {
+          "n": 4,
+          "title": "Run automated scheduler test suite",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/unit/test_scheduler_timing.py tests/integration/test_missed_run_catchup.py"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "002",
+      "file": "002-external-data-screener.md",
+      "repos": ["trading-app"],
+      "depends_on": [],
+      "est_turns": 35,
+      "allowed_paths": [
+        "trading-app/scripts/fetch_bhavcopy_udiff.py",
+        "trading-app/services/external_data_service.py",
+        "trading-app/services/screener_service.py",
+        "trading-app/static/js/screener_ui.js",
+        "trading-app/tests/unit/test_screener_filters.py",
+        "trading-app/tests/integration/test_screener_execution.py"
+      ],
+      "allow_extra": [],
+      "verify": [
+        ".venv/Scripts/pytest.exe tests/unit/test_screener_filters.py tests/integration/test_screener_execution.py"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Wire UDiFF Bhavcopy ingestion pipeline",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"import os; assert os.path.exists('scripts/fetch_bhavcopy_udiff.py')\""
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Extend DuckDB screener query for delivery and institutional metrics",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/unit/test_screener_filters.py"
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Update screener frontend UI controls",
+          "verify": [
+            "node -c static/js/screener_ui.js"
+          ]
+        },
+        {
+          "n": 4,
+          "title": "Run automated screener test suite",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/unit/test_screener_filters.py tests/integration/test_screener_execution.py"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "003",
+      "file": "003-alert-notifiers-ui.md",
+      "repos": ["trading-app"],
+      "depends_on": [],
+      "est_turns": 35,
+      "allowed_paths": [
+        "trading-app/services/notifiers/telegram_notifier.py",
+        "trading-app/services/notifiers/email_notifier.py",
+        "trading-app/api/routers/alerts.py",
+        "trading-app/static/js/alerts_ui.js",
+        "trading-app/static/index.html",
+        "trading-app/tests/integration/test_alert_dispatcher.py"
+      ],
+      "allow_extra": [],
+      "verify": [
+        ".venv/Scripts/pytest.exe tests/integration/test_alert_dispatcher.py"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Implement Telegram notifier dispatcher",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"import os; assert os.path.exists('services/notifiers/telegram_notifier.py')\""
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Implement SMTP email notifier dispatcher",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"import os; assert os.path.exists('services/notifiers/email_notifier.py')\""
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Implement REST configuration endpoints",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"from api.routers.alerts import router; print('ALERTS ROUTER OK')\""
+          ]
+        },
+        {
+          "n": 4,
+          "title": "Add Alert Settings modal to UI",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"with open('static/index.html') as f: assert 'alert-settings-modal' in f.read()\""
+          ]
+        },
+        {
+          "n": 5,
+          "title": "Run automated alert dispatcher test suite",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/integration/test_alert_dispatcher.py"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "004",
+      "file": "004-maintenance-anomalies-drill.md",
+      "repos": ["trading-app"],
+      "depends_on": ["001"],
+      "est_turns": 35,
+      "allowed_paths": [
+        "trading-app/scripts/audit_anomalies.py",
+        "trading-app/scripts/run_backup_drill.py",
+        "trading-app/services/integrity_auditor.py",
+        "trading-app/services/scheduler_service.py",
+        "trading-app/tests/integration/test_backup_restore_drill.py",
+        "trading-app/tests/unit/test_integrity_auditor.py"
+      ],
+      "allow_extra": [],
+      "verify": [
+        ".venv/Scripts/pytest.exe tests/integration/test_backup_restore_drill.py tests/unit/test_integrity_auditor.py"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Verify DuckDB backup and restore drill execution",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/integration/test_backup_restore_drill.py"
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Verify corporate action price anomaly detection",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/unit/test_integrity_auditor.py"
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Register weekly maintenance jobs in scheduler",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"from services.scheduler_service import SchedulerService; print('SCHEDULER OK')\""
+          ]
+        },
+        {
+          "n": 4,
+          "title": "Run automated backup/restore drill test suite",
+          "verify": [
+            ".venv/Scripts/pytest.exe tests/integration/test_backup_restore_drill.py tests/unit/test_integrity_auditor.py"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "005",
+      "file": "005-m1-benchmark-verification.md",
+      "repos": ["trading-app"],
+      "depends_on": ["001", "004"],
+      "est_turns": 35,
+      "allowed_paths": [
+        "trading-app/scripts/run_m1_benchmark.py",
+        "trading-app/db/migrations.py",
+        "trading-app/db/connection.py",
+        "trading-app/artifacts/m1_benchmark_results.json"
+      ],
+      "allow_extra": [],
+      "verify": [
+        ".venv/Scripts/python.exe scripts/run_m1_benchmark.py"
+      ],
+      "steps": [
+        {
+          "n": 1,
+          "title": "Profile Gate 4 query latency bottleneck",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"import os; assert os.path.exists('scripts/run_m1_benchmark.py')\""
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Implement index and query optimization",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"import os; assert os.path.exists('scripts/run_m1_benchmark.py')\""
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Execute complete 5-gate benchmark suite",
+          "verify": [
+            ".venv/Scripts/python.exe scripts/run_m1_benchmark.py"
+          ]
+        },
+        {
+          "n": 4,
+          "title": "Validate and record benchmark artifact",
+          "verify": [
+            ".venv/Scripts/python.exe -c \"import json; data=json.load(open('artifacts/m1_benchmark_results.json')); assert data['ALL_PASSED'] is True\""
+          ]
+        }
+      ]
+    }
+  ]
+}
