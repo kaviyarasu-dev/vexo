@@ -48,7 +48,7 @@ class IndianEquityCostModel:
         stamp_duty = round(stamp_duty, 2)
         slippage = round(slippage, 2)
 
-        total = brokerage + stt + exchange_charges + sebi_fee + gst + stamp_duty + slippage
+        total = brokerage + stt + exchange_charges + sebi_fee + gst + stamp_duty
 
         return CostResult(
             brokerage=brokerage,

@@ -29,11 +29,11 @@ def get_popular_symbols(
             SymbolSummary(
                 symbol=r[0],
                 name=r[1],
-                lot_size=r[6],
+                lot_size=r[6] if r[6] is not None else 1,
                 category=r[8],
-                tier=r[9],
-                priority_rank=r[10],
-                is_active=r[12]
+                tier=r[9] if r[9] is not None else 4,
+                priority_rank=r[10] if r[10] is not None else 9999,
+                is_active=bool(r[12]) if r[12] is not None else True
             )
             for r in rows
         ]

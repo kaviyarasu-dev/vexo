@@ -248,6 +248,15 @@ SCHEMA_TABLES_DDL = {
 SCHEMA_VIEWS_DDL = {
     "candles_1d_adjusted": """
         CREATE OR REPLACE VIEW candles_1d_adjusted AS
+        WITH intervals AS (
+            SELECT 
+                symbol,
+                ex_date,
+                factor_price,
+                factor_volume,
+                LAG(ex_date) OVER (PARTITION BY symbol ORDER BY ex_date ASC) AS prev_ex_date
+            FROM adjustment_factors
+        )
         SELECT 
             c.symbol,
             c.date,
@@ -257,11 +266,22 @@ SCHEMA_VIEWS_DDL = {
             c.close * COALESCE(af.factor_price, 1.0) AS close,
             CAST(c.volume * COALESCE(af.factor_volume, 1.0) AS BIGINT) AS volume
         FROM candles_1d_raw c
-        LEFT JOIN adjustment_factors af 
-            ON c.symbol = af.symbol AND c.date <= af.ex_date;
+        LEFT JOIN intervals af 
+            ON c.symbol = af.symbol 
+           AND c.date < af.ex_date
+           AND (af.prev_ex_date IS NULL OR c.date >= af.prev_ex_date);
     """,
     "candles_1m_adjusted": """
         CREATE OR REPLACE VIEW candles_1m_adjusted AS
+        WITH intervals AS (
+            SELECT 
+                symbol,
+                ex_date,
+                factor_price,
+                factor_volume,
+                LAG(ex_date) OVER (PARTITION BY symbol ORDER BY ex_date ASC) AS prev_ex_date
+            FROM adjustment_factors
+        )
         SELECT 
             c.symbol,
             c.timestamp,
@@ -271,8 +291,10 @@ SCHEMA_VIEWS_DDL = {
             c.close * COALESCE(af.factor_price, 1.0) AS close,
             CAST(c.volume * COALESCE(af.factor_volume, 1.0) AS BIGINT) AS volume
         FROM candles_1m_raw c
-        LEFT JOIN adjustment_factors af 
-            ON c.symbol = af.symbol AND CAST(c.timestamp AS DATE) <= af.ex_date;
+        LEFT JOIN intervals af 
+            ON c.symbol = af.symbol 
+           AND CAST(c.timestamp AS DATE) < af.ex_date
+           AND (af.prev_ex_date IS NULL OR CAST(c.timestamp AS DATE) >= af.prev_ex_date);
     """,
 }
 

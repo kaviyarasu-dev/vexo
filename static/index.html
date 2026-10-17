@@ -74,6 +74,14 @@
                     <span class="live-status-text" id="live-status-text">LIVE 5s</span>
                 </div>
 
+                <!-- Real-time Predictive HUD Badge -->
+                <div class="predictive-hud neutral" id="predictive-hud" title="AI Conformal Candle Prediction (80% Quantile Envelope Coverage Q10-Q90 · Sub-10ms LightGBM Inference)">
+                    <span class="hud-pulse-dot"></span>
+                    <span class="hud-regime" id="hud-regime-label">AI: SYNCING</span>
+                    <span class="hud-dir-badge font-mono" id="hud-dir-badge">--%</span>
+                    <span class="hud-range font-mono" id="hud-range-corridor">₹-- - ₹--</span>
+                </div>
+
 
                 <div class="timeframes">
                     <button class="tf-btn" data-tf="1m">1m</button>
@@ -1538,6 +1546,7 @@
     <script src="/static/js/ux_mode_controller.js"></script>
     <script src="/static/js/chart.js?v=6"></script>
     <script src="/static/js/volume_profile_overlay.js?v=6"></script>
+    <script src="/static/js/chart_predictor_overlay.js"></script>
     <script src="/static/js/chart_studies.js?v=6"></script>
     <script src="/static/js/chart_patterns.js?v=6"></script>
     <script src="/static/js/strategy_tester_dock.js?v=6"></script>

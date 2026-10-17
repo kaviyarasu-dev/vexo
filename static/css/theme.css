@@ -343,6 +343,113 @@ body.theme-light {
     animation: livePulseGreen 0.8s infinite ease-in-out;
 }
 
+/* Real-time Predictive HUD Badge */
+.predictive-hud {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.3px;
+    user-select: none;
+    flex-shrink: 0;
+    cursor: default;
+    transition: all 0.25s ease;
+}
+
+.predictive-hud .hud-pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: #64748B;
+    box-shadow: 0 0 6px #64748B;
+}
+
+.predictive-hud .hud-regime {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.predictive-hud .hud-dir-badge {
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.predictive-hud .hud-range {
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+/* Bullish Conviction (>60%): emerald green text with glowing green border */
+.predictive-hud.bullish {
+    background: rgba(8, 153, 129, 0.12);
+    border: 1px solid rgba(8, 153, 129, 0.5);
+    color: #089981;
+    box-shadow: 0 0 10px rgba(8, 153, 129, 0.25);
+}
+.predictive-hud.bullish .hud-pulse-dot {
+    background-color: #089981;
+    box-shadow: 0 0 8px #089981;
+    animation: livePulseGreen 1.5s infinite ease-in-out;
+}
+.predictive-hud.bullish .hud-dir-badge {
+    background: rgba(8, 153, 129, 0.25);
+    color: #089981;
+}
+
+/* Bearish Conviction (>60% bearish): crimson red text with glowing red border */
+.predictive-hud.bearish {
+    background: rgba(242, 54, 69, 0.12);
+    border: 1px solid rgba(242, 54, 69, 0.5);
+    color: #F23645;
+    box-shadow: 0 0 10px rgba(242, 54, 69, 0.25);
+}
+.predictive-hud.bearish .hud-pulse-dot {
+    background-color: #F23645;
+    box-shadow: 0 0 8px #F23645;
+    animation: livePulseRed 1.2s infinite ease-in-out;
+}
+.predictive-hud.bearish .hud-dir-badge {
+    background: rgba(242, 54, 69, 0.25);
+    color: #F23645;
+}
+
+/* Neutral / Choppy badge: amber border with warning indicator */
+.predictive-hud.neutral, .predictive-hud.choppy {
+    background: rgba(245, 172, 0, 0.12);
+    border: 1px solid rgba(245, 172, 0, 0.5);
+    color: #F5AC00;
+    box-shadow: 0 0 8px rgba(245, 172, 0, 0.2);
+}
+.predictive-hud.neutral .hud-pulse-dot, .predictive-hud.choppy .hud-pulse-dot {
+    background-color: #F5AC00;
+    box-shadow: 0 0 6px #F5AC00;
+}
+.predictive-hud.neutral .hud-dir-badge, .predictive-hud.choppy .hud-dir-badge {
+    background: rgba(245, 172, 0, 0.22);
+    color: #F5AC00;
+}
+
+/* Insufficient data badge (<200 bars fallback) */
+.predictive-hud.insufficient {
+    background: rgba(100, 116, 139, 0.12);
+    border: 1px solid rgba(100, 116, 139, 0.4);
+    color: #94A3B8;
+}
+.predictive-hud.insufficient .hud-pulse-dot {
+    background-color: #94A3B8;
+    box-shadow: none;
+}
+
 /* Floating Chart Legend HUD */
 .chart-legend-overlay {
     position: absolute;
