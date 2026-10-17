@@ -44,13 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', handleResize);
     window.addEventListener('mode-changed', handleResize);
 
-    // Timeframe selector buttons
+    // Timeframe selector (modern dropdown select)
+    const tfSelect = document.getElementById('timeframe-select');
+    if (tfSelect) {
+        tfSelect.value = window.currentSymbolTimeframe || '1D';
+        tfSelect.addEventListener('change', (e) => {
+            const tf = e.target.value;
+            window.currentSymbolTimeframe = tf;
+            fetchChartData(window.currentActiveSymbol, tf);
+        });
+    }
+
+    // Timeframe selector buttons (backward compatibility)
     document.querySelectorAll('.tf-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
             e.currentTarget.classList.add('active');
             const tf = e.currentTarget.dataset.tf;
             window.currentSymbolTimeframe = tf;
+            if (tfSelect) tfSelect.value = tf;
             fetchChartData(window.currentActiveSymbol, tf);
         });
     });
@@ -427,6 +439,10 @@ function updateActiveSymbolDisplay() {
     if (legTf) legTf.textContent = tf;
 
     resetLegendToLatest();
+
+    if (window.orderBlockDashboard && typeof window.orderBlockDashboard.updateChartAlignmentBadge === 'function') {
+        window.orderBlockDashboard.updateChartAlignmentBadge(rawSym);
+    }
 }
 
 function resetLegendToLatest() {
@@ -557,6 +573,9 @@ async function loadOlderCandles() {
                 }
                 if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.requestRedraw === 'function') {
                     window.chartPredictorOverlay.requestRedraw();
+                }
+                if (window.orderBlockOverlay && typeof window.orderBlockOverlay.onChartUpdate === 'function') {
+                    window.orderBlockOverlay.onChartUpdate(window.currentActiveSymbol, window.currentSymbolTimeframe);
                 }
                 updateActiveSymbolDisplay();
             } else {
@@ -690,6 +709,12 @@ async function fetchChartData(symbol, timeframe) {
     window.currentSymbolTimeframe = timeframe || window.currentSymbolTimeframe || '1D';
     const sym = window.currentActiveSymbol;
     const tf = window.currentSymbolTimeframe;
+
+    // Sync timeframe select dropdown if present
+    const tfSelect = document.getElementById('timeframe-select');
+    if (tfSelect && tfSelect.value !== tf) {
+        tfSelect.value = tf;
+    }
 
     // Reset pagination state
     window.nextCandleCursor = null;
@@ -962,4 +987,13 @@ window.updateActiveSymbolDisplay = updateActiveSymbolDisplay;
 window.resetLegendToLatest = resetLegendToLatest;
 window.calculateVWAP = calculateVWAP;
 window.calculateEMA = calculateEMA;
+window.switchChartSymbol = function(symbol, timeframe) {
+    window.currentActiveSymbol = symbol;
+    if (timeframe) {
+        window.currentSymbolTimeframe = timeframe;
+        const tfSelect = document.getElementById('timeframe-select');
+        if (tfSelect) tfSelect.value = timeframe;
+    }
+    fetchChartData(window.currentActiveSymbol, window.currentSymbolTimeframe);
+};
 

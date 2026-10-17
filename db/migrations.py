@@ -8,7 +8,7 @@ from db.connection import get_db, DuckDBConnectionManager
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = "1.0.0"
+CURRENT_SCHEMA_VERSION = "1.1.0"
 
 # Canonical DDLs for all 9 persistent tables
 SCHEMA_TABLES_DDL = {
@@ -241,6 +241,31 @@ SCHEMA_TABLES_DDL = {
             captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (snapshot_date, underlying_symbol, expiry_date, strike_price, option_type)
         );
+    """,
+    "orderblock_snapshots": """
+        CREATE TABLE IF NOT EXISTS orderblock_snapshots (
+            snapshot_date DATE NOT NULL,
+            symbol VARCHAR NOT NULL,
+            strength_score DOUBLE NOT NULL,
+            rank INTEGER NOT NULL,
+            side VARCHAR NOT NULL,
+            is_pick BOOLEAN NOT NULL DEFAULT FALSE,
+            sector VARCHAR,
+            captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (snapshot_date, symbol, side)
+        );
+    """,
+    "volume_profile_buckets": """
+        CREATE TABLE IF NOT EXISTS volume_profile_buckets (
+            symbol VARCHAR NOT NULL,
+            trade_date DATE NOT NULL,
+            bucket_index INTEGER NOT NULL,
+            price_low DOUBLE NOT NULL,
+            price_high DOUBLE NOT NULL,
+            volume BIGINT NOT NULL DEFAULT 0,
+            last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, trade_date, bucket_index)
+        );
     """
 }
 
@@ -315,6 +340,9 @@ def init_db(db_path: Optional[str] = None, manager: Optional[DuckDBConnectionMan
         for view_name, ddl in SCHEMA_VIEWS_DDL.items():
             conn.execute(ddl)
 
+        # 3. Create secondary indices
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_volume_profile_lookup ON volume_profile_buckets (symbol, trade_date);")
+
         # 3. Check and record schema version
         row = conn.execute(
             "SELECT version FROM schema_version WHERE version = ?",
@@ -347,3 +375,17 @@ def get_current_schema_version(manager: Optional[DuckDBConnectionManager] = None
         return None
     finally:
         cursor.close()
+
+
+def run_migrations(db_path: Optional[str] = None, manager: Optional[DuckDBConnectionManager] = None) -> None:
+    """Run all schema migrations idempotently.
+    Handles active database locks gracefully if the primary database is open in a running server process.
+    """
+    try:
+        init_db(db_path=db_path, manager=manager)
+    except Exception as e:
+        msg = str(e)
+        if "Cannot open file" in msg or "database is locked" in msg.lower() or "The process cannot access the file" in msg:
+            logger.warning("Database file is currently open in an active server process. Migration will execute upon server reload.")
+            return
+        raise
