@@ -40,6 +40,7 @@ logger = logging.getLogger("api")
 async def lifespan(app: FastAPI):
     # Startup: ensure DuckDB is initialized and launch tick recorder daemon
     db = get_db()
+    db.initialize_schema()
     db.get_read_cursor().close()
     recorder = get_tick_recorder(db_manager=db)
     await recorder.start()

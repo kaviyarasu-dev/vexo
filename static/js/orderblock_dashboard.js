@@ -185,7 +185,9 @@
                     chip.addEventListener('click', () => {
                         const sym = chip.dataset.symbol;
                         const pickItem = (list || []).find(p => p.symbol === sym);
-                        if (typeof window.openOrderBlockSheet === 'function') {
+                        if (typeof window.openOrderBlockModal === 'function') {
+                            window.openOrderBlockModal(sym, pickItem || {});
+                        } else if (typeof window.openOrderBlockSheet === 'function') {
                             window.openOrderBlockSheet(sym, pickItem || {});
                         }
                     });
@@ -221,8 +223,9 @@
                     const eventBadge = item.is_event_risk ? '<span class="badge-mini text-amber ml-1" title="High Event Risk / Earnings">⚠️</span>' : '';
                     const cleanSym = item.symbol.replace('NSE:', '').replace('-EQ', '');
                     const priceFormatted = item.current_price ? `₹${Number(item.current_price).toFixed(2)}` : '--';
-                    const moveFormatted = `${item.day_move_pct >= 0 ? '+' : ''}${Number(item.day_move_pct).toFixed(2)}%`;
+                    const moveFormatted = item.day_move_formatted || `${item.day_move_pct >= 0 ? '+' : ''}${Number(item.day_move_pct).toFixed(2)}%`;
                     const moveClass = item.day_move_pct >= 0 ? 'text-green' : 'text-red';
+                    const rankDisplay = item.rank_percentile ? `${item.rank} <span class="text-cyan text-xs">(${item.rank_percentile})</span>` : item.rank;
 
                     // In-Tile 40-Bucket Volume Profile Micro-Bars & Live Price Marker
                     const summary = item.profile_summary || {};
@@ -260,7 +263,7 @@
 
                     return `
                         <tr data-symbol="${item.symbol}">
-                            <td class="font-mono font-bold">${item.rank}</td>
+                            <td class="font-mono font-bold">${rankDisplay}</td>
                             <td>${deltaHtml}${newBadge}</td>
                             <td class="font-mono font-semibold">
                                 <div>${cleanSym}${eventBadge}</div>
@@ -284,7 +287,9 @@
                         e.stopPropagation();
                         const sym = btn.dataset.symbol;
                         const item = list.find(x => x.symbol === sym);
-                        if (typeof window.openOrderBlockSheet === 'function') {
+                        if (typeof window.openOrderBlockModal === 'function') {
+                            window.openOrderBlockModal(sym, item || {});
+                        } else if (typeof window.openOrderBlockSheet === 'function') {
                             window.openOrderBlockSheet(sym, item || {});
                         }
                     });
@@ -422,6 +427,30 @@
                 const { x } = this.mapCoordinates(lbl.val, 0, width, height, padding);
                 ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
                 ctx.fillText(lbl.text, x, height - padding + 16);
+            });
+
+            // Draw White Diamond Sector Markers on the % Move Scale
+            const diamonds = (this.cachedMarketPicture && this.cachedMarketPicture.white_diamonds) || [];
+            diamonds.forEach(sec => {
+                const movePct = Number(sec.move_pct) || 0;
+                const { x } = this.mapCoordinates(movePct, 0, width, height, padding);
+                const diamondY = height - padding;
+
+                ctx.save();
+                ctx.translate(x, diamondY);
+                ctx.rotate(45 * Math.PI / 180);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(-3.5, -3.5, 7, 7);
+                ctx.restore();
+
+                // Callout label if leading or lagging sector
+                if (sec.sector === (this.cachedMarketPicture && this.cachedMarketPicture.leading_sector) ||
+                    sec.sector === (this.cachedMarketPicture && this.cachedMarketPicture.lagging_sector)) {
+                    ctx.font = 'bold 8px Inter, sans-serif';
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(sec.sector.substring(0, 6).toUpperCase(), x, diamondY - 8);
+                }
             });
 
             // Map and Render Points
@@ -565,7 +594,9 @@
 
         handleCanvasClick() {
             if (this.hoveredPoint) {
-                if (typeof window.openOrderBlockSheet === 'function') {
+                if (typeof window.openOrderBlockModal === 'function') {
+                    window.openOrderBlockModal(this.hoveredPoint.symbol, this.hoveredPoint);
+                } else if (typeof window.openOrderBlockSheet === 'function') {
                     window.openOrderBlockSheet(this.hoveredPoint.symbol, this.hoveredPoint);
                 }
             }
@@ -694,7 +725,9 @@
                 cell.addEventListener('click', (e) => {
                     const sym = cell.dataset.symbol;
                     const pt = points.find(p => p.symbol === sym);
-                    if (typeof window.openOrderBlockSheet === 'function') {
+                    if (typeof window.openOrderBlockModal === 'function') {
+                        window.openOrderBlockModal(sym, pt || {});
+                    } else if (typeof window.openOrderBlockSheet === 'function') {
                         window.openOrderBlockSheet(sym, pt || {});
                     }
                 });
@@ -845,13 +878,15 @@
             });
             popover.addEventListener('mouseleave', scheduleHide);
 
-            // Click on badge to open Quick-View Drawer
+            // Click on badge to open Centered Modal
             badge.addEventListener('click', (e) => {
                 e.stopPropagation();
                 popover.classList.add('hidden');
                 const sym = window.currentActiveSymbol || (this.currentActivePoint && this.currentActivePoint.symbol) || 'NSE:RELIANCE-EQ';
                 let pt = this.points.find(p => p.symbol === sym) || this.currentActivePoint || {};
-                if (typeof window.openOrderBlockSheet === 'function') {
+                if (typeof window.openOrderBlockModal === 'function') {
+                    window.openOrderBlockModal(sym, pt);
+                } else if (typeof window.openOrderBlockSheet === 'function') {
                     window.openOrderBlockSheet(sym, pt);
                 }
             });

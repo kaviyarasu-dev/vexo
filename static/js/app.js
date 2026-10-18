@@ -43,6 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof window.closeStudyDialog === 'function') {
                 window.closeStudyDialog();
             }
+        } else if (modal.id === 'orderblock-stock-modal') {
+            if (window.orderBlockPopupModal && typeof window.orderBlockPopupModal.closeModal === 'function') {
+                window.orderBlockPopupModal.closeModal();
+            }
         }
     }
 
@@ -102,8 +106,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
         // A. Modal Backdrop Click:
         const activeModal = e.target.closest('.modal');
-        if (activeModal && !e.target.closest('.modal-content')) {
-            if (lastMouseDownTarget && !lastMouseDownTarget.closest('.modal-content')) {
+        if (activeModal && !e.target.closest('.modal-content, .orderblock-card, .orderblock-modal-dialog')) {
+            if (lastMouseDownTarget && !lastMouseDownTarget.closest('.modal-content, .orderblock-card, .orderblock-modal-dialog')) {
                 closeModal(activeModal);
             }
         }

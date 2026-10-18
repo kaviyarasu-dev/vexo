@@ -238,6 +238,9 @@ class FyersTickRecorder:
                 bucket_volumes=db_buckets,
                 num_buckets=40,
             )
+        except Exception as e:
+            logger.debug("Error reconstructing profile bounds from volume_profile_buckets: %s", e)
+            return None
         finally:
             cursor.close()
 

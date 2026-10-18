@@ -7159,3 +7159,274 @@ body.theme-light .popover-footer-hint {
     }
 }
 
+/* OrderBlock Centered Institutional Stock Popup Modal */
+.orderblock-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(10, 14, 23, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.orderblock-modal-dialog {
+    width: 520px;
+    max-width: 95vw;
+    margin: auto;
+}
+
+.orderblock-card {
+    background: #131722;
+    border: 1px solid #2a2e39;
+    border-radius: 10px;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.85), 0 0 1px rgba(255, 255, 255, 0.12);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    animation: modalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ob-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.ob-header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ob-sym-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ob-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+}
+
+.ob-sector-badge {
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.ob-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.ob-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.ob-daymove {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.ob-header-spark {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.ob-spark-canvas {
+    width: 120px;
+    height: 42px;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+}
+
+.ob-spark-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+}
+
+.ob-close-btn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    line-height: 1;
+    margin-left: 8px;
+    transition: color 0.15s ease;
+}
+
+.ob-close-btn:hover {
+    color: #ffffff;
+}
+
+.ob-badges-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin-bottom: 12px;
+}
+
+.ob-badge-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ob-badge-lbl {
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.ob-badge-val {
+    font-size: 11px;
+}
+
+.ob-chart-container {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 12px;
+}
+
+.ob-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 11px;
+}
+
+.ob-canvas-wrap {
+    width: 100%;
+    height: 230px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#ob-candlestick-canvas {
+    width: 100%;
+    height: 230px;
+    display: block;
+}
+
+.ob-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ob-metric-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ob-metric-name {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+.ob-metric-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.ob-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 12px;
+}
+
+.ob-align-chip-wrap {
+    display: flex;
+    align-items: center;
+}
+
+.alignment-badge-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.alignment-badge-chip.edge-full {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.alignment-badge-chip.edge-half {
+    background: rgba(245, 172, 0, 0.15);
+    color: #f5ac00;
+    border: 1px solid rgba(245, 172, 0, 0.3);
+}
+
+.alignment-badge-chip.edge-pass {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.text-cyan {
+    color: #38bdf8 !important;
+}
+
+.text-gold {
+    color: #f5ac00 !important;
+}
+
+.text-accent {
+    color: #6366f1 !important;
+}
+
+.text-green {
+    color: #10b981 !important;
+}
+
+.text-red {
+    color: #ef4444 !important;
+}
+
+

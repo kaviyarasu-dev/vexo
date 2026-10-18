@@ -237,5 +237,8 @@ class VolumeProfileEngine:
                 [symbol, trade_date],
             ).fetchall()
             return {row[0]: int(row[1]) for row in rows}
+        except Exception as e:
+            logger.debug("Could not query volume_profile_buckets: %s", e)
+            return {}
         finally:
             cursor.close()

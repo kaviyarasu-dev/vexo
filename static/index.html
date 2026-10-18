@@ -1698,6 +1698,90 @@
         </div>
     </div>
 
+    <!-- 8. OrderBlock Stock Popup Modal (Centered Institutional Card) -->
+    <div id="orderblock-stock-modal" class="modal hidden orderblock-modal-backdrop">
+        <div class="orderblock-modal-dialog">
+            <div class="orderblock-card" id="ob-modal-card">
+                <!-- Card Header -->
+                <div class="ob-card-header">
+                    <div class="ob-header-main">
+                        <div class="ob-sym-row">
+                            <h3 id="ob-card-symbol" class="ob-card-title font-mono font-bold">--</h3>
+                            <span id="ob-card-sector" class="ob-sector-badge font-mono">--</span>
+                        </div>
+                        <div class="ob-price-row">
+                            <span id="ob-card-price" class="ob-price font-mono font-bold">₹--</span>
+                            <span id="ob-card-daymove" class="ob-daymove font-mono text-sm">--%</span>
+                        </div>
+                    </div>
+                    <div class="ob-header-spark">
+                        <canvas id="ob-sparkline-canvas" width="120" height="42" class="ob-spark-canvas"></canvas>
+                        <span class="ob-spark-label">Day Path</span>
+                    </div>
+                    <button id="ob-modal-close" class="close-btn ob-close-btn close-modal" type="button" title="Close (Esc)">✕</button>
+                </div>
+
+                <!-- Sub-header Badges: Rank, Conviction, Pick Rule -->
+                <div class="ob-badges-row font-mono text-xs">
+                    <div class="ob-badge-item">
+                        <span class="ob-badge-lbl text-muted">RANK</span>
+                        <span id="ob-badge-rank" class="ob-badge-val font-bold text-cyan">--</span>
+                    </div>
+                    <div class="ob-badge-item">
+                        <span class="ob-badge-lbl text-muted">CONV</span>
+                        <span id="ob-badge-conv" class="ob-badge-val font-bold text-gold">--</span>
+                    </div>
+                    <div class="ob-badge-item">
+                        <span class="ob-badge-lbl text-muted">RULE</span>
+                        <span id="ob-badge-rule" class="ob-badge-val font-bold text-green">--</span>
+                    </div>
+                </div>
+
+                <!-- Embedded 5-Minute Candlestick Chart -->
+                <div class="ob-chart-container">
+                    <div class="ob-chart-header font-mono text-xs text-muted">
+                        <span>5m Session Candles (09:20 - 15:30 IST)</span>
+                        <span id="ob-chart-vwap-tag" class="text-cyan font-bold">VWAP: ₹--</span>
+                    </div>
+                    <div class="ob-canvas-wrap">
+                        <canvas id="ob-candlestick-canvas" width="500" height="230"></canvas>
+                    </div>
+                </div>
+
+                <!-- Institutional Metric Ladders -->
+                <div class="ob-metrics-grid font-mono text-xs">
+                    <div class="ob-metric-box">
+                        <span class="ob-metric-name text-muted">Order Block (OB)</span>
+                        <span id="ob-val-block" class="ob-metric-val">₹-- - ₹--</span>
+                    </div>
+                    <div class="ob-metric-box">
+                        <span class="ob-metric-name text-muted">Zone Z / Invalidation</span>
+                        <span id="ob-val-z-inval" class="ob-metric-val text-cyan">₹-- · ₹--</span>
+                    </div>
+                    <div class="ob-metric-box">
+                        <span class="ob-metric-name text-muted">Targets (T1 / T2)</span>
+                        <span id="ob-val-targets" class="ob-metric-val text-gold">₹-- · ₹--</span>
+                    </div>
+                    <div class="ob-metric-box">
+                        <span class="ob-metric-name text-muted">Risk-to-Reward (R:R)</span>
+                        <span id="ob-val-rr" class="ob-metric-val text-accent font-bold">--</span>
+                    </div>
+                </div>
+
+                <!-- Footer Actions & 4-Point Alignment -->
+                <div class="ob-card-footer">
+                    <div class="ob-align-chip-wrap">
+                        <span class="text-xs text-muted mr-1">Alignment:</span>
+                        <span id="ob-card-align-chip" class="alignment-badge-chip font-mono text-xs">--</span>
+                    </div>
+                    <div class="ob-footer-btns">
+                        <button id="btn-ob-open-chart" class="btn-primary btn-sm" type="button">📈 Open Full Chart</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Persistent Regulatory Compliance Footer -->
     <footer id="regulatory-compliance-footer" class="compliance-footer">
         <p><strong>SEBI Statutory Disclaimer:</strong> This application is a self-directed quantitative data analysis and backtesting tool for educational and research purposes only. It does NOT constitute investment advice, financial advisory, or a recommendation to buy or sell any securities under SEBI regulations. All indicators, backtest results, and screener outputs are purely mathematical computations based on historical data. Historical performance is NOT indicative of future returns. Algorithmic trading and equity investments are subject to substantial market risk, including the loss of principal capital.</p>
@@ -1735,6 +1819,7 @@
     <script src="/static/js/chart_orderblock_overlay.js"></script>
     <script src="/static/js/orderblock_sheet.js"></script>
     <script src="/static/js/orderblock_dashboard.js"></script>
+    <script src="/static/js/orderblock_popup_modal.js"></script>
     <script src="/static/js/app.js?v=6"></script>
 </body>
 </html>
