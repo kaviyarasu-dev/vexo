@@ -151,6 +151,9 @@ if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+if os.path.exists("images"):
+    app.mount("/images", StaticFiles(directory="images"), name="images")
+
 @app.get("/config/glossary.json", include_in_schema=False)
 async def serve_config_glossary():
     if os.path.exists("config/glossary.json"):
@@ -165,6 +168,10 @@ async def serve_data_glossary():
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def serve_favicon():
+    if os.path.exists("images/icon.png"):
+        return FileResponse("images/icon.png", media_type="image/png")
+    elif os.path.exists("images/logo.png"):
+        return FileResponse("images/logo.png", media_type="image/png")
     return Response(status_code=204)
 
 @app.get("/docs.html", include_in_schema=False)

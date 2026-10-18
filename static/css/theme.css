@@ -68,6 +68,41 @@ body.theme-light {
     font-size: 16px;
 }
 
+.app-brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: transform 0.15s ease;
+}
+
+.brand-icon-img {
+    height: 28px;
+    width: 28px;
+    border-radius: 7px;
+    display: block;
+    object-fit: cover;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.brand-logo-img {
+    height: 24px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.app-brand-logo:hover .brand-icon-img {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px rgba(163, 230, 53, 0.5));
+}
+
+.app-brand-logo:hover .brand-logo-img {
+    filter: drop-shadow(0 0 8px rgba(163, 230, 53, 0.35));
+}
+
 .search-box {
     display: inline-flex;
     align-items: center;

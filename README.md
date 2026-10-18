@@ -1,12 +1,16 @@
-# ⚡ NSE Quant Platform
+<div align="center">
+  <img src="images/icon.png" alt="VEXO App Icon" width="100" style="border-radius: 22px; margin-bottom: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);"/>
+  <br/>
+  <img src="images/logo.png" alt="VEXO Logo" width="210" style="margin-bottom: 8px;"/>
+  <h1>VEXO — NSE Quant Workstation</h1>
+  <p><strong>Institutional-Grade, Local-First Quantitative Trading & Equity Research Workstation for the National Stock Exchange of India (NSE).</strong></p>
 
-> **Institutional-Grade, Local-First Quantitative Trading & Equity Research Workstation for the National Stock Exchange of India (NSE).**
-
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com)
-[![DuckDB](https://img.shields.io/badge/DuckDB-OLAP-FFF000.svg)](https://duckdb.org)
-[![TradingView Charts](https://img.shields.io/badge/TradingView-Lightweight_Charts_v4-black.svg)](https://tradingview.github.io/lightweight-charts/)
-[![SEBI Compliant](https://img.shields.io/badge/SEBI-Research_Only_(No_Algo_Orders)-orange.svg)]()
+  [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://python.org)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688.svg)](https://fastapi.tiangolo.com)
+  [![DuckDB](https://img.shields.io/badge/DuckDB-OLAP-FFF000.svg)](https://duckdb.org)
+  [![TradingView Charts](https://img.shields.io/badge/TradingView-Lightweight_Charts_v4-black.svg)](https://tradingview.github.io/lightweight-charts/)
+  [![SEBI Compliant](https://img.shields.io/badge/SEBI-Research_Only_(No_Algo_Orders)-orange.svg)]()
+</div>
 
 ---
 
