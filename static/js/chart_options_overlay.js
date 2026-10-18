@@ -20,21 +20,19 @@
         async applyOptionsStudy(studyId) {
             console.log(`[OptionsOverlay] Applying options study: ${studyId}`);
 
-            const symbol = window.activeSymbol || 'NSE:NIFTY50-INDEX';
+            const symbol = window.currentActiveSymbol || window.activeSymbol || 'NSE:NIFTY50-INDEX';
 
-            // Check if symbol is likely F&O eligible (indices or liquid equities)
-            const isFO = symbol.includes('NIFTY') ||
-                         symbol.includes('BANK') ||
-                         symbol.includes('FINNIFTY') ||
-                         symbol.includes('RELIANCE') ||
-                         symbol.includes('TCS') ||
-                         symbol.includes('INFY') ||
-                         symbol.includes('HDFC') ||
-                         symbol.includes('ICICI') ||
-                         symbol.includes('SBIN') ||
-                         symbol.includes('TATAMOTORS');
+            // Check if symbol is likely F&O eligible (indices, active F&O equities catalog, or major liquid tickers)
+            const cleanSym = symbol.replace(/^NSE:/, '').replace(/-(INDEX|EQ|FUT)$/, '');
+            const isKnownFO = Boolean(
+                (window.optionsUI && window.optionsUI.lotSizes && (window.optionsUI.lotSizes[symbol] || window.optionsUI.lotSizes[cleanSym])) ||
+                symbol.includes('INDEX') ||
+                symbol.includes('NIFTY') ||
+                symbol.includes('BANK') ||
+                ['RELIANCE', 'TCS', 'INFY', 'HDFCBANK', 'ICICIBANK', 'SBIN', 'TATAMOTORS', 'BHARTIARTL', 'KOTAKBANK', 'LT', 'AXISBANK', 'ITC'].includes(cleanSym)
+            );
 
-            if (!isFO) {
+            if (!isKnownFO) {
                 this.showToast('⚠️ Options metrics available for F&O underlying symbols only.', 'warning');
                 return;
             }

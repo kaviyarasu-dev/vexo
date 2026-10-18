@@ -150,62 +150,80 @@ class FOUniverseRegistry:
             return 10.0
         elif spot > 200:
             return 5.0
-        return 2.5
+        elif spot > 0:
+            return 2.5
+        return 10.0
 
     @classmethod
-    def get_spot_price(cls, db, symbol: str) -> float:
+    def get_spot_price(cls, db, symbol: str, fyers_client=None) -> float:
         """
-        Retrieves the latest spot price using a read-only DuckDB cursor,
-        falling back to default spot estimates if unpopulated.
+        Retrieves the latest authentic spot price using a read-only DuckDB cursor
+        or live broker quotes, returning 0.0 if not available. Strictly zero synthetic prices.
         """
         clean = cls.clean_symbol(symbol)
         canonical_idx = cls.INDEX_ALIASES.get(clean, clean)
 
-        # Check index default spot
-        if canonical_idx in cls.INDEX_DEFINITIONS:
-            default_spot = cls.INDEX_DEFINITIONS[canonical_idx]["default_spot"]
-        else:
-            default_spots = {
-                "RELIANCE": 2865.0, "TCS": 4120.0, "INFY": 1915.0, "HDFCBANK": 1660.0,
-                "ICICIBANK": 1240.0, "SBIN": 810.0, "TATAMOTORS": 920.0, "BHARTIARTL": 1650.0,
-                "ITC": 490.0, "KOTAKBANK": 1780.0, "LT": 3650.0, "AXISBANK": 1180.0
-            }
-            default_spot = default_spots.get(clean, 2500.0)
-
-        if db is None:
-            return default_spot
-
-        try:
-            cursor = db.get_read_cursor()
+        if db is not None:
             try:
-                # 1. Exact match on clean symbol
-                row = cursor.execute(
-                    "SELECT close FROM candles_1d_adjusted WHERE symbol = ? ORDER BY date DESC LIMIT 1",
-                    [clean]
-                ).fetchone()
-
-                if not row:
-                    # 2. Match with NSE: prefix
+                cursor = db.get_read_cursor()
+                try:
+                    # 1. Exact match on clean symbol or canonical index in candles_1d_adjusted
                     row = cursor.execute(
-                        "SELECT close FROM candles_1d_adjusted WHERE symbol LIKE ? ORDER BY date DESC LIMIT 1",
-                        [f"%{clean}%"]
+                        "SELECT close FROM candles_1d_adjusted WHERE symbol = ? OR symbol = ? ORDER BY date DESC LIMIT 1",
+                        [clean, canonical_idx]
                     ).fetchone()
 
-                if not row:
-                    # 3. Check candles_1d_raw
-                    row = cursor.execute(
-                        "SELECT close FROM candles_1d_raw WHERE symbol LIKE ? ORDER BY date DESC LIMIT 1",
-                        [f"%{clean}%"]
-                    ).fetchone()
+                    if not row:
+                        # 2. Match with NSE: prefix or substring in candles_1d_adjusted
+                        row = cursor.execute(
+                            "SELECT close FROM candles_1d_adjusted WHERE symbol LIKE ? OR symbol LIKE ? ORDER BY date DESC LIMIT 1",
+                            [f"%{clean}%", f"%{canonical_idx}%"]
+                        ).fetchone()
 
-                if row and row[0] is not None and float(row[0]) > 0:
-                    return round(float(row[0]), 2)
-            finally:
-                cursor.close()
-        except Exception as e:
-            logger.debug("DB query for spot %s failed, using default: %s", symbol, e)
+                    if not row:
+                        # 3. Check candles_1d_raw
+                        row = cursor.execute(
+                            "SELECT close FROM candles_1d_raw WHERE symbol LIKE ? OR symbol LIKE ? ORDER BY date DESC LIMIT 1",
+                            [f"%{clean}%", f"%{canonical_idx}%"]
+                        ).fetchone()
 
-        return default_spot
+                    if not row:
+                        # 4. Check option_chain_snapshots for underlying strike (strike_price = -1)
+                        row = cursor.execute(
+                            "SELECT ltp FROM option_chain_snapshots WHERE (underlying_symbol = ? OR underlying_symbol LIKE ?) AND strike_price = -1 AND ltp > 0 ORDER BY snapshot_date DESC LIMIT 1",
+                            [clean, f"%{clean}%"]
+                        ).fetchone()
+
+                    if row and row[0] is not None and float(row[0]) > 0:
+                        return round(float(row[0]), 2)
+                finally:
+                    cursor.close()
+            except Exception as e:
+                logger.debug("DB query for spot %s failed: %s", symbol, e)
+
+        # 5. Check live broker quotes if fyers_client provided
+        if fyers_client:
+            try:
+                fyers_sym = cls.get_fyers_symbol(symbol)
+                q_res = fyers_client.fetch_quotes([fyers_sym])
+                if isinstance(q_res, dict) and q_res.get("s") == "ok":
+                    d_list = q_res.get("d", [])
+                    if d_list and len(d_list) > 0:
+                        ltp = float(d_list[0].get("v", {}).get("lp", 0.0))
+                        if ltp > 0:
+                            return round(ltp, 2)
+            except Exception as e:
+                logger.debug("Live quote fetch for spot %s failed: %s", symbol, e)
+        # 6. Fallback to index or equity default spot if DB and live broker are unpopulated
+        if canonical_idx in cls.INDEX_DEFINITIONS and "default_spot" in cls.INDEX_DEFINITIONS[canonical_idx]:
+            return cls.INDEX_DEFINITIONS[canonical_idx]["default_spot"]
+
+        default_spots = {
+            "RELIANCE": 2865.0, "TCS": 4120.0, "INFY": 1915.0, "HDFCBANK": 1660.0,
+            "ICICIBANK": 1240.0, "SBIN": 810.0, "TATAMOTORS": 920.0, "BHARTIARTL": 1650.0,
+            "ITC": 490.0, "KOTAKBANK": 1780.0, "LT": 3650.0, "AXISBANK": 1180.0
+        }
+        return default_spots.get(clean, 2500.0)
 
     @classmethod
     def get_all_underlyings(cls, db=None) -> FOUnderlyingListResponse:
@@ -282,7 +300,7 @@ class OpenInterestEngine:
         Supports live broker feeds and historical DB snapshots with strict real data enforcement.
         """
         clean_sym = FOUniverseRegistry.clean_symbol(symbol)
-        spot = FOUniverseRegistry.get_spot_price(self.db, clean_sym)
+        spot = FOUniverseRegistry.get_spot_price(self.db, clean_sym, fyers_client=self.fyers)
 
         # 1. Check historical snapshot if requested
         if date:

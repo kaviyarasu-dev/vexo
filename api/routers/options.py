@@ -40,44 +40,8 @@ def format_response(data: dict):
     }
 
 def _get_spot_for_symbol(db, symbol: str) -> float:
-    """Retrieves the latest spot price from DB or sensible market defaults."""
-    clean_sym = symbol.strip()
-    cursor = db.get_read_cursor()
-    try:
-        row = cursor.execute(
-            "SELECT close FROM candles_1d_adjusted WHERE symbol = ? ORDER BY date DESC LIMIT 1",
-            [clean_sym]
-        ).fetchone()
-        if not row and ":" in clean_sym:
-            bare = clean_sym.split(":")[1].split("-")[0]
-            row = cursor.execute(
-                "SELECT close FROM candles_1d_adjusted WHERE symbol LIKE ? ORDER BY date DESC LIMIT 1",
-                [f"%{bare}%"]
-            ).fetchone()
-        if row and row[0] is not None and float(row[0]) > 0:
-            return round(float(row[0]), 2)
-    except Exception:
-        pass
-    finally:
-        cursor.close()
-
-    default_spots = {
-        "NIFTY50": 25050.0,
-        "NIFTYBANK": 51200.0,
-        "FINNIFTY": 23400.0,
-        "MIDCPNIFTY": 13100.0,
-        "RELIANCE": 2865.0,
-        "TCS": 4120.0,
-        "INFY": 1915.0,
-        "HDFCBANK": 1660.0,
-        "ICICIBANK": 1240.0,
-        "SBIN": 810.0,
-        "TATAMOTORS": 920.0
-    }
-    for k, v in default_spots.items():
-        if k in clean_sym:
-            return v
-    return 2500.0
+    """Retrieves authentic spot price from DuckDB adjusted/raw candles, snapshots, or live Fyers quotes."""
+    return FOUniverseRegistry.get_spot_price(db, symbol, fyers_client=fyers)
 
 
 def _cache_option_chain_to_db(db, symbol: str, expiry_date: str, records: list):

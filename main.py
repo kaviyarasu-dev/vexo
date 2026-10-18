@@ -9,11 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
+from contextlib import asynccontextmanager
 from core.logging_config import RedactingFormatter
 from core.security import OrderExecutionGateMiddleware, order_gate_router
-from api.routers import health, symbols, candles, export, system, screener, alerts, options, journal, backtest, auth, studies, volume_profile, patterns, paper_trading, chart_drawings
+from api.routers import health, symbols, candles, export, system, screener, alerts, options, journal, backtest, auth, studies, volume_profile, patterns, paper_trading, chart_drawings, predictions, orderblock
 from api.models.envelope import ApiResponse
 from db.connection import DuckDBConnectionManager, get_db
+from services.orderblock.tick_recorder import get_tick_recorder
 
 import contextvars
 correlation_id_var = contextvars.ContextVar("correlation_id", default="SYSTEM")
@@ -33,7 +35,22 @@ logging.getLogger().handlers = [handler]
 
 logger = logging.getLogger("api")
 
-app = FastAPI(title="NSE Quant Platform API", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: ensure DuckDB is initialized and launch tick recorder daemon
+    db = get_db()
+    db.get_read_cursor().close()
+    recorder = get_tick_recorder(db_manager=db)
+    await recorder.start()
+    yield
+    # Shutdown: stop tick recorder and release database connection
+    await recorder.stop()
+    db = get_db()
+    db.close()
+
+
+app = FastAPI(title="NSE Quant Platform API", version="1.0.0", lifespan=lifespan)
 
 # Institutional Compliance: Order Execution Hard Gate Middleware
 app.add_middleware(OrderExecutionGateMiddleware)
@@ -105,18 +122,6 @@ async def general_exception_handler(request: Request, exc: Exception):
         correlation_id=correlation_id
     )
     return JSONResponse(status_code=500, content=envelope.model_dump())
-
-@app.on_event("startup")
-def on_startup():
-    db = get_db()
-    # Ensure DB is initialized
-    db.get_read_cursor().close()
-
-@app.on_event("shutdown")
-def on_shutdown():
-    db = get_db()
-    db.close()
-
 app.include_router(health.router)
 app.include_router(symbols.router)
 app.include_router(candles.router)
@@ -133,6 +138,8 @@ app.include_router(patterns.router)
 app.include_router(studies.router)
 app.include_router(paper_trading.router)
 app.include_router(chart_drawings.router)
+app.include_router(predictions.router)
+app.include_router(orderblock.router)
 app.include_router(order_gate_router)
 
 import os

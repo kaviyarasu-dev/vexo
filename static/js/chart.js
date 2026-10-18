@@ -44,13 +44,25 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', handleResize);
     window.addEventListener('mode-changed', handleResize);
 
-    // Timeframe selector buttons
+    // Timeframe selector (modern dropdown select)
+    const tfSelect = document.getElementById('timeframe-select');
+    if (tfSelect) {
+        tfSelect.value = window.currentSymbolTimeframe || '1D';
+        tfSelect.addEventListener('change', (e) => {
+            const tf = e.target.value;
+            window.currentSymbolTimeframe = tf;
+            fetchChartData(window.currentActiveSymbol, tf);
+        });
+    }
+
+    // Timeframe selector buttons (backward compatibility)
     document.querySelectorAll('.tf-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
             e.currentTarget.classList.add('active');
             const tf = e.currentTarget.dataset.tf;
             window.currentSymbolTimeframe = tf;
+            if (tfSelect) tfSelect.value = tf;
             fetchChartData(window.currentActiveSymbol, tf);
         });
     });
@@ -178,6 +190,9 @@ function initCharts() {
             if (window.chartDrawingManager && typeof window.chartDrawingManager.requestRender === 'function') {
                 window.chartDrawingManager.requestRender();
             }
+            if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.requestRedraw === 'function') {
+                window.chartPredictorOverlay.requestRedraw();
+            }
             if (newRange.from < 20 && window.nextCandleCursor && !window.isLoadingMoreCandles) {
                 loadOlderCandles();
             }
@@ -246,6 +261,10 @@ function handleResize() {
     }
     if (window.chartDrawingManager && typeof window.chartDrawingManager.handleResize === 'function') {
         window.chartDrawingManager.handleResize();
+    }
+    if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.handleResize === 'function') {
+        window.chartPredictorOverlay.handleResize();
+        window.chartPredictorOverlay.requestRedraw();
     }
 }
 
@@ -420,6 +439,10 @@ function updateActiveSymbolDisplay() {
     if (legTf) legTf.textContent = tf;
 
     resetLegendToLatest();
+
+    if (window.orderBlockDashboard && typeof window.orderBlockDashboard.updateChartAlignmentBadge === 'function') {
+        window.orderBlockDashboard.updateChartAlignmentBadge(rawSym);
+    }
 }
 
 function resetLegendToLatest() {
@@ -548,6 +571,12 @@ async function loadOlderCandles() {
                 if (window.chartOptionsOverlay && typeof window.chartOptionsOverlay.recalculateAll === 'function') {
                     window.chartOptionsOverlay.recalculateAll();
                 }
+                if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.requestRedraw === 'function') {
+                    window.chartPredictorOverlay.requestRedraw();
+                }
+                if (window.orderBlockOverlay && typeof window.orderBlockOverlay.onChartUpdate === 'function') {
+                    window.orderBlockOverlay.onChartUpdate(window.currentActiveSymbol, window.currentSymbolTimeframe);
+                }
                 updateActiveSymbolDisplay();
             } else {
                 window.nextCandleCursor = null; // Reached end of historical data
@@ -646,9 +675,15 @@ function startLiveCandlePolling(sym, tf) {
                             if (window.allLoadedVolumes && window.allLoadedVolumes.length > 0) {
                                 window.allLoadedVolumes[window.allLoadedVolumes.length - 1] = updatedVolume;
                             }
+                            if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.requestRedraw === 'function') {
+                                window.chartPredictorOverlay.requestRedraw();
+                            }
                         } else if (t > window.allLoadedCandles[lastIdx].time) {
                             window.allLoadedCandles.push(updatedCandle);
                             if (window.allLoadedVolumes) window.allLoadedVolumes.push(updatedVolume);
+                            if (typeof window.fetchPredictionForCurrentChart === 'function') {
+                                window.fetchPredictionForCurrentChart();
+                            }
                         }
                     }
 
@@ -674,6 +709,12 @@ async function fetchChartData(symbol, timeframe) {
     window.currentSymbolTimeframe = timeframe || window.currentSymbolTimeframe || '1D';
     const sym = window.currentActiveSymbol;
     const tf = window.currentSymbolTimeframe;
+
+    // Sync timeframe select dropdown if present
+    const tfSelect = document.getElementById('timeframe-select');
+    if (tfSelect && tfSelect.value !== tf) {
+        tfSelect.value = tf;
+    }
 
     // Reset pagination state
     window.nextCandleCursor = null;
@@ -762,6 +803,7 @@ async function fetchChartData(symbol, timeframe) {
                         }
                         updateActiveSymbolDisplay();
                         handleResize();
+                        fetchPredictionForCurrentChart();
 
                         // Handle Auth Status Banners
                         const isAuthRequired = (data.data.auth_status === 'AUTH_REQUIRED');
@@ -824,6 +866,111 @@ async function fetchChartData(symbol, timeframe) {
     handleResize();
 }
 
+async function fetchPredictionForCurrentChart() {
+    const sym = window.currentActiveSymbol || 'NSE:RELIANCE-EQ';
+    const tf = window.currentSymbolTimeframe || '1D';
+
+    const hudEl = document.getElementById('predictive-hud');
+    const regimeEl = document.getElementById('hud-regime-label');
+    const dirEl = document.getElementById('hud-dir-badge');
+    const rangeEl = document.getElementById('hud-range-corridor');
+
+    // Handle graceful fallback for assets with sparse data (< 200 bars)
+    if (!window.allLoadedCandles || window.allLoadedCandles.length < 200) {
+        if (hudEl) {
+            hudEl.className = 'predictive-hud insufficient';
+            hudEl.title = 'Status: Insufficient Data (< 200 bars) · Rendering Classical ATR(14) Corridor Fallback';
+        }
+        if (regimeEl) regimeEl.textContent = 'Status: Insufficient Data (< 200 bars)';
+        if (dirEl) dirEl.textContent = 'ATR';
+        if (rangeEl) rangeEl.textContent = '';
+
+        // Compute Classical ATR(14) fallback envelope
+        if (window.allLoadedCandles && window.allLoadedCandles.length >= 15) {
+            const candles = window.allLoadedCandles;
+            const period = 14;
+            let trSum = 0;
+            for (let i = candles.length - period; i < candles.length; i++) {
+                const c = candles[i];
+                const prev = candles[i - 1];
+                const tr = Math.max(c.high - c.low, Math.abs(c.high - prev.close), Math.abs(c.low - prev.close));
+                trSum += tr;
+            }
+            const atr = trSum / period;
+            const lastClose = candles[candles.length - 1].close;
+            const upper = lastClose + 1.5 * atr;
+            const lower = Math.max(0, lastClose - 1.5 * atr);
+
+            if (rangeEl) rangeEl.textContent = `₹${lower.toFixed(2)} - ₹${upper.toFixed(2)}`;
+
+            if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.updateFallback === 'function') {
+                window.chartPredictorOverlay.updateFallback({
+                    upper: upper,
+                    median: lastClose,
+                    lower: lower,
+                    atr: atr
+                });
+            }
+        } else if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.clear === 'function') {
+            window.chartPredictorOverlay.clear();
+        }
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/api/v1/predict/candle?symbol=${encodeURIComponent(sym)}&timeframe=${encodeURIComponent(tf)}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const resJson = await resp.json();
+        if (!resJson || !resJson.success || !resJson.data) throw new Error("Invalid prediction response");
+
+        const pred = resJson.data;
+        const dirProb = pred.directional_prob != null ? pred.directional_prob : 0.50;
+        const isBullish = pred.is_bullish ?? (dirProb >= 0.50);
+        const probPct = Math.round(dirProb * 100);
+
+        if (hudEl) {
+            hudEl.className = 'predictive-hud';
+            if (dirProb > 0.60) {
+                hudEl.classList.add('bullish');
+            } else if (dirProb < 0.40) {
+                hudEl.classList.add('bearish');
+            } else {
+                hudEl.classList.add('neutral');
+            }
+            hudEl.title = `AI Conformal Prediction · Direction: ${isBullish ? 'Bullish' : 'Bearish'} (${probPct}%) · 80% Coverage Corridor: ₹${pred.low_10} - ₹${pred.high_90} · Latency: ${pred.inference_latency_ms}ms`;
+        }
+
+        if (regimeEl) {
+            regimeEl.textContent = `AI: ${pred.regime_label || 'ACTIVE'}`;
+        }
+
+        if (dirEl) {
+            const arrow = dirProb >= 0.50 ? '▲' : '▼';
+            dirEl.textContent = `${arrow} ${probPct}%`;
+        }
+
+        if (rangeEl) {
+            rangeEl.textContent = `₹${pred.low_10} - ₹${pred.high_90}`;
+        }
+
+        if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.update === 'function') {
+            window.chartPredictorOverlay.update(pred);
+        }
+    } catch (e) {
+        console.warn("[Chart] Prediction fetch error:", e);
+        if (hudEl) {
+            hudEl.className = 'predictive-hud insufficient';
+            hudEl.title = 'Status: Insufficient Data (< 200 bars) · Rendering Classical ATR(14) Corridor Fallback';
+        }
+        if (regimeEl) regimeEl.textContent = 'Status: Insufficient Data (< 200 bars)';
+        if (dirEl) dirEl.textContent = '--%';
+        if (rangeEl) rangeEl.textContent = '';
+        if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.clear === 'function') {
+            window.chartPredictorOverlay.clear();
+        }
+    }
+}
+
 // Auto-resume chart catch-up after user logs in or validates token in Auth Status popup
 window.addEventListener('fyersAuthSucceeded', () => {
     console.log('[Chart] fyersAuthSucceeded received. Catching up live market data...');
@@ -831,6 +978,7 @@ window.addEventListener('fyersAuthSucceeded', () => {
 });
 
 window.fetchChartData = fetchChartData;
+window.fetchPredictionForCurrentChart = fetchPredictionForCurrentChart;
 window.startLiveCandlePolling = startLiveCandlePolling;
 window.stopLiveCandlePolling = stopLiveCandlePolling;
 window.updateLiveStatusBadge = updateLiveStatusBadge;
@@ -839,4 +987,13 @@ window.updateActiveSymbolDisplay = updateActiveSymbolDisplay;
 window.resetLegendToLatest = resetLegendToLatest;
 window.calculateVWAP = calculateVWAP;
 window.calculateEMA = calculateEMA;
+window.switchChartSymbol = function(symbol, timeframe) {
+    window.currentActiveSymbol = symbol;
+    if (timeframe) {
+        window.currentSymbolTimeframe = timeframe;
+        const tfSelect = document.getElementById('timeframe-select');
+        if (tfSelect) tfSelect.value = timeframe;
+    }
+    fetchChartData(window.currentActiveSymbol, window.currentSymbolTimeframe);
+};
 

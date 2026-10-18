@@ -179,7 +179,7 @@ def run_gate_4_duckdb_scaling():
     
     db.execute("""
         INSERT INTO candles_1m_raw (symbol, timestamp, open, high, low, close, volume)
-        SELECT * FROM _dedup_1m;
+        SELECT * FROM _dedup_1m ORDER BY timestamp;
     """)
     insert_duration = time.time() - start_time
     rows_per_sec = num_rows / insert_duration

@@ -8,8 +8,9 @@ logger = logging.getLogger(__name__)
 @router.get("/api/v1/health")
 def health_check():
     # As per 00A table: {"status": "healthy", "duckdb_connected": true, "auth_valid": true}
-    # For now returning a mock with correlation_id
     from db.connection import get_db
+    from services.auth_service import AuthService
+
     try:
         db = get_db()
         cursor = db.get_read_cursor()
@@ -19,10 +20,21 @@ def health_check():
     except Exception:
         db_connected = False
 
+    auth_valid = False
+    try:
+        auth_service = AuthService()
+        token_status = auth_service.get_token_status()
+        auth_valid = bool(token_status.get("is_valid", False))
+    except Exception as exc:
+        logger.debug("Auth status check in health endpoint: %s", exc)
+        auth_valid = False
+
+    status = "healthy" if (db_connected and auth_valid) else ("degraded" if db_connected else "unhealthy")
+
     data = {
-        "status": "healthy" if db_connected else "degraded",
+        "status": status,
         "duckdb_connected": db_connected,
-        "auth_valid": True  # mock for now
+        "auth_valid": auth_valid
     }
     return ApiResponse.success_response(data=data, correlation_id="req-health-001")
 

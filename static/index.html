@@ -35,6 +35,7 @@
                 <!-- Navigation Tabs -->
                 <nav class="view-tabs" id="main-view-tabs">
                     <button class="view-tab active" data-view="chart">📈 Chart</button>
+                    <button class="view-tab" data-view="orderblock">🏛️ OrderBlock</button>
                     <button class="view-tab" data-view="screener">🔍 Screener</button>
                     <button class="view-tab" data-view="options">⚡ Options & Greeks</button>
                     <button class="view-tab" data-view="backtest">🧪 Backtest</button>
@@ -74,19 +75,56 @@
                     <span class="live-status-text" id="live-status-text">LIVE 5s</span>
                 </div>
 
+                <!-- Real-time Predictive HUD Badge -->
+                <div class="predictive-hud neutral" id="predictive-hud" title="AI Conformal Candle Prediction (80% Quantile Envelope Coverage Q10-Q90 · Sub-10ms LightGBM Inference)">
+                    <span class="hud-pulse-dot"></span>
+                    <span class="hud-regime" id="hud-regime-label">AI: SYNCING</span>
+                    <span class="hud-dir-badge font-mono" id="hud-dir-badge">--%</span>
+                    <span class="hud-range font-mono" id="hud-range-corridor">₹-- - ₹--</span>
+                </div>
+                <div class="alignment-badge-wrap" id="chart-alignment-wrap">
+                    <div class="alignment-badge-chip font-mono" id="chart-alignment-badge" title="4-Point Institutional Alignment · Click for SMC Drawer">
+                        4/4 Full Edge
+                    </div>
+                    <!-- 4-Point Institutional Alignment Hover Popover Card -->
+                    <div class="alignment-popover-card hidden" id="chart-alignment-popover" role="tooltip">
+                        <div class="popover-header">
+                            <span class="popover-title font-mono" id="popover-symbol-title">--</span>
+                            <span class="popover-score-badge font-mono" id="popover-score-badge">--/4</span>
+                        </div>
+                        <div class="popover-checklist" id="popover-checklist">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                        <div class="popover-advice-banner" id="popover-advice-banner">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                        <div class="popover-footer-hint">
+                            <span>💡 Click badge to open SMC Levels Drawer</span>
+                        </div>
+                    </div>
+                </div>
 
-                <div class="timeframes">
-                    <button class="tf-btn" data-tf="1m">1m</button>
-                    <button class="tf-btn" data-tf="3m">3m</button>
-                    <button class="tf-btn" data-tf="5m">5m</button>
-                    <button class="tf-btn" data-tf="10m">10m</button>
-                    <button class="tf-btn" data-tf="15m">15m</button>
-                    <button class="tf-btn" data-tf="30m">30m</button>
-                    <button class="tf-btn" data-tf="1h">1h</button>
-                    <button class="tf-btn" data-tf="2h">2h</button>
-                    <button class="tf-btn" data-tf="4h">4h</button>
-                    <button class="tf-btn active" data-tf="1D">1D</button>
-                    <button class="tf-btn" data-tf="1W">1W</button>
+
+                <div class="timeframe-select-wrap" title="Chart Timeframe">
+                    <select id="timeframe-select" class="timeframe-select" aria-label="Chart Timeframe">
+                        <optgroup label="Minutes">
+                            <option value="1m">1m</option>
+                            <option value="3m">3m</option>
+                            <option value="5m">5m</option>
+                            <option value="10m">10m</option>
+                            <option value="15m">15m</option>
+                            <option value="30m">30m</option>
+                        </optgroup>
+                        <optgroup label="Hours">
+                            <option value="1h">1h</option>
+                            <option value="2h">2h</option>
+                            <option value="4h">4h</option>
+                        </optgroup>
+                        <optgroup label="Days / Weeks">
+                            <option value="1D" selected>1D</option>
+                            <option value="1W">1W</option>
+                        </optgroup>
+                    </select>
                 </div>
                 <div class="studies-trigger-wrap">
                     <button id="btn-open-studies" class="tv-studies-btn" title="Indicators, metrics, and strategies (fx)">
@@ -362,10 +400,10 @@
                     <div class="screener-universe-wrap" style="display:flex; align-items:center; gap:8px;">
                         <span class="bar-label">Universe:</span>
                         <select id="screener-universe-select" class="form-control form-select font-mono" style="padding:6px 10px; font-size:12px; height:34px; border-radius:6px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--border-color); font-weight:600; cursor:pointer;" aria-label="Select Screener Universe">
-                            <option value="ALL" selected>All Stocks (100)</option>
-                            <option value="NIFTY50">NIFTY 50 (50)</option>
-                            <option value="NIFTYNEXT50">NIFTY NEXT 50 (50)</option>
-                            <option value="NIFTY500">NIFTY 500 (100)</option>
+                            <option value="ALL" selected>All Active Stocks</option>
+                            <option value="NIFTY50">NIFTY 50</option>
+                            <option value="NIFTYNEXT50">NIFTY NEXT 50</option>
+                            <option value="NIFTY500">NIFTY 500</option>
                         </select>
                     </div>
                     <div class="screener-actions-wrap" style="display:flex; align-items:center; gap:8px;">
@@ -891,6 +929,138 @@
                 </div>
             </div>
         </div>
+
+        <!-- VIEW 6: OrderBlock SMC & Institutional Workstation -->
+        <div id="view-orderblock" class="app-view hidden">
+            <div class="view-container" id="orderblock-view">
+                <div class="view-header">
+                    <div>
+                        <h2>🏛️ OrderBlock Institutional Suite</h2>
+                        <p class="view-subtitle">Real-time Intraday One-Directional Strength, Top 20 Boards, 5m Order Blocks, Market X-Ray & Sector Flow.</p>
+                    </div>
+                    <div class="orderblock-top-actions">
+                        <button id="btn-orderblock-refresh" class="btn-secondary" title="Refresh OrderBlock snapshot">🔄 Refresh</button>
+                        <span id="orderblock-auto-refresh-badge" class="badge-mini font-mono">Live 60s</span>
+                    </div>
+                </div>
+
+                <!-- Top Breadth Bar -->
+                <div id="orderblock-breadth" class="orderblock-breadth-card mb-4">
+                    <div class="breadth-header">
+                        <span class="breadth-title font-bold">NSE F&O Market Breadth</span>
+                        <span id="breadth-summary-text" class="font-mono text-sm">-- Advances (0.0%) · -- Declines</span>
+                    </div>
+                    <div class="breadth-bar-track">
+                        <div id="breadth-bar-advances" class="breadth-bar-fill green" style="width: 50%;"></div>
+                        <div id="breadth-bar-declines" class="breadth-bar-fill red" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <!-- Top Picks Bar -->
+                <div class="orderblock-picks-bar mb-4" id="orderblock-picks-bar">
+                    <div class="picks-column bullish">
+                        <div class="picks-header">
+                            <span class="picks-title text-green font-bold">🟢 Top 3 Bullish Picks (Max 2/Sector)</span>
+                        </div>
+                        <div id="bullish-picks-container" class="picks-chips-container">
+                            <span class="text-muted text-sm">Loading picks...</span>
+                        </div>
+                    </div>
+                    <div class="picks-column bearish">
+                        <div class="picks-header">
+                            <span class="picks-title text-red font-bold">🔴 Top 3 Bearish Picks (Max 2/Sector)</span>
+                        </div>
+                        <div id="bearish-picks-container" class="picks-chips-container">
+                            <span class="text-muted text-sm">Loading picks...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Market Context Suite: X-Ray & Sector Flow -->
+                <div class="orderblock-context-grid mb-4">
+                    <!-- Market X-Ray Scatter Plot -->
+                    <div class="card xray-card">
+                        <div class="card-header-flex">
+                            <h4>🔬 Market X-Ray (% Move vs Strength)</h4>
+                            <span class="badge-mini">200 F&O Equities · 40 Contenders Halos</span>
+                        </div>
+                        <p class="text-muted text-xs mb-2">Y-axis: Intraday Strength (0-5) · X-axis: Day Move (-6% to +6%) · Cyan/Gold: Contenders · Pulsing: Picks</p>
+                        <div class="xray-canvas-wrap">
+                            <canvas id="market-xray-canvas" width="600" height="320"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Sector Flow Participation Panel -->
+                    <div class="card sector-flow-card">
+                        <div class="card-header-flex">
+                            <h4>🌊 Sector Flow & Institutional Participation</h4>
+                            <span class="badge-mini">Ranked by Net Flow</span>
+                        </div>
+                        <p class="text-muted text-xs mb-2">Constituent equity heat-cells show participation breadth (green = bull strength, red = bear strength).</p>
+                        <div id="sector-flow-container" class="sector-flow-list">
+                            <span class="text-muted text-sm">Loading sector flow...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top 20 Boards Two-Column Layout -->
+                <div class="orderblock-boards-grid">
+                    <!-- Bullish Top 20 -->
+                    <div class="card board-card bullish">
+                        <div class="card-header-flex">
+                            <h3 class="text-green">🟢 Top 20 Bullish Board</h3>
+                            <span class="badge-pill bg-green-subtle">Strength > 2x Drop</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table orderblock-table" id="table-bullish-board">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Δ</th>
+                                        <th>Symbol</th>
+                                        <th>Sector</th>
+                                        <th>LTP</th>
+                                        <th>Move %</th>
+                                        <th>Score</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-bullish-board">
+                                    <tr><td colspan="8" class="text-center text-muted">Loading bullish board...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Bearish Top 20 -->
+                    <div class="card board-card bearish">
+                        <div class="card-header-flex">
+                            <h3 class="text-red">🔴 Top 20 Bearish Board</h3>
+                            <span class="badge-pill bg-red-subtle">Drop > 2x Rise</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table orderblock-table" id="table-bearish-board">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Δ</th>
+                                        <th>Symbol</th>
+                                        <th>Sector</th>
+                                        <th>LTP</th>
+                                        <th>Move %</th>
+                                        <th>Score</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-bearish-board">
+                                    <tr><td colspan="8" class="text-center text-muted">Loading bearish board...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Modals and Drawers -->
@@ -1016,9 +1186,9 @@
                     <div class="form-group flex-1">
                         <label for="template-universe-select" class="form-label">Stock Universe</label>
                         <select id="template-universe-select" class="form-control form-select">
-                            <option value="ALL">All NSE (2,581)</option>
-                            <option value="NIFTY500" selected>Nifty 500</option>
-                            <option value="NIFTY50">Nifty 50</option>
+                            <option value="ALL">All Active Stocks</option>
+                            <option value="NIFTY500" selected>NIFTY 500</option>
+                            <option value="NIFTY50">NIFTY 50</option>
                         </select>
                     </div>
                 </div>
@@ -1538,6 +1708,7 @@
     <script src="/static/js/ux_mode_controller.js"></script>
     <script src="/static/js/chart.js?v=6"></script>
     <script src="/static/js/volume_profile_overlay.js?v=6"></script>
+    <script src="/static/js/chart_predictor_overlay.js"></script>
     <script src="/static/js/chart_studies.js?v=6"></script>
     <script src="/static/js/chart_patterns.js?v=6"></script>
     <script src="/static/js/strategy_tester_dock.js?v=6"></script>
@@ -1561,6 +1732,9 @@
     <script src="/static/js/download_progress.js"></script>
     <script src="/static/js/glossary_tooltip.js"></script>
     <script src="/static/js/guided_tutorial.js"></script>
+    <script src="/static/js/chart_orderblock_overlay.js"></script>
+    <script src="/static/js/orderblock_sheet.js"></script>
+    <script src="/static/js/orderblock_dashboard.js"></script>
     <script src="/static/js/app.js?v=6"></script>
 </body>
 </html>

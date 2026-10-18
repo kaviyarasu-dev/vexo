@@ -33,48 +33,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateTelemetry(data) {
-        statusEl.textContent = data.status || "Running";
+        statusEl.textContent = data.status || "Idle";
         if (data.progress_pct !== undefined) {
             progressEl.value = data.progress_pct;
         }
-        speedEl.textContent = data.speed || "--";
-        quotaEl.textContent = data.quota_used || "--";
+        speedEl.textContent = data.speed !== undefined ? data.speed : "--";
+        quotaEl.textContent = data.quota_used !== undefined ? data.quota_used : "--";
         currentSymbolEl.textContent = data.current_symbol || "None";
     }
 
+    function disconnectSSE() {
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+    }
+
     document.getElementById('btn-downloader')?.addEventListener('click', () => {
-        // Mock connection setup or use real one
-        // connectSSE();
-        mockSSE();
+        connectSSE();
     });
 
-    function mockSSE() {
-        statusEl.textContent = "Downloading";
-        progressEl.value = 45;
-        speedEl.textContent = "178";
-        quotaEl.textContent = "39,500";
-        currentSymbolEl.textContent = "NSE:TCS-EQ (2018-2019)";
-    }
+    document.getElementById('close-drawer')?.addEventListener('click', disconnectSSE);
+    document.getElementById('drawer-backdrop')?.addEventListener('click', disconnectSSE);
 
     document.getElementById('dl-pause')?.addEventListener('click', async () => {
         try {
-            await fetch('/api/v1/system/downloader/control', {
+            const res = await fetch('/api/v1/system/downloader/control', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'pause' })
             });
-            statusEl.textContent = "Paused";
-        } catch (e) {}
+            const json = await res.json();
+            if (json.success) {
+                statusEl.textContent = "Paused";
+            }
+        } catch (e) {
+            console.error("Downloader pause request failed", e);
+        }
     });
 
     document.getElementById('dl-resume')?.addEventListener('click', async () => {
         try {
-            await fetch('/api/v1/system/downloader/control', {
+            const res = await fetch('/api/v1/system/downloader/control', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'resume' })
             });
-            statusEl.textContent = "Resuming...";
-        } catch (e) {}
+            const json = await res.json();
+            if (json.success) {
+                statusEl.textContent = "Resuming...";
+            }
+        } catch (e) {
+            console.error("Downloader resume request failed", e);
+        }
     });
 });

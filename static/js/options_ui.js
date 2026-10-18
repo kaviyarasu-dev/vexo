@@ -6,7 +6,7 @@
 class OptionsUI {
     constructor() {
         this.activeSymbol = 'NSE:NIFTY50-INDEX';
-        this.currentSpot = 25050;
+        this.currentSpot = 0;
         this.matrix = [];
         this.maxPainData = null;
         this.strategyLegs = [];
@@ -15,24 +15,48 @@ class OptionsUI {
         this.expandedStrikes = new Set();
         this.toastTimeout = null;
 
-        this.lotSizes = {
-            'NSE:NIFTY50-INDEX': 25,
-            'NSE:NIFTYBANK-INDEX': 15,
-            'NSE:FINNIFTY-INDEX': 25,
-            'NSE:RELIANCE-EQ': 250,
-            'NSE:TCS-EQ': 175,
-            'NSE:INFY-EQ': 400,
-            'NSE:HDFCBANK-EQ': 550
-        };
+        // Dynamic lot size catalog populated from /api/v1/options/underlyings
+        this.lotSizes = {};
     }
 
-    init() {
+    async init() {
         this.bindEvents();
+        await this.loadLotSizes();
         this.loadOptionsData(this.activeSymbol, true);
     }
 
+    async loadLotSizes() {
+        try {
+            const res = await fetch('/api/v1/options/underlyings');
+            const json = await res.json();
+            if (json.success && json.data) {
+                const catalog = json.data;
+                (catalog.indices || []).forEach(idx => {
+                    const sym = idx.symbol;
+                    this.lotSizes[sym] = idx.lot_size;
+                    this.lotSizes[`NSE:${sym}-INDEX`] = idx.lot_size;
+                    if (sym === 'NIFTY') this.lotSizes['NSE:NIFTY50-INDEX'] = idx.lot_size;
+                    if (sym === 'BANKNIFTY') this.lotSizes['NSE:NIFTYBANK-INDEX'] = idx.lot_size;
+                });
+                (catalog.equities || []).forEach(eq => {
+                    const sym = eq.symbol;
+                    this.lotSizes[sym] = eq.lot_size;
+                    this.lotSizes[`NSE:${sym}-EQ`] = eq.lot_size;
+                });
+            }
+        } catch (e) {
+            console.warn('[OptionsUI] Failed to load dynamic lot sizes from /api/v1/options/underlyings:', e);
+        }
+    }
+
     getLotSize(symbol) {
-        return this.lotSizes[symbol] || 50;
+        if (!symbol) return 25;
+        if (this.lotSizes[symbol]) return this.lotSizes[symbol];
+        const clean = symbol.replace(/^NSE:/, '').replace(/-(INDEX|EQ|FUT)$/, '');
+        if (this.lotSizes[clean]) return this.lotSizes[clean];
+        if (this.lotSizes[`NSE:${clean}-EQ`]) return this.lotSizes[`NSE:${clean}-EQ`];
+        if (this.lotSizes[`NSE:${clean}-INDEX`]) return this.lotSizes[`NSE:${clean}-INDEX`];
+        return 25;
     }
 
     bindEvents() {
@@ -846,6 +870,7 @@ class OptionsUI {
                 </td>
                 <td>
                     <input type="number" class="leg-input leg-premium" data-idx="${idx}" value="${leg.premium}" step="0.05" style="width: 85px;">
+                    ${leg.unquoted ? '<span style="font-size:10px; color:#eab308; display:block;" title="No authentic trade volume or quote for this strike">⚠️ Unquoted</span>' : ''}
                 </td>
                 <td>
                     <input type="number" class="leg-input leg-qty" data-idx="${idx}" value="${leg.quantity || 1}" min="1" style="width: 60px;">
@@ -950,43 +975,44 @@ class OptionsUI {
                     closest = row;
                 }
             }
-            if (!closest) return { strike: targetStrike, premium: 10.0, iv: 15.0 };
+            if (!closest) return { strike: targetStrike, premium: 0.0, iv: 0.0, unquoted: true };
             const opt = optType === 'CE' ? closest.call : closest.put;
-            const prem = (opt && opt.ltp > 0) ? opt.ltp : 10.0;
-            const iv = (opt && opt.iv > 0) ? opt.iv : 15.0;
-            return { strike: closest.strike_price, premium: prem, iv: iv };
+            const hasQuote = Boolean(opt && typeof opt.ltp === 'number' && opt.ltp > 0);
+            const prem = hasQuote ? opt.ltp : 0.0;
+            const iv = (opt && typeof opt.iv === 'number' && opt.iv > 0) ? opt.iv : 0.0;
+            return { strike: closest.strike_price, premium: prem, iv: iv, unquoted: !hasQuote };
         };
 
         if (preset === 'long_call') {
             const l = findLeg(atm, 'CE');
             this.strategyLegs = [
-                { strike: l.strike, option_type: 'CE', position: 'LONG', premium: l.premium, quantity: 1, iv: l.iv }
+                { strike: l.strike, option_type: 'CE', position: 'LONG', premium: l.premium, quantity: 1, iv: l.iv, unquoted: l.unquoted }
             ];
         } else if (preset === 'long_put') {
             const l = findLeg(atm, 'PE');
             this.strategyLegs = [
-                { strike: l.strike, option_type: 'PE', position: 'LONG', premium: l.premium, quantity: 1, iv: l.iv }
+                { strike: l.strike, option_type: 'PE', position: 'LONG', premium: l.premium, quantity: 1, iv: l.iv, unquoted: l.unquoted }
             ];
         } else if (preset === 'bull_call') {
             const l1 = findLeg(atm, 'CE');
             const l2 = findLeg(atm + step * 2, 'CE');
             this.strategyLegs = [
-                { strike: l1.strike, option_type: 'CE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv },
-                { strike: l2.strike, option_type: 'CE', position: 'SHORT', premium: l2.premium, quantity: 1, iv: l2.iv }
+                { strike: l1.strike, option_type: 'CE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv, unquoted: l1.unquoted },
+                { strike: l2.strike, option_type: 'CE', position: 'SHORT', premium: l2.premium, quantity: 1, iv: l2.iv, unquoted: l2.unquoted }
             ];
         } else if (preset === 'bear_put') {
             const l1 = findLeg(atm, 'PE');
             const l2 = findLeg(atm - step * 2, 'PE');
             this.strategyLegs = [
-                { strike: l1.strike, option_type: 'PE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv },
-                { strike: l2.strike, option_type: 'PE', position: 'SHORT', premium: l2.premium, quantity: 1, iv: l2.iv }
+                { strike: l1.strike, option_type: 'PE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv, unquoted: l1.unquoted },
+                { strike: l2.strike, option_type: 'PE', position: 'SHORT', premium: l2.premium, quantity: 1, iv: l2.iv, unquoted: l2.unquoted }
             ];
         } else if (preset === 'straddle') {
             const l1 = findLeg(atm, 'CE');
             const l2 = findLeg(atm, 'PE');
             this.strategyLegs = [
-                { strike: l1.strike, option_type: 'CE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv },
-                { strike: l2.strike, option_type: 'PE', position: 'LONG', premium: l2.premium, quantity: 1, iv: l2.iv }
+                { strike: l1.strike, option_type: 'CE', position: 'LONG', premium: l1.premium, quantity: 1, iv: l1.iv, unquoted: l1.unquoted },
+                { strike: l2.strike, option_type: 'PE', position: 'LONG', premium: l2.premium, quantity: 1, iv: l2.iv, unquoted: l2.unquoted }
             ];
         } else if (preset === 'iron_condor') {
             const cShort = findLeg(atm + step, 'CE');
@@ -994,10 +1020,10 @@ class OptionsUI {
             const pShort = findLeg(atm - step, 'PE');
             const pLong = findLeg(atm - step * 3, 'PE');
             this.strategyLegs = [
-                { strike: cShort.strike, option_type: 'CE', position: 'SHORT', premium: cShort.premium, quantity: 1, iv: cShort.iv },
-                { strike: cLong.strike, option_type: 'CE', position: 'LONG', premium: cLong.premium, quantity: 1, iv: cLong.iv },
-                { strike: pShort.strike, option_type: 'PE', position: 'SHORT', premium: pShort.premium, quantity: 1, iv: pShort.iv },
-                { strike: pLong.strike, option_type: 'PE', position: 'LONG', premium: pLong.premium, quantity: 1, iv: pLong.iv }
+                { strike: cShort.strike, option_type: 'CE', position: 'SHORT', premium: cShort.premium, quantity: 1, iv: cShort.iv, unquoted: cShort.unquoted },
+                { strike: cLong.strike, option_type: 'CE', position: 'LONG', premium: cLong.premium, quantity: 1, iv: cLong.iv, unquoted: cLong.unquoted },
+                { strike: pShort.strike, option_type: 'PE', position: 'SHORT', premium: pShort.premium, quantity: 1, iv: pShort.iv, unquoted: pShort.unquoted },
+                { strike: pLong.strike, option_type: 'PE', position: 'LONG', premium: pLong.premium, quantity: 1, iv: pLong.iv, unquoted: pLong.unquoted }
             ];
         }
 

@@ -5,11 +5,11 @@ from datetime import date, datetime
 class SymbolSummary(BaseModel):
     symbol: str
     name: str
-    lot_size: int
+    lot_size: int = 1
     category: Optional[str] = None
-    tier: int
-    priority_rank: int
-    is_active: bool
+    tier: int = 4
+    priority_rank: int = 9999
+    is_active: bool = True
 
 class SymbolDetail(SymbolSummary):
     isin: Optional[str] = None

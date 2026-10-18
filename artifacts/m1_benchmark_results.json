@@ -38,10 +38,10 @@
     "passed": true,
     "metrics": {
       "rows_inserted": 10000000,
-      "insert_duration_sec": 3.5880534648895264,
-      "rows_per_sec": 2787026.4748989446,
-      "query_latency_ms": 32.25064277648926,
-      "bytes_per_candle": 12.2179415
+      "insert_duration_sec": 4.103020906448364,
+      "rows_per_sec": 2437228.6244712677,
+      "query_latency_ms": 27.4507999420166,
+      "bytes_per_candle": 12.2179396
     }
   },
   "GATE_5": {
@@ -49,8 +49,8 @@
     "name": "Empirical Disk Size Gate",
     "passed": true,
     "metrics": {
-      "measured_bytes_per_candle": 12.2179415,
-      "projected_nifty500_gb": 2.66691673459718
+      "measured_bytes_per_candle": 12.2179396,
+      "projected_nifty500_gb": 2.666916319867596
     }
   },
   "ALL_PASSED": true

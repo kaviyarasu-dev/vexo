@@ -8,7 +8,7 @@ from db.connection import get_db, DuckDBConnectionManager
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = "1.0.0"
+CURRENT_SCHEMA_VERSION = "1.1.0"
 
 # Canonical DDLs for all 9 persistent tables
 SCHEMA_TABLES_DDL = {
@@ -241,6 +241,31 @@ SCHEMA_TABLES_DDL = {
             captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (snapshot_date, underlying_symbol, expiry_date, strike_price, option_type)
         );
+    """,
+    "orderblock_snapshots": """
+        CREATE TABLE IF NOT EXISTS orderblock_snapshots (
+            snapshot_date DATE NOT NULL,
+            symbol VARCHAR NOT NULL,
+            strength_score DOUBLE NOT NULL,
+            rank INTEGER NOT NULL,
+            side VARCHAR NOT NULL,
+            is_pick BOOLEAN NOT NULL DEFAULT FALSE,
+            sector VARCHAR,
+            captured_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (snapshot_date, symbol, side)
+        );
+    """,
+    "volume_profile_buckets": """
+        CREATE TABLE IF NOT EXISTS volume_profile_buckets (
+            symbol VARCHAR NOT NULL,
+            trade_date DATE NOT NULL,
+            bucket_index INTEGER NOT NULL,
+            price_low DOUBLE NOT NULL,
+            price_high DOUBLE NOT NULL,
+            volume BIGINT NOT NULL DEFAULT 0,
+            last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (symbol, trade_date, bucket_index)
+        );
     """
 }
 
@@ -248,6 +273,15 @@ SCHEMA_TABLES_DDL = {
 SCHEMA_VIEWS_DDL = {
     "candles_1d_adjusted": """
         CREATE OR REPLACE VIEW candles_1d_adjusted AS
+        WITH intervals AS (
+            SELECT 
+                symbol,
+                ex_date,
+                factor_price,
+                factor_volume,
+                LAG(ex_date) OVER (PARTITION BY symbol ORDER BY ex_date ASC) AS prev_ex_date
+            FROM adjustment_factors
+        )
         SELECT 
             c.symbol,
             c.date,
@@ -257,11 +291,22 @@ SCHEMA_VIEWS_DDL = {
             c.close * COALESCE(af.factor_price, 1.0) AS close,
             CAST(c.volume * COALESCE(af.factor_volume, 1.0) AS BIGINT) AS volume
         FROM candles_1d_raw c
-        LEFT JOIN adjustment_factors af 
-            ON c.symbol = af.symbol AND c.date <= af.ex_date;
+        LEFT JOIN intervals af 
+            ON c.symbol = af.symbol 
+           AND c.date < af.ex_date
+           AND (af.prev_ex_date IS NULL OR c.date >= af.prev_ex_date);
     """,
     "candles_1m_adjusted": """
         CREATE OR REPLACE VIEW candles_1m_adjusted AS
+        WITH intervals AS (
+            SELECT 
+                symbol,
+                ex_date,
+                factor_price,
+                factor_volume,
+                LAG(ex_date) OVER (PARTITION BY symbol ORDER BY ex_date ASC) AS prev_ex_date
+            FROM adjustment_factors
+        )
         SELECT 
             c.symbol,
             c.timestamp,
@@ -271,8 +316,10 @@ SCHEMA_VIEWS_DDL = {
             c.close * COALESCE(af.factor_price, 1.0) AS close,
             CAST(c.volume * COALESCE(af.factor_volume, 1.0) AS BIGINT) AS volume
         FROM candles_1m_raw c
-        LEFT JOIN adjustment_factors af 
-            ON c.symbol = af.symbol AND CAST(c.timestamp AS DATE) <= af.ex_date;
+        LEFT JOIN intervals af 
+            ON c.symbol = af.symbol 
+           AND CAST(c.timestamp AS DATE) < af.ex_date
+           AND (af.prev_ex_date IS NULL OR CAST(c.timestamp AS DATE) >= af.prev_ex_date);
     """,
 }
 
@@ -292,6 +339,9 @@ def init_db(db_path: Optional[str] = None, manager: Optional[DuckDBConnectionMan
         # 2. Create dynamic views
         for view_name, ddl in SCHEMA_VIEWS_DDL.items():
             conn.execute(ddl)
+
+        # 3. Create secondary indices
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_volume_profile_lookup ON volume_profile_buckets (symbol, trade_date);")
 
         # 3. Check and record schema version
         row = conn.execute(
@@ -325,3 +375,17 @@ def get_current_schema_version(manager: Optional[DuckDBConnectionManager] = None
         return None
     finally:
         cursor.close()
+
+
+def run_migrations(db_path: Optional[str] = None, manager: Optional[DuckDBConnectionManager] = None) -> None:
+    """Run all schema migrations idempotently.
+    Handles active database locks gracefully if the primary database is open in a running server process.
+    """
+    try:
+        init_db(db_path=db_path, manager=manager)
+    except Exception as e:
+        msg = str(e)
+        if "Cannot open file" in msg or "database is locked" in msg.lower() or "The process cannot access the file" in msg:
+            logger.warning("Database file is currently open in an active server process. Migration will execute upon server reload.")
+            return
+        raise
