@@ -141,8 +141,9 @@
             const prevX = timeScale.timeToCoordinate(prevCandle.time);
             const barSpacing = (prevX !== null && !isNaN(prevX)) ? Math.max(6, Math.abs(x0 - prevX)) : 14;
 
-            // Project 1.5 to 2.5 bars into future
-            const x1 = Math.min(w - 75, x0 + barSpacing * this.config.projectionBars);
+            // Project 1.5 to 2.5 bars into future with clearance for probability tags
+            const maxTagWidth = 195;
+            const x1 = Math.min(w - maxTagWidth, x0 + barSpacing * this.config.projectionBars);
             if (x1 <= x0) return;
 
             if (this.isFallback && this.fallbackData) {
@@ -230,10 +231,34 @@
             this.ctx.arc(x1, yMedian, 3.5, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // 6. Right-Edge Pill Tags
-            const tagLabelUpper = isAtrFallback ? `+ATR ₹${upperPrice.toFixed(2)}` : `Q90 ₹${upperPrice.toFixed(2)}`;
-            const tagLabelLower = isAtrFallback ? `-ATR ₹${lowerPrice.toFixed(2)}` : `Q10 ₹${lowerPrice.toFixed(2)}`;
-            const tagLabelMed = isAtrFallback ? `BASE ₹${medianPrice.toFixed(2)}` : `Q50 ₹${medianPrice.toFixed(2)}`;
+            // 6. Right-Edge Pill Tags with % Change + 3-Way Directional Probability Badges
+            const curClose = this.prediction ? Number(this.prediction.current_close) : null;
+            const fmtPctChg = (targetPrice) => {
+                if (!curClose || curClose === 0 || isNaN(curClose)) return '';
+                const pct = ((targetPrice - curClose) / curClose) * 100;
+                const sign = pct >= 0 ? '+' : '';
+                return ` (${sign}${pct.toFixed(2)}%)`;
+            };
+
+            let tagLabelUpper = isAtrFallback ? `+ATR ₹${upperPrice.toFixed(2)}` : `Q90 ₹${upperPrice.toFixed(2)}${fmtPctChg(upperPrice)}`;
+            let tagLabelLower = isAtrFallback ? `-ATR ₹${lowerPrice.toFixed(2)}` : `Q10 ₹${lowerPrice.toFixed(2)}${fmtPctChg(lowerPrice)}`;
+            let tagLabelMed = isAtrFallback ? `BASE ₹${medianPrice.toFixed(2)}` : `Q50 ₹${medianPrice.toFixed(2)}${fmtPctChg(medianPrice)}`;
+
+            if (!isAtrFallback && this.prediction) {
+                const pUp = this.prediction.prob_up != null ? Math.round(this.prediction.prob_up * 100) : null;
+                const pChop = this.prediction.prob_neutral != null ? Math.round(this.prediction.prob_neutral * 100) : null;
+                const pDown = this.prediction.prob_down != null ? Math.round(this.prediction.prob_down * 100) : null;
+
+                if (pUp !== null) {
+                    tagLabelUpper += ` · ▲ ${pUp}%`;
+                }
+                if (pChop !== null) {
+                    tagLabelMed += ` · ▶ ${pChop}%`;
+                }
+                if (pDown !== null) {
+                    tagLabelLower += ` · ▼ ${pDown}%`;
+                }
+            }
 
             this.drawTag(tagLabelUpper, x1 + 4, yUpper, isAtrFallback ? '#94A3B8' : this.config.upperColor);
             this.drawTag(tagLabelMed, x1 + 4, yMedian, isAtrFallback ? '#E2E8F0' : this.config.medianColor);
@@ -245,10 +270,10 @@
         drawTag(text, x, y, color) {
             this.ctx.font = '10px "Roboto Mono", monospace';
             const textWidth = this.ctx.measureText(text).width;
-            const padX = 4;
-            const h = 14;
+            const padX = 5;
+            const h = 15;
 
-            this.ctx.fillStyle = 'rgba(15, 20, 31, 0.85)';
+            this.ctx.fillStyle = 'rgba(11, 15, 25, 0.90)';
             this.ctx.strokeStyle = color;
             this.ctx.lineWidth = 1;
             this.ctx.setLineDash([]);

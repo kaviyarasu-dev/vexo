@@ -928,16 +928,22 @@ async function fetchPredictionForCurrentChart() {
         const isBullish = pred.is_bullish ?? (dirProb >= 0.50);
         const probPct = Math.round(dirProb * 100);
 
+        const has3Way = pred.prob_up != null && pred.prob_neutral != null && pred.prob_down != null;
+        const pUp = has3Way ? Math.round(pred.prob_up * 100) : probPct;
+        const pChop = has3Way ? Math.round(pred.prob_neutral * 100) : 0;
+        const pDown = has3Way ? Math.round(pred.prob_down * 100) : (100 - probPct);
+        const domDir = pred.dominant_direction || (isBullish ? 'BULLISH' : 'BEARISH');
+
         if (hudEl) {
             hudEl.className = 'predictive-hud';
-            if (dirProb > 0.60) {
+            if (domDir === 'BULLISH') {
                 hudEl.classList.add('bullish');
-            } else if (dirProb < 0.40) {
+            } else if (domDir === 'BEARISH') {
                 hudEl.classList.add('bearish');
             } else {
                 hudEl.classList.add('neutral');
             }
-            hudEl.title = `AI Conformal Prediction · Direction: ${isBullish ? 'Bullish' : 'Bearish'} (${probPct}%) · 80% Coverage Corridor: ₹${pred.low_10} - ₹${pred.high_90} · Latency: ${pred.inference_latency_ms}ms`;
+            hudEl.title = `AI Conformal Prediction · Direction: ${domDir} (UP: ${pUp}%, CHOP: ${pChop}%, DOWN: ${pDown}%) · 80% Coverage Corridor: ₹${pred.low_10} - ₹${pred.high_90} · Latency: ${pred.inference_latency_ms}ms`;
         }
 
         if (regimeEl) {
@@ -945,12 +951,25 @@ async function fetchPredictionForCurrentChart() {
         }
 
         if (dirEl) {
-            const arrow = dirProb >= 0.50 ? '▲' : '▼';
-            dirEl.textContent = `${arrow} ${probPct}%`;
+            if (has3Way) {
+                dirEl.innerHTML = `<span style="color:#089981">▲ ${pUp}%</span> · <span style="color:#94a3b8">▶ ${pChop}%</span> · <span style="color:#f23645">▼ ${pDown}%</span>`;
+            } else {
+                const arrow = dirProb >= 0.50 ? '▲' : '▼';
+                dirEl.textContent = `${arrow} ${probPct}%`;
+            }
         }
 
         if (rangeEl) {
-            rangeEl.textContent = `₹${pred.low_10} - ₹${pred.high_90}`;
+            const cc = pred.current_close;
+            if (cc && cc > 0) {
+                const lowPct = (((pred.low_10 - cc) / cc) * 100).toFixed(2);
+                const highPct = (((pred.high_90 - cc) / cc) * 100).toFixed(2);
+                const lowSign = lowPct >= 0 ? '+' : '';
+                const highSign = highPct >= 0 ? '+' : '';
+                rangeEl.textContent = `₹${pred.low_10} (${lowSign}${lowPct}%) – ₹${pred.high_90} (${highSign}${highPct}%)`;
+            } else {
+                rangeEl.textContent = `₹${pred.low_10} - ₹${pred.high_90}`;
+            }
         }
 
         if (window.chartPredictorOverlay && typeof window.chartPredictorOverlay.update === 'function') {

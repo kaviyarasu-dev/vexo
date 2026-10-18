@@ -32,6 +32,10 @@ class CandlePredictionResult:
     confidence: float
     expected_range_pts: float
     inference_latency_ms: float
+    prob_up: float = 0.50
+    prob_neutral: float = 0.0
+    prob_down: float = 0.50
+    dominant_direction: str = "BULLISH"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -64,13 +68,16 @@ class LightGBMCandlePredictor:
         self.is_fitted: bool = False
 
     def train(self, df: pd.DataFrame) -> Dict[str, float]:
-        """Train quantile regressors and directional classifier on historical OHLCV data.
+        """Train quantile regressors and 3-class directional classifier on historical OHLCV data.
         
         Targets:
             - target_high_pct = (High_{t+1} - Close_t) / Close_t
             - target_close_pct = (Close_{t+1} - Close_t) / Close_t
             - target_low_pct = (Low_{t+1} - Close_t) / Close_t
-            - target_dir = 1 if Close_{t+1} > Open_{t+1} else 0
+            - target_dir (Triple Barrier):
+                Class 2 (UP): Delta > +0.20 * ATR
+                Class 1 (SIDEWAYS/CHOP): -0.20 * ATR <= Delta <= +0.20 * ATR
+                Class 0 (DOWN): Delta < -0.20 * ATR
         """
         feats = self.feature_extractor.extract_features(df, dropna=False)
         
@@ -83,7 +90,21 @@ class LightGBMCandlePredictor:
         target_high_pct = ((h.shift(-1) - c) / c)
         target_close_pct = ((c.shift(-1) - c) / c)
         target_low_pct = ((l.shift(-1) - c) / c)
-        target_dir = (c.shift(-1) > o.shift(-1)).astype(int)
+        
+        # 3-Class Dynamic Volatility Barrier (Triple Barrier Method)
+        tr1 = h - l
+        tr2 = (h - c.shift(1)).abs()
+        tr3 = (l - c.shift(1)).abs()
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        atr_window = min(14, len(df))
+        atr_series = tr.rolling(window=atr_window, min_periods=1).mean().bfill()
+        
+        threshold = 0.20 * atr_series
+        future_delta = c.shift(-1) - c
+        
+        target_dir = pd.Series(1, index=df.index, dtype=int)
+        target_dir[future_delta > threshold] = 2
+        target_dir[future_delta < -threshold] = 0
         
         data = feats.copy()
         data["target_high"] = target_high_pct
@@ -99,9 +120,9 @@ class LightGBMCandlePredictor:
         
         # Lightweight CPU hyperparameters for sub-10ms inference
         lgb_params = {
-            "n_estimators": 50,
-            "max_depth": 4,
-            "num_leaves": 15,
+            "n_estimators": 25,
+            "max_depth": 3,
+            "num_leaves": 8,
             "learning_rate": 0.05,
             "subsample": 0.8,
             "colsample_bytree": 0.8,
@@ -122,9 +143,23 @@ class LightGBMCandlePredictor:
         self.model_q90 = lgb.LGBMRegressor(objective="quantile", alpha=0.90, **lgb_params)
         self.model_q90.fit(X, data["target_high"])
         
-        # 4. Directional classifier
-        self.model_dir_cls = lgb.LGBMClassifier(objective="binary", **lgb_params)
-        self.model_dir_cls.fit(X, data["target_dir"])
+        # 4. 3-Class Directional classifier (Down=0, Sideways=1, Up=2)
+        unique_classes = np.unique(data["target_dir"])
+        if len(unique_classes) >= 3:
+            cls_params = dict(lgb_params)
+            cls_params["objective"] = "multiclass"
+            cls_params["num_class"] = 3
+            cls_params["class_weight"] = "balanced"
+            self.model_dir_cls = lgb.LGBMClassifier(**cls_params)
+            self.model_dir_cls.fit(X, data["target_dir"])
+            accuracy = float(self.model_dir_cls.score(X, data["target_dir"]))
+        else:
+            cls_params = dict(lgb_params)
+            cls_params["objective"] = "binary"
+            self.model_dir_cls = lgb.LGBMClassifier(**cls_params)
+            binary_dir = (data["target_close"] > 0).astype(int)
+            self.model_dir_cls.fit(X, binary_dir)
+            accuracy = float(self.model_dir_cls.score(X, binary_dir))
         
         self.is_fitted = True
         
@@ -136,7 +171,7 @@ class LightGBMCandlePredictor:
         return {
             "samples": float(len(data)),
             "coverage_80pct": float(coverage),
-            "dir_train_accuracy": float(self.model_dir_cls.score(X, data["target_dir"]))
+            "dir_train_accuracy": accuracy
         }
 
     def _extract_inference_features(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -194,7 +229,7 @@ class LightGBMCandlePredictor:
         
         # 7. Fractionally Differentiated Close Price
         from services.ai.stationarity import fractional_differentiation
-        fd_series = fractional_differentiation(pd.Series(c), d=self.feature_extractor.frac_diff_d)
+        fd_series = fractional_differentiation(pd.Series(c[-35:]), d=self.feature_extractor.frac_diff_d)
         val_fd = fd_series.iloc[-1]
         frac_diff_close = float(val_fd) if not np.isnan(val_fd) else 0.0
         
@@ -260,14 +295,35 @@ class LightGBMCandlePredictor:
         high_90 = max(raw_low, raw_close, raw_high)
         close_50 = np.clip(raw_close, low_10, high_90)
         
-        # Directional Probability P(Close_{t+1} > Open_{t+1})
+        # 3-Way Directional Probability (Down=0, Neutral=1, Up=2)
         probs = self.model_dir_cls.predict_proba(latest_features)[0]
-        prob_bullish = float(probs[1]) if len(probs) > 1 else 0.50
-        
-        # Confidence metric derived from directional conviction and envelope spread
-        confidence = float(np.clip(abs(prob_bullish - 0.50) * 2.0 * 100.0, 10.0, 95.0))
+        if len(probs) >= 3:
+            prob_down = float(probs[0])
+            prob_neutral = float(probs[1])
+            prob_up = float(probs[2])
+            
+            dominant_idx = int(np.argmax(probs))
+            dominant_map = {0: "BEARISH", 1: "SIDEWAYS", 2: "BULLISH"}
+            dominant_direction = dominant_map.get(dominant_idx, "SIDEWAYS")
+            is_bullish = dominant_idx == 2 or (prob_up > prob_down)
+            
+            # directional_prob retained for backward compatibility
+            prob_bullish = prob_up
+            
+            # Confidence metric: divergence from uniform distribution (1/3, 1/3, 1/3)
+            max_prob = max(prob_up, prob_neutral, prob_down)
+            confidence = float(np.clip((max_prob - 0.333) / 0.667 * 100.0, 10.0, 95.0))
+        else:
+            # Fallback for binary classifier
+            prob_bullish = float(probs[1]) if len(probs) > 1 else 0.50
+            prob_up = prob_bullish
+            prob_down = 1.0 - prob_bullish
+            prob_neutral = 0.0
+            is_bullish = prob_bullish >= 0.50
+            dominant_direction = "BULLISH" if is_bullish else "BEARISH"
+            confidence = float(np.clip(abs(prob_bullish - 0.50) * 2.0 * 100.0, 10.0, 95.0))
+            
         expected_range = float(high_90 - low_10)
-        
         latency_ms = (time.perf_counter() - start_time) * 1000.0
         
         return CandlePredictionResult(
@@ -278,10 +334,14 @@ class LightGBMCandlePredictor:
             close_50=round(close_50, 2),
             low_10=round(low_10, 2),
             directional_prob=round(prob_bullish, 4),
-            is_bullish=prob_bullish >= 0.50,
+            is_bullish=is_bullish,
             regime_state=regime_state,
             regime_label=regime_label,
             confidence=round(confidence, 1),
             expected_range_pts=round(expected_range, 2),
-            inference_latency_ms=round(latency_ms, 2)
+            inference_latency_ms=round(latency_ms, 2),
+            prob_up=round(prob_up, 4),
+            prob_neutral=round(prob_neutral, 4),
+            prob_down=round(prob_down, 4),
+            dominant_direction=dominant_direction
         )

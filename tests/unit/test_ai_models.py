@@ -44,6 +44,12 @@ def test_quantile_monotonicity_and_envelope(synthetic_history):
         assert res.close_50 <= res.high_90, f"Monotonicity violation: Close {res.close_50} > High {res.high_90}"
         assert res.expected_range_pts >= 0.0
         assert 0.0 <= res.directional_prob <= 1.0
+        # 3-Way directional probability assertions
+        assert 0.0 <= res.prob_up <= 1.0
+        assert 0.0 <= res.prob_neutral <= 1.0
+        assert 0.0 <= res.prob_down <= 1.0
+        assert pytest.approx(res.prob_up + res.prob_neutral + res.prob_down, abs=0.01) == 1.0
+        assert res.dominant_direction in ("BULLISH", "SIDEWAYS", "BEARISH")
 
 
 def test_cpu_inference_latency_benchmark(synthetic_history):
@@ -97,6 +103,10 @@ def test_fastapi_prediction_endpoints():
     assert "low_10" in data
     assert "close_50" in data
     assert "directional_prob" in data
+    assert "prob_up" in data
+    assert "prob_neutral" in data
+    assert "prob_down" in data
+    assert pytest.approx(data["prob_up"] + data["prob_neutral"] + data["prob_down"], abs=0.01) == 1.0
     assert data["low_10"] <= data["close_50"] <= data["high_90"]
     assert body["meta"]["correlation_id"] is not None
     
