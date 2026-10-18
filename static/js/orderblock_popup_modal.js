@@ -65,7 +65,10 @@
                                 <canvas id="ob-sparkline-canvas" width="120" height="42" class="ob-spark-canvas"></canvas>
                                 <span class="ob-spark-label">Day Path</span>
                             </div>
-                            <button id="ob-modal-close" class="close-btn ob-close-btn close-modal" type="button" title="Close (Esc)">✕</button>
+                            <div class="ob-header-actions" style="display: flex; align-items: center; gap: 8px;">
+                                <button type="button" class="btn-info-doc ob-modal-guide-btn" data-doc-ref="orderblock-modal" title="How to read this Market Picture? Click for Docs">ℹ️ Guide</button>
+                                <button id="ob-modal-close" class="close-btn ob-close-btn close-modal" type="button" title="Close (Esc)">✕</button>
+                            </div>
                         </div>
 
                         <!-- Sub-header Badges: Rank, Conviction, Pick Rule -->

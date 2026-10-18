@@ -335,6 +335,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Global documentation deep-link handler: Any element with data-doc-ref="<anchor>" opens docs at that section
+    document.addEventListener('click', (e) => {
+        const docTrigger = e.target.closest('[data-doc-ref]');
+        if (docTrigger) {
+            e.preventDefault();
+            e.stopPropagation();
+            const ref = docTrigger.getAttribute('data-doc-ref');
+            window.open(`/docs.html#${ref}`, '_blank');
+        }
+    });
+
     // Initialize Alerts UI
     if (window.alertsController && typeof window.alertsController.init === 'function') {
         window.alertsController.init();

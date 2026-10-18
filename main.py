@@ -167,6 +167,11 @@ async def serve_data_glossary():
 async def serve_favicon():
     return Response(status_code=204)
 
+@app.get("/docs.html", include_in_schema=False)
+@app.get("/guide", include_in_schema=False)
+async def serve_docs():
+    return FileResponse("static/docs.html")
+
 @app.get("/", include_in_schema=False)
 async def serve_spa():
     return FileResponse("static/index.html")

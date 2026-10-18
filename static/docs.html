@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSE Quant Platform — Feature Documentation & User Manual</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #080b11;
+            --bg-surface: #0e1420;
+            --bg-card: #141c2c;
+            --bg-card-hover: #192338;
+            --border-subtle: #1e293b;
+            --border-focus: #00f0ff;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #00f0ff;
+            --accent-blue: #3b82f6;
+            --accent-gold: #fbbf24;
+            --accent-green: #10b981;
+            --accent-red: #f43f5e;
+            --accent-purple: #a855f7;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --sidebar-width: 280px;
+            --header-height: 60px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: calc(var(--header-height) + 24px);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 14.5px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Top Header */
+        .doc-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: rgba(14, 20, 32, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 1000;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .header-logo {
+            font-size: 20px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+
+        .btn-action:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        /* Container Layout */
+        .doc-layout {
+            display: flex;
+            margin-top: var(--header-height);
+            min-height: calc(100vh - var(--header-height));
+        }
+
+        /* Sidebar Navigation */
+        .doc-sidebar {
+            width: var(--sidebar-width);
+            position: fixed;
+            top: var(--header-height);
+            bottom: 0;
+            left: 0;
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border-subtle);
+            overflow-y: auto;
+            padding: 20px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            z-index: 100;
+        }
+
+        .sidebar-search {
+            position: relative;
+        }
+
+        .sidebar-search input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 8px 12px 8px 32px;
+            border-radius: 6px;
+            font-size: 12.5px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        .sidebar-search input:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .nav-group-title {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin: 12px 0 6px 8px;
+        }
+
+        .nav-links {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nav-links a {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.15s ease;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: rgba(0, 240, 255, 0.08);
+            color: var(--accent-cyan);
+        }
+
+        .nav-links a .tag {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        /* Main Content */
+        .doc-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 40px 48px 100px;
+            max-width: 1080px;
+        }
+
+        /* Visual Card */
+        .doc-section {
+            margin-bottom: 56px;
+            scroll-margin-top: calc(var(--header-height) + 24px);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .section-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-icon {
+            font-size: 24px;
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .anchor-badge {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .anchor-badge:hover {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+
+        .doc-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .doc-card:hover {
+            border-color: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-summary {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        /* Visual Architecture Flow Diagram */
+        .visual-flow {
+            background: #06090e;
+            border: 1px dashed var(--border-subtle);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 16px 0;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: #38bdf8;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.4;
+        }
+
+        /* Data Tables */
+        .doc-table-wrap {
+            overflow-x: auto;
+            margin: 16px 0;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: var(--bg-card);
+        }
+
+        table.doc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        table.doc-table th {
+            background: #111827;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        table.doc-table td {
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        table.doc-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.doc-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .cell-mono {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--accent-cyan);
+        }
+
+        .badge-pill {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .badge-green { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-red { background: rgba(244, 63, 94, 0.15); color: var(--accent-red); border: 1px solid rgba(244, 63, 94, 0.3); }
+        .badge-gold { background: rgba(251, 191, 36, 0.15); color: var(--accent-gold); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .badge-cyan { background: rgba(0, 240, 255, 0.15); color: var(--accent-cyan); border: 1px solid rgba(0, 240, 255, 0.3); }
+
+        /* Trader Edge Callout Box */
+        .trader-callout {
+            background: rgba(16, 185, 129, 0.05);
+            border-left: 3px solid var(--accent-green);
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin: 16px 0 8px;
+            font-size: 13px;
+            color: #d1fae5;
+        }
+
+        .trader-callout strong {
+            color: var(--accent-green);
+        }
+
+        .trader-callout.warning {
+            background: rgba(244, 63, 94, 0.05);
+            border-left-color: var(--accent-red);
+            color: #ffe4e6;
+        }
+
+        .trader-callout.warning strong {
+            color: var(--accent-red);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            color: var(--accent-cyan);
+            border: 1px solid var(--accent-cyan);
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            transform: translateY(12px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .doc-sidebar {
+                display: none;
+            }
+            .doc-content {
+                margin-left: 0;
+                padding: 24px 16px 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="doc-header">
+        <a href="#overview" class="header-brand">
+            <span class="header-logo">⚡ NSE Quant Platform</span>
+            <span class="header-badge">DOCUMENTATION & USER MANUAL</span>
+        </a>
+        <div class="header-actions">
+            <span id="quick-link-copy" class="anchor-badge" title="Copy Current Section Anchor Link">🔗 Copy Anchor</span>
+            <a href="/" target="_blank" class="btn-action">
+                <span>🖥️ Launch App</span>
+                <span style="font-size: 11px;">↗</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="doc-layout">
+
+        <!-- Sidebar Navigation -->
+        <aside class="doc-sidebar">
+            <div class="sidebar-search">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="doc-search-input" placeholder="Search features & metrics..." autocomplete="off">
+            </div>
+
+            <div class="nav-group-title">Core Systems</div>
+            <ul class="nav-links">
+                <li><a href="#overview"><span>🗺️ Overview & Architecture</span></a></li>
+                <li><a href="#fyers-auth"><span>🔑 Fyers API & Auth</span> <span class="tag">OAuth</span></a></li>
+                <li><a href="#duckdb-engine"><span>💾 DuckDB Engine</span> <span class="tag">OLAP</span></a></li>
+            </ul>
+
+            <div class="nav-group-title">Trading Modules</div>
+            <ul class="nav-links">
+                <li><a href="#chart"><span>📈 Interactive Chart</span> <span class="tag">60fps</span></a></li>
+                <li><a href="#chart-ai-hud"><span>🔮 AI Predictive HUD</span> <span class="tag">Q10-Q90</span></a></li>
+                <li><a href="#chart-smc-alignment"><span>🎯 4-Point SMC Edge</span> <span class="tag">4/4</span></a></li>
+                <li><a href="#orderblock"><span>🏛️ OrderBlock Suite</span> <span class="tag">Institutional</span></a></li>
+                <li><a href="#orderblock-modal"><span>🔍 Stock Detail Modal</span> <span class="tag">Popup</span></a></li>
+                <li><a href="#screener"><span>🔍 Stock Screener</span> <span class="tag">Sub-2s</span></a></li>
+                <li><a href="#options"><span>⚡ Options & Greeks</span> <span class="tag">Black-Scholes</span></a></li>
+                <li><a href="#backtest"><span>🧪 Quant Backtest Lab</span> <span class="tag">Monte Carlo</span></a></li>
+                <li><a href="#paper-trading"><span>📝 Paper Trading Dock</span> <span class="tag">Zero-Risk</span></a></li>
+                <li><a href="#journal"><span>📓 Trade Journal</span> <span class="tag">Heatmap</span></a></li>
+                <li><a href="#alerts"><span>🔔 Price & Tech Alerts</span> <span class="tag">Live</span></a></li>
+                <li><a href="#downloads"><span>💾 Downloads & Exports</span> <span class="tag">Parquet</span></a></li>
+            </ul>
+
+            <div class="nav-group-title">Reference</div>
+            <ul class="nav-links">
+                <li><a href="#compliance"><span>🛡️ Safety & SEBI Rules</span></a></li>
+                <li><a href="#shortcuts"><span>⌨️ Hotkey Directory</span></a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Documentation Content -->
+        <main class="doc-content">
+
+            <!-- SECTION 1: Overview & Architecture -->
+            <section id="overview" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🗺️</span>
+                        <h2 class="section-title">Platform Overview & Architecture</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('overview')">#overview</span>
+                </div>
+
+                <div class="doc-card">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Institutional Local-First Architecture</h3>
+                        <span class="badge-pill badge-cyan">VECTORIZED OLAP</span>
+                    </div>
+                    <p class="card-summary">
+                        The NSE Quant Platform is engineered as a high-speed, local-first research terminal. It pulls raw 1-minute and 1-day candles from Fyers API v3 into an embedded DuckDB database, resamples timeframes in microseconds, and streams analytics into a zero-latency TradingView canvas.
+                    </p>
+
+                    <div class="visual-flow">
+[Fyers API v3 WebSocket / REST]
+          │ (1m Candles & Quotes)
+          ▼
+[FastAPI Rate Governor & Security Vault]
+          │ (Worker Process = 1)
+          ▼
+[Embedded DuckDB Storage (data/market_data.duckdb)]
+          │ (Microsecond In-Memory Vector Resampling)
+          ├──► [1m, 3m, 5m, 15m, 1h, 1D OHLCV Bars]
+          ├──► [AI Conformal Corridor Engine (LightGBM)]
+          ├──► [OrderBlock Absorption & Volume Footprint]
+          └──► [Black-Scholes Options Greeks Engine]
+          │
+          ▼
+[TradingView Lightweight Charts (v4.2.1) + Web UI]
+                    </div>
+
+                    <div class="trader-callout">
+                        <strong>Trader Edge:</strong> Because data is stored and processed locally on your machine, charts, screeners, and backtests execute instantly without lag, cloud downtime, or recurring third-party API subscription costs.
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: Fyers Auth & Session -->
+            <section id="fyers-auth" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🔑</span>
+                        <h2 class="section-title">Fyers API & Session Management</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('fyers-auth')">#fyers-auth</span>
+                </div>
+
+                <div class="doc-card">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Dual-Token OAuth 2.0 Security</h3>
+                        <span class="badge-pill badge-green">ACTIVE SESSION</span>
+                    </div>
+                    <p class="card-summary">
+                        Fyers API v3 operates on a dual-token model. An Access Token grants market data queries for 24 hours (until 06:00 AM IST), while a Refresh Token remains valid for 15 days, enabling silent daily renewals without requiring manual login.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Token Type</th>
+                                    <th>Validity Duration</th>
+                                    <th>Storage Location</th>
+                                    <th>Renewal Workflow</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">Access Token</td>
+                                    <td>Daily (~06:00 AM IST)</td>
+                                    <td>OS Keyring / AES-256 Vault</td>
+                                    <td>Auto-refreshed via Refresh Token</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Refresh Token</td>
+                                    <td>15 Calendar Days</td>
+                                    <td>Windows Credential Manager</td>
+                                    <td>Interactive login: <span class="cell-mono">python -m scripts.auth_cli --login</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="trader-callout">
+                        <strong>Top Bar Auth Countdown:</strong> The top bar displays your remaining token life (e.g. <span class="cell-mono">🔑 Token: 14h 22m</span>). If the session expires, click the badge or run the login CLI.
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: Interactive Chart Workspace -->
+            <section id="chart" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">📈</span>
+                        <h2 class="section-title">Interactive Chart & Technical Visualizer</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('chart')">#chart</span>
+                </div>
+
+                <!-- Timeframes & Resampling -->
+                <div class="doc-card" id="chart-timeframes">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Multi-Timeframe Vector Resampling</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('chart-timeframes')">#chart-timeframes</span>
+                    </div>
+                    <p class="card-summary">
+                        The platform downloads and stores only high-fidelity 1-minute and 1-day candles. All intermediate timeframes (3m, 5m, 10m, 15m, 30m, 1h) are derived algorithmically using vectorized DuckDB resampling aligned strictly with NSE market hours (09:15 to 15:30 IST).
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Button / Timeframe</th>
+                                    <th>Derivation Method</th>
+                                    <th>Market Alignment</th>
+                                    <th>Ideal Use Case</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">1m</td>
+                                    <td>Direct Fyers Historical Feed</td>
+                                    <td>09:15:00 - 09:16:00</td>
+                                    <td>Micro scalping & execution timing</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">3m / 5m</td>
+                                    <td>Resampled from 1m (5 bars)</td>
+                                    <td>09:15, 09:20, 09:25...</td>
+                                    <td>Intraday momentum & order block retests</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">15m / 1h</td>
+                                    <td>Resampled from 1m (15/60 bars)</td>
+                                    <td>Hourly intervals from 09:15</td>
+                                    <td>Structural swing bias & key liquidity pools</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">1D</td>
+                                    <td>Official NSE EOD Settlement</td>
+                                    <td>EOD Adjusted (cont_flag=1)</td>
+                                    <td>Macro trend, multi-month levels, delivery</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- AI Predictive HUD -->
+                <div class="doc-card" id="chart-ai-hud">
+                    <div class="card-title-row">
+                        <h3 class="card-title">🔮 AI Conformal Predictive HUD</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('chart-ai-hud')">#chart-ai-hud</span>
+                    </div>
+                    <p class="card-summary">
+                        Powered by a sub-10ms LightGBM quantile regression engine, the predictive HUD projects the expected trading corridor for the upcoming candle with mathematical certainty (80% empirical quantile coverage between Q10 and Q90).
+                    </p>
+
+                    <div class="visual-flow">
+[Live 5s Ticks + Volume] ──► [Feature Pipeline: Volatility + Drift + Volume Spread]
+                                                 │
+                                                 ▼
+                              [LightGBM Quantile Models (Q10, Q50, Q90)]
+                                                 │
+                                                 ▼
+                             ┌───────────────────────────────────────┐
+                             │ REGIME: EXPANSION                     │
+                             │ DIRECTION: BULLISH (74%)              │
+                             │ CORRIDOR: ₹2,488.50 - ₹2,514.00       │
+                             └───────────────────────────────────────┘
+                    </div>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>HUD Metric</th>
+                                    <th>Display Value</th>
+                                    <th>Mathematical Meaning</th>
+                                    <th>Trading Strategy</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">hud-regime</td>
+                                    <td><span class="badge-pill badge-green">EXPANSION</span> / <span class="badge-pill badge-gold">RANGING</span></td>
+                                    <td>Volatility state classification</td>
+                                    <td>Trade breakouts in Expansion; trade mean reversion in Ranging.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">hud-dir-badge</td>
+                                    <td><span class="cell-mono">▲ 72%</span> or <span class="cell-mono">▼ 28%</span></td>
+                                    <td>Directional probability bias</td>
+                                    <td>Align your intraday position with &gt; 65% directional probability.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">hud-range-corridor</td>
+                                    <td><span class="cell-mono">₹2,490 - ₹2,515</span></td>
+                                    <td>80% statistical price envelope (Q10 to Q90)</td>
+                                    <td>Use Q10 as dynamic stop-loss or Q90 as realistic profit target.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="trader-callout">
+                        <strong>Conformal Guarantee:</strong> 8 out of every 10 candles close strictly inside this corridor. A price breach outside the corridor signals institutional volume breakout.
+                    </div>
+                </div>
+
+                <!-- 4-Point SMC Alignment -->
+                <div class="doc-card" id="chart-smc-alignment">
+                    <div class="card-title-row">
+                        <h3 class="card-title">🎯 4-Point Institutional Alignment (SMC Drawer)</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('chart-smc-alignment')">#chart-smc-alignment</span>
+                    </div>
+                    <p class="card-summary">
+                        Evaluates whether a trade setup meets Smart Money Concepts (SMC) criteria across 4 discrete quantitative gates: Higher-Timeframe Trend, Liquidity Sweep, Momentum Confirmation, and Institutional Absorption.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Alignment Score</th>
+                                    <th>Status Badge</th>
+                                    <th>Institutional Meaning</th>
+                                    <th>Recommended Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">4/4 Score</td>
+                                    <td><span class="badge-pill badge-green">FULL EDGE</span></td>
+                                    <td>All 4 institutional filters aligned</td>
+                                    <td>High conviction entry with standard position size.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">3/4 Score</td>
+                                    <td><span class="badge-pill badge-gold">MODERATE</span></td>
+                                    <td>3 gates passed, 1 missing confirmation</td>
+                                    <td>Wait for candle close confirmation or reduce size by 50%.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">&lt; 3/4 Score</td>
+                                    <td><span class="badge-pill badge-red">CHOP / NO EDGE</span></td>
+                                    <td>Conflicting signals or sideways drift</td>
+                                    <td>Do not enter; high risk of whipsaw stop-loss hit.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: OrderBlock Institutional Suite -->
+            <section id="orderblock" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🏛️</span>
+                        <h2 class="section-title">OrderBlock Institutional Suite</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('orderblock')">#orderblock</span>
+                </div>
+
+                <div class="doc-card" id="orderblock-conviction">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Absorption Footprint & Conviction Score</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('orderblock-conviction')">#orderblock-conviction</span>
+                    </div>
+                    <p class="card-summary">
+                        Identifies where institutional orders (FIIs/DIIs) are actively absorbing retail liquidity. Computes real-time absorption volume in ₹ Crores, Bid-Ask Delta skew, and an algorithmic Conviction Score from 0 to 100.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric / Badge</th>
+                                    <th>Field Key</th>
+                                    <th>Interpretation & Formula</th>
+                                    <th>Significance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">RANK</td>
+                                    <td><span class="badge-pill badge-cyan">p99.8 · #1/130</span></td>
+                                    <td>Mid-rank percentile across active stock universe</td>
+                                    <td>p99+ represents top 1% institutional focus today.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">CONV (Conviction)</td>
+                                    <td><span class="badge-pill badge-gold">97 ●●●●●</span></td>
+                                    <td>Composite score based on volume surge, delta, and level retest</td>
+                                    <td>Score &gt; 80 indicates aggressive institutional defense of the price level.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">RULE</td>
+                                    <td><span class="badge-pill badge-green">PICK · BULLISH #1</span></td>
+                                    <td>SMC Rule Classification (Bullish / Bearish / Swept)</td>
+                                    <td>Categorizes setup into high-probability execution patterns.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Absorption ₹ Cr</td>
+                                    <td><span class="cell-mono">₹48.2 Cr</span></td>
+                                    <td>Total turnover traded strictly within the order block zone</td>
+                                    <td>High absorption indicates large block fills holding price steady.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Stock Detail Popup Modal -->
+                <div class="doc-card" id="orderblock-modal">
+                    <div class="card-title-row">
+                        <h3 class="card-title">🔍 Stock Detail Modal & Market Picture</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('orderblock-modal')">#orderblock-modal</span>
+                    </div>
+                    <p class="card-summary">
+                        Clicking the <strong>"View"</strong> button on any OrderBlock stock card launches the comprehensive Market Picture popup. It provides a multi-dimensional institutional X-ray of the selected stock.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Popup Section</th>
+                                    <th>Data Visualized</th>
+                                    <th>Underlying Analysis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">Card Header</td>
+                                    <td>Symbol, Sector Badge, Live Price, Day Move %</td>
+                                    <td>Real-time tick updates with color-coded rupee change.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Day Path Sparkline</td>
+                                    <td>Micro HTML5 Canvas Canvas sparkline</td>
+                                    <td>Plots intraday trajectory without loading full chart workspace.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Market Context</td>
+                                    <td>Nifty 50 Bias, Sector Momentum, Relative Strength (RS)</td>
+                                    <td>Calculates whether stock is outperforming its benchmark index.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Profile Engine</td>
+                                    <td>Volume Profile Value Area (VAH, VAL, POC)</td>
+                                    <td>Identifies Point of Control (POC) where 70% of volume traded.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="trader-callout">
+                        <strong>Dismissing the Popup:</strong> Press <span class="cell-mono">Esc</span> on your keyboard, click the <span class="cell-mono">✕</span> button, or click anywhere outside the popup card on the dark backdrop.
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: In-Database Stock Screener -->
+            <section id="screener" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🔍</span>
+                        <h2 class="section-title">In-Database Stock Screener</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('screener')">#screener</span>
+                </div>
+
+                <div class="doc-card" id="screener-presets">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Sub-2 Second Vectorized Screening</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('screener-presets')">#screener-presets</span>
+                    </div>
+                    <p class="card-summary">
+                        Unlike traditional web screeners that query external APIs on every click, this screener executes vectorized SQL window functions directly inside DuckDB, scanning 2,000+ NSE stocks in under 2 seconds.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Preset Filter</th>
+                                    <th>SQL Criteria</th>
+                                    <th>Trading Setup</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">Volume Surge</td>
+                                    <td><span class="cell-mono">volume &gt; 2.5 * avg_volume_20d</span></td>
+                                    <td>Institutional participation & news catalysts.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">52-Week High</td>
+                                    <td><span class="cell-mono">close &gt;= max(high_52w) * 0.99</span></td>
+                                    <td>Momentum breakouts with zero overhead supply resistance.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">RSI Oversold</td>
+                                    <td><span class="cell-mono">rsi_14 &lt; 30 AND close &gt; sma_200</span></td>
+                                    <td>High-probability dip buying in long-term uptrends.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">RSI Momentum</td>
+                                    <td><span class="cell-mono">rsi_14 BETWEEN 60 AND 75</span></td>
+                                    <td>Strong trend continuation without being over-extended.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 6: Options & Greeks Lab -->
+            <section id="options" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">⚡</span>
+                        <h2 class="section-title">Options Trading & Greeks Lab</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('options')">#options</span>
+                </div>
+
+                <div class="doc-card" id="options-greeks">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Black-Scholes Mathematical Engine</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('options-greeks')">#options-greeks</span>
+                    </div>
+                    <p class="card-summary">
+                        Calculates theoretical option pricing and real-time sensitivity Greeks using the Black-Scholes-Merton model calibrated against the RBI 91-Day Treasury Bill risk-free rate.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Greek Symbol</th>
+                                    <th>Greek Name</th>
+                                    <th>What It Measures</th>
+                                    <th>Target for Buyers / Sellers</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">Δ (Delta)</td>
+                                    <td>Price Sensitivity</td>
+                                    <td>₹ Change in option price per ₹1 move in spot</td>
+                                    <td>Buyers want high Delta (0.5 to 0.8) for quick price expansion.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Γ (Gamma)</td>
+                                    <td>Delta Acceleration</td>
+                                    <td>Rate of change of Delta per ₹1 move in spot</td>
+                                    <td>High near ATM strikes; triggers gamma squeezes on expiry days.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Θ (Theta)</td>
+                                    <td>Time Decay</td>
+                                    <td>₹ Loss in option value per elapsed calendar day</td>
+                                    <td>Option sellers profit from negative Theta decay.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">ν (Vega)</td>
+                                    <td>Volatility Sensitivity</td>
+                                    <td>₹ Change in option price per 1% change in IV</td>
+                                    <td>Buy options before expected volatility spikes (e.g. RBI policy / earnings).</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 7: Quantitative Backtesting Studio -->
+            <section id="backtest" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🧪</span>
+                        <h2 class="section-title">Quantitative Backtesting Studio</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('backtest')">#backtest</span>
+                </div>
+
+                <div class="doc-card" id="backtest-costs">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Indian Tax & Realistic Friction Model</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('backtest-costs')">#backtest-costs</span>
+                    </div>
+                    <p class="card-summary">
+                        Most backtesters show unrealistic profits because they ignore taxes and slippage. This engine deducts exact Indian regulatory fees on every simulated transaction.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Tax / Charge</th>
+                                    <th>Delivery Trades</th>
+                                    <th>Intraday Trades</th>
+                                    <th>Statutory Authority</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">STT (Securities Transaction Tax)</td>
+                                    <td>0.1% on Buy & Sell</td>
+                                    <td>0.025% on Sell only</td>
+                                    <td>Government of India</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Exchange Turnover Fee</td>
+                                    <td>0.00345%</td>
+                                    <td>0.00345%</td>
+                                    <td>National Stock Exchange (NSE)</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">SEBI Charges</td>
+                                    <td>₹10 per Crore</td>
+                                    <td>₹10 per Crore</td>
+                                    <td>SEBI</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Stamp Duty</td>
+                                    <td>0.015% on Buy</td>
+                                    <td>0.003% on Buy</td>
+                                    <td>Indian Stamp Act</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Slippage Model</td>
+                                    <td>5 basis points (0.05%)</td>
+                                    <td>5 basis points (0.05%)</td>
+                                    <td>Realistic Bid-Ask spread execution lag</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 8: Trade Journal & Behavioral Analytics -->
+            <section id="journal" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">📓</span>
+                        <h2 class="section-title">Trade Journal & Behavioral Analytics</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('journal')">#journal</span>
+                </div>
+
+                <div class="doc-card" id="journal-calendar">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Monthly P&L Heatmap & Psychological Audit</h3>
+                        <span class="anchor-badge" onclick="copyAnchor('journal-calendar')">#journal-calendar</span>
+                    </div>
+                    <p class="card-summary">
+                        Tracks your personal trading performance like an institutional desk. Identifies which trading days are most profitable and calculates the exact rupee cost of emotional mistakes.
+                    </p>
+
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Behavioral Tag</th>
+                                    <th>Color Code</th>
+                                    <th>Mistake Definition</th>
+                                    <th>Audit Impact</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">#FOMO</td>
+                                    <td><span class="badge-pill badge-red">EMOTIONAL</span></td>
+                                    <td>Entering after price has already moved &gt; 2% away from setup</td>
+                                    <td>Tracks total cumulative loss caused by chasing breakouts.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">#REVENGE</td>
+                                    <td><span class="badge-pill badge-red">CRITICAL</span></td>
+                                    <td>Taking an immediate oversized trade after a stop-loss hit</td>
+                                    <td>Flags breach of daily risk limit rules.</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">#PLAN_FOLLOWED</td>
+                                    <td><span class="badge-pill badge-green">DISCIPLINED</span></td>
+                                    <td>Entry, stop-loss, and target executed strictly according to rule</td>
+                                    <td>Measures system adherence win rate.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 9: Regulatory Safety & SEBI Rules -->
+            <section id="compliance" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">🛡️</span>
+                        <h2 class="section-title">Safety & Regulatory Compliance</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('compliance')">#compliance</span>
+                </div>
+
+                <div class="doc-card">
+                    <div class="card-title-row">
+                        <h3 class="card-title">Architectural Hard Gates & Disclaimer Policy</h3>
+                        <span class="badge-pill badge-red">STRICT COMPLIANCE</span>
+                    </div>
+                    <p class="card-summary">
+                        This platform is strictly designed for quantitative research, backtesting, and self-directed market education in compliance with SEBI Research Analyst guidelines.
+                    </p>
+
+                    <div class="trader-callout warning">
+                        <strong>Hard Gate — Zero Automated Order Placement:</strong> In compliance with exchange algorithmic trading guidelines, automated live order routing is strictly disabled. Calling order execution routes returns an irreversible <strong>HTTP 403 Forbidden</strong> response. All live orders must be manually placed by the user on official broker terminals.
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 10: Keyboard Hotkeys -->
+            <section id="shortcuts" class="doc-section">
+                <div class="section-header">
+                    <div class="section-title-wrap">
+                        <span class="section-icon">⌨️</span>
+                        <h2 class="section-title">Keyboard Shortcuts & Hotkey Reference</h2>
+                    </div>
+                    <span class="anchor-badge" onclick="copyAnchor('shortcuts')">#shortcuts</span>
+                </div>
+
+                <div class="doc-card">
+                    <div class="doc-table-wrap">
+                        <table class="doc-table">
+                            <thead>
+                                <tr>
+                                    <th>Shortcut Key</th>
+                                    <th>Action Triggered</th>
+                                    <th>Scope / Context</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="cell-mono">Ctrl + K  /  /</td>
+                                    <td>Open Smart Symbol Search dialog</td>
+                                    <td>Global (Anywhere on Platform)</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Esc</td>
+                                    <td>Close active modal, popup, or search box</td>
+                                    <td>Global</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">1, 2, 3, 4, 5</td>
+                                    <td>Switch timeframes (1m, 3m, 5m, 15m, 1D)</td>
+                                    <td>Chart Workspace</td>
+                                </tr>
+                                <tr>
+                                    <td class="cell-mono">Alt + P</td>
+                                    <td>Toggle Pro Mode vs Simple Mode</td>
+                                    <td>Top Navigation Bar</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="toast" class="toast">Anchor link copied to clipboard!</div>
+
+    <!-- Client Script -->
+    <script>
+        // Copy Anchor URL to Clipboard with Toast Notification
+        function copyAnchor(anchorId) {
+            const url = window.location.origin + window.location.pathname + '#' + anchorId;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast(`Anchor URL copied: #${anchorId}`);
+            }).catch(() => {
+                showToast(`Section: #${anchorId}`);
+            });
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('visible');
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 2500);
+        }
+
+        // Live Search Filter for Sidebar Navigation & Content Cards
+        document.getElementById('doc-search-input').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase().trim();
+            const navLinks = document.querySelectorAll('.nav-links li');
+            const docCards = document.querySelectorAll('.doc-card');
+
+            navLinks.forEach(link => {
+                const text = link.textContent.toLowerCase();
+                link.style.display = text.includes(query) ? '' : 'none';
+            });
+
+            if (query.length > 1) {
+                docCards.forEach(card => {
+                    const text = card.textContent.toLowerCase();
+                    card.style.display = text.includes(query) ? '' : 'none';
+                });
+            } else {
+                docCards.forEach(card => card.style.display = '');
+            }
+        });
+
+        // Top bar quick copy current hash
+        document.getElementById('quick-link-copy').addEventListener('click', function() {
+            const currentHash = window.location.hash || '#overview';
+            copyAnchor(currentHash.replace('#', ''));
+        });
+
+        // Highlight active sidebar item on scroll
+        const sections = document.querySelectorAll('.doc-section');
+        const navItems = document.querySelectorAll('.nav-links a');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 120;
+                if (pageYOffset >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navItems.forEach(a => {
+                a.classList.remove('active');
+                if (a.getAttribute('href') === `#${current}`) {
+                    a.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

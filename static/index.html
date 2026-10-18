@@ -50,6 +50,9 @@
                     <span id="alert-badge-count" class="alert-count-badge">0</span>
                 </button>
 
+                <a href="/docs.html" target="_blank" id="btn-docs" class="nav-btn docs-btn" title="Platform Documentation & Feature Guide">
+                    <span class="icon">📖</span> Docs
+                </a>
                 <button id="btn-downloader" class="nav-btn">Downloads</button>
                 <div id="auth-badge" class="auth-badge auth-ok">
                     🔑 Token: <span id="auth-countdown">--h --m</span>
@@ -383,6 +386,7 @@
                         <p class="view-subtitle">Scan Nifty 500 and broader NSE equities using technical indicators, volume breakouts, and RSI filters.</p>
                     </div>
                     <div class="header-actions">
+                        <button type="button" class="btn-info-doc" data-doc-ref="screener" title="Screener Guide: How does it work?">ℹ️ Guide</button>
                         <span id="screener-real-data-badge" class="badge-pill font-mono" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">🟢 Real NSE Data (Zero Fake)</span>
                         <span id="screener-asof-badge" class="badge-pill font-mono" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">As of: --</span>
                         <span id="screener-count-badge" class="badge-pill">Scanning...</span>
@@ -460,6 +464,7 @@
                         <p class="view-subtitle">Full strike matrix, Black-Scholes Greeks (Δ, Γ, Θ, Vega), Expiration Max Pain, and Multi-leg Payoff curve.</p>
                     </div>
                     <div class="options-controls">
+                        <button type="button" class="btn-info-doc" data-doc-ref="options" title="Options & Greeks Guide: How it works">ℹ️ Guide</button>
                         <div class="options-quick-chips">
                             <button class="options-chip-btn active" data-symbol="NSE:NIFTY50-INDEX">NIFTY (25)</button>
                             <button class="options-chip-btn" data-symbol="NSE:NIFTYBANK-INDEX">BANKNIFTY (15)</button>
@@ -741,6 +746,7 @@
                         <p class="view-subtitle">Review historical execution, psychological tagging, equity curves, and cost of mistakes.</p>
                     </div>
                     <div class="journal-toolbar">
+                        <button type="button" class="btn-info-doc" data-doc-ref="journal" title="Journal Guide: How does behavioral tracking work?">ℹ️ Guide</button>
                         <button id="btn-open-log-trade" class="btn-primary">➕ Log Trade</button>
                         <button id="btn-import-tradebook" class="btn-secondary">📥 Import Tradebook</button>
                         <a id="btn-download-sample-csv" href="/api/v1/journal/sample-csv" download="sample_tradebook.csv" class="btn-secondary" title="Download sample tradebook CSV file">📄 Sample CSV</a>
@@ -939,6 +945,7 @@
                         <p class="view-subtitle">Real-time Intraday One-Directional Strength, Top 20 Boards, 5m Order Blocks, Market X-Ray & Sector Flow.</p>
                     </div>
                     <div class="orderblock-top-actions">
+                        <button type="button" class="btn-info-doc" data-doc-ref="orderblock" title="How does OrderBlock Suite work? Click to open Docs">ℹ️ Guide</button>
                         <button id="btn-orderblock-refresh" class="btn-secondary" title="Refresh OrderBlock snapshot">🔄 Refresh</button>
                         <span id="orderblock-auto-refresh-badge" class="badge-mini font-mono">Live 60s</span>
                     </div>
